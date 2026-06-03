@@ -55,8 +55,8 @@ function fight() {
     GameState.currentEnemyIndex++;
     let texte = `Tu as vaincu le monstre ! `;
 
-    if (gainXp(5)) {
-      texte += `<br>🆙 Tu es passé niveau ${player.level} !`;
+    if (gainXp(enemy.xpReward)) {
+      texte += `<br>🆙 Tu es passé niveau ${GameState.player.level} !`;
     }
 
     updatePlayerUI();
@@ -77,7 +77,7 @@ function fight() {
 }
 
 function heal() {
-  const { player, currentEnemy: enemy, enemies } = GameState;
+  const { player, enemies } = GameState;
   if (player.hp <= 0 || enemies.length === 0) return;
 
   const { healAmount, newPlayerHp } = calcHeal({ player });
@@ -106,7 +106,7 @@ function run() {
 function enemyCounterAttack() {
   setTimeout(() => {
     const { player, currentEnemy: enemy } = GameState;
-    const damage = Math.floor(Math.random() * 4);
+    const damage = enemy.attack;
     GameState.player.hp = Math.max(0, player.hp - damage);
 
     document.getElementById("player").classList.add("hit");
@@ -122,3 +122,13 @@ function enemyCounterAttack() {
     }
   }, 800);
 }
+
+// — Initialisation —
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("start-btn").addEventListener("click", startGame);
+  document.getElementById("launch-btn").addEventListener("click", launchGameplay);
+  document.getElementById("fight-btn").addEventListener("click", fight);
+  document.getElementById("heal-btn").addEventListener("click", heal);
+  document.getElementById("run-btn").addEventListener("click", run);
+});
