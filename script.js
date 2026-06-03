@@ -9,11 +9,15 @@ function startGame() {
     "Aujourd'hui, quelque chose rôde dans les bois. Les morts se lèvent. Le sang ancien appelle.<br><br>" +
     "Maelor n'est pas là pour sauver le royaume.<br>Il est là pour réclamer ce qui lui revient.");
 
+  document.querySelector(".char-row").style.display = "none";
+  document.getElementById("choices").style.display = "none";
   document.getElementById("continue-button").style.display = "block";
 }
 
 function launchGameplay() {
   document.getElementById("continue-button").style.display = "none";
+  document.querySelector(".char-row").style.display = "";
+  document.getElementById("choices").style.display = "";
   document.body.classList.add("game-started");
   updateStory("Une créature surgit de l'ombre... prépare-toi à combattre !");
 }
