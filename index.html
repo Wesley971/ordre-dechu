@@ -3,68 +3,102 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta property="og:title" content="Mini RPG - L’Ordre Déchu">
+  <meta property="og:title" content="Mini RPG - L'Ordre Déchu">
   <meta property="og:description" content="Une aventure interactive dans un monde sombre et fantastique.">
   <meta property="og:image" content="https://wesley971.github.io/Mini-RPG/images/preview.png">
   <meta property="og:url" content="https://wesley971.github.io/Mini-RPG/">
   <meta property="og:type" content="website">
-  <link href="https://fonts.googleapis.com/css2?family=UnifrakturCook:700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500&display=swap" rel="stylesheet">
-
-
-  <title>L’Ordre Déchu</title>
+  <title>L'Ordre Déchu</title>
+  <link rel="stylesheet" href="colors_and_type.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="lock-scroll">
-  <!-- Écran d’intro -->
+
+  <!-- ── ÉCRAN D'INTRO ───────────────────────────────────────────── -->
   <div id="intro-screen">
-    <h1>🩸 L’Ordre Déchu</h1>
-    <p class="subtitle">Une aventure de Maelor du Val Ténébreux</p>
-    <button id="start-btn">🎬 Commencer l’aventure</button>
+    <div class="intro-card">
+      <div class="rule"></div>
+      <h1>L'Ordre<br>Déchu</h1>
+      <div class="rule"></div>
+      <p class="intro-sub">Une aventure de Maelor du Val Ténébreux</p>
+      <button id="start-btn">🎬 Commencer l'aventure</button>
+    </div>
   </div>
 
-  <!-- Contenu principal du jeu -->
+  <!-- ── ÉCRAN PRINCIPAL DU JEU ─────────────────────────────────── -->
   <div id="game">
-    <!-- Zone du héros -->
-    <div id="player" class="character">
-      <h2><img src="images/geralt-emoji.png" alt="Geralt le Héros" class="emoji-hero">Maelor du Val Ténébreux</h2>
-      <div class="health-bar">
-        <div id="player-hp-bar" class="bar"></div>
+
+    <!-- Personnages -->
+    <div class="char-row">
+
+      <!-- Héros -->
+      <div id="player" class="char-card">
+        <div class="char-head">
+          <img src="images/geralt-emoji.png" alt="Maelor" class="char-sprite sprite-float">
+          <div>
+            <div class="char-name">Maelor</div>
+            <div class="char-sub" id="player-level-text">Val Ténébreux · Niv. 1</div>
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="stat-row">
+          <div class="stat-top">
+            <span class="stat-label">HP</span>
+            <span class="stat-val" id="player-hp-text">20</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-fill hp" id="player-hp-bar" style="width:100%"></div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-top">
+            <span class="stat-label">XP</span>
+            <span class="stat-val" id="player-xp-text">0</span>
+          </div>
+        </div>
       </div>
-      <p id="player-hp-text">HP: 20</p>
-      <p id="player-xp-text">XP : 0</p>
-      <p id="player-level-text">Niveau : 1</p>
 
-
-    </div>
-
-    <!-- Zone de l’ennemi -->
-    <div id="enemy" class="character">
-      <h2><img id="enemy-image" src="images/gobelin.png" alt="Ennemi" class="emoji-enemy">
-         <span id="enemy-name">Gobelin</span></h2>
-      <div class="health-bar">
-        <div id="enemy-hp-bar" class="bar"></div>
+      <!-- Ennemi -->
+      <div id="enemy" class="char-card">
+        <div class="char-head">
+          <img id="enemy-image" src="images/gobelin.png" alt="Ennemi" class="char-sprite sprite-float">
+          <div>
+            <div class="char-name" id="enemy-name">Gobelin</div>
+            <div class="char-sub">Ennemi</div>
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="stat-row">
+          <div class="stat-top">
+            <span class="stat-label">HP</span>
+            <span class="stat-val" id="enemy-hp-text">10</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-fill hp" id="enemy-hp-bar" style="width:100%"></div>
+          </div>
+        </div>
       </div>
-      <p id="enemy-hp-text">HP: 10</p>
-    </div>
 
-    <!-- Boutons d’action -->
-    <div id="choices">
-      <button id="fight-btn">⚔ Attaquer</button>
-      <button id="heal-btn">🧪 Se soigner</button>
-      <button id="run-btn">🏃 Fuir</button>
-    </div>
+    </div><!-- /char-row -->
 
     <!-- Texte narratif -->
     <div id="story">
       Une brume épaisse recouvre la forêt... un bruit de pas approche.
     </div>
 
-    <!-- Bouton "Continuer" -->
-    <div id="continue-button">
+    <!-- Boutons d'action -->
+    <div id="choices" class="actions">
+      <button id="fight-btn">⚔ Attaquer</button>
+      <button id="heal-btn">🧪 Se soigner</button>
+      <button id="run-btn">🏃 Fuir</button>
+    </div>
+
+    <!-- Bouton "Continuer" (lore → combat) -->
+    <div id="continue-button" class="actions">
       <button id="launch-btn">➡️ Continuer</button>
     </div>
-  </div>
+
+  </div><!-- /game -->
 
   <script src="config.js"></script>
   <script src="data.js"></script>

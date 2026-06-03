@@ -1,0 +1,270 @@
+/*
+ * L'Ordre Déchu — Design System
+ * colors_and_type.css
+ * Base tokens + semantic CSS custom properties
+ * Fonts: Cinzel Decorative (Google), Crimson Text (Google)
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap');
+
+/* ─── COLOUR TOKENS ──────────────────────────────────────────────────── */
+
+:root {
+
+  /* Backgrounds — darkest to lighter */
+  --bg-void:      #0d0a07;   /* deepest background, body */
+  --bg-deep:      #1a1208;   /* secondary surface */
+  --bg-raised:    #221810;   /* panels, cards */
+  --bg-overlay:   rgba(13,10,7,0.88); /* modal / story overlays */
+
+  /* Gold — the accent system */
+  --gold-aged:    #8b6914;   /* borders, dividers, subtle accent */
+  --gold-title:   #c9a84c;   /* headings, interactive gold */
+  --gold-bright:  #d4af37;   /* glows, highlights (use sparingly) */
+
+  /* Text */
+  --text-parchment: #d4b483; /* primary body text */
+  --text-dim:       #9a7d55; /* secondary / muted */
+  --text-faint:     #5c4a30; /* placeholder / disabled */
+  --text-title:     #c9a84c; /* headings & labels */
+  --text-inverse:   #0d0a07; /* text on bright surfaces */
+
+  /* Semantic — Status */
+  --hp-red:       #8b1a1a;   /* blood — health bars, danger */
+  --hp-red-glow:  #a32020;   /* hover / active HP state */
+  --xp-green:     #4a7c3f;   /* XP, progress, growth */
+  --xp-green-dim: #355a2d;   /* XP bar background / dim */
+
+  /* Bar system */
+  --bar-border:   #4a2e0e;   /* outer border of all stat bars */
+  --bar-bg:       #1e1208;   /* empty portion of bar */
+  --bar-height:   6px;       /* canonical bar height */
+
+  /* Interaction */
+  --btn-leather-dark:  #2e1f0f;  /* button base dark stop */
+  --btn-leather-mid:   #4a3118;  /* button base light stop */
+  --btn-leather-hover: #5d3e20;  /* hover state */
+  --btn-leather-press: #1e130a;  /* active/press state */
+
+  /* Glow */
+  --glow-gold:   0 0 12px rgba(139, 105, 20, 0.5);
+  --glow-blood:  0 0 10px rgba(139, 26, 26, 0.4);
+
+  /* ─── SPACING TOKENS ──────────────────────────────────────────── */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ─── BORDER / RADIUS ──────────────────────────────────────────── */
+  --radius-none: 0px;
+  --radius-sm:   1px;  /* very subtle, for inset elements */
+  --radius-max:  2px;  /* absolute maximum — never exceed */
+
+  /* ─── BORDERS ──────────────────────────────────────────────────── */
+  --border-panel:    1px solid var(--gold-aged);
+  --border-faint:    1px solid var(--bar-border);
+  --border-strong:   1px solid var(--gold-title);
+
+  /* ─── SHADOWS ──────────────────────────────────────────────────── */
+  --shadow-panel:    inset 0 0 30px rgba(0,0,0,0.7), 0 4px 16px rgba(0,0,0,0.8);
+  --shadow-card:     inset 0 0 16px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.6);
+  --shadow-btn:      inset 0 1px 0 rgba(212,175,55,0.12), inset 0 -1px 0 rgba(0,0,0,0.5);
+  --shadow-glow-gold: 0 0 20px rgba(139,105,20,0.35);
+
+  /* ─── TYPOGRAPHY TOKENS ────────────────────────────────────────── */
+  --font-display: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+  --font-body:    'Crimson Text', Georgia, 'Times New Roman', serif;
+
+  /* Type scale */
+  --text-xs:   12px;
+  --text-sm:   14px;
+  --text-base: 18px;
+  --text-md:   20px;
+  --text-lg:   24px;
+  --text-xl:   32px;
+  --text-2xl:  42px;
+  --text-3xl:  56px;
+  --text-4xl:  72px;
+
+  /* Line heights */
+  --leading-tight:  1.2;
+  --leading-normal: 1.6;
+  --leading-loose:  1.9;
+
+  /* Letter spacing */
+  --tracking-normal:  0em;
+  --tracking-wide:    0.05em;
+  --tracking-wider:   0.10em;
+  --tracking-widest:  0.15em;   /* canonical for buttons/labels */
+  --tracking-caps:    0.20em;   /* all-caps display headings */
+}
+
+/* ─── SEMANTIC ELEMENT STYLES ────────────────────────────────────────── */
+
+body {
+  background-color: var(--bg-void);
+  color: var(--text-parchment);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  cursor: url('assets/cursor-rpg.ico'), auto;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--text-title);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-caps);
+  text-wrap: balance;
+}
+
+h1 { font-size: var(--text-4xl); font-weight: 900; }
+h2 { font-size: var(--text-3xl); font-weight: 700; }
+h3 { font-size: var(--text-2xl); font-weight: 700; }
+h4 { font-size: var(--text-xl);  font-weight: 400; }
+h5 { font-size: var(--text-lg);  font-weight: 400; }
+h6 { font-size: var(--text-md);  font-weight: 400; }
+
+p {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-loose);
+  color: var(--text-parchment);
+}
+
+strong, b {
+  font-weight: 600;
+  color: var(--gold-title);
+}
+
+em, i {
+  font-style: italic;
+  color: var(--text-parchment);
+}
+
+small {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  letter-spacing: var(--tracking-wide);
+}
+
+/* Canonical label style — used for stat names, section headers */
+.label {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+/* Panel / card container */
+.panel {
+  background-color: var(--bg-raised);
+  border: var(--border-panel);
+  border-radius: var(--radius-max);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-6);
+}
+
+/* Canonical button */
+button, .btn {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  color: var(--text-parchment);
+  background: linear-gradient(180deg, var(--btn-leather-mid), var(--btn-leather-dark));
+  border: 1px solid var(--gold-aged);
+  border-radius: var(--radius-max);
+  padding: var(--space-3) var(--space-6);
+  box-shadow: var(--shadow-btn);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+button:hover, .btn:hover {
+  background: linear-gradient(180deg, var(--btn-leather-hover), var(--btn-leather-mid));
+  box-shadow: var(--shadow-btn), var(--glow-gold);
+  cursor: url('assets/cursor-hand.ico'), auto;
+}
+
+button:active, .btn:active {
+  background: linear-gradient(180deg, var(--btn-leather-press), var(--btn-leather-dark));
+  transform: translateY(1px) scale(0.98);
+}
+
+button:disabled, .btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(60%);
+}
+
+/* HP / XP bar system */
+.stat-bar-wrap {
+  border: 1px solid var(--bar-border);
+  background-color: var(--bar-bg);
+  height: var(--bar-height);
+  border-radius: var(--radius-none);
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-none);
+  transition: width 0.35s ease;
+}
+
+.stat-bar-fill.hp  { background-color: var(--hp-red); }
+.stat-bar-fill.xp  { background-color: var(--xp-green); }
+
+/* Narrative text / story box */
+.story-box {
+  background-color: var(--bg-overlay);
+  border: var(--border-faint);
+  border-radius: var(--radius-max);
+  padding: var(--space-5) var(--space-6);
+  font-size: var(--text-md);
+  line-height: var(--leading-loose);
+  color: var(--text-parchment);
+  font-style: italic;
+}
+
+/* Hit / shake animation */
+@keyframes ord-shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-5px); }
+  75%       { transform: translateX(5px); }
+}
+
+.hit {
+  animation: ord-shake 0.4s ease;
+  outline: 1px solid var(--hp-red);
+}
+
+/* Floating sprite animation */
+@keyframes ord-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
+.sprite-float {
+  animation: ord-float 2.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(255,255,200,0.15));
+}
+
+/* Divider — gold ruled line */
+.divider {
+  border: none;
+  border-top: 1px solid var(--gold-aged);
+  opacity: 0.5;
+  margin: var(--space-5) 0;
+}
