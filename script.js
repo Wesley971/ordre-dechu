@@ -1,21 +1,13 @@
-let player = {
-  hp: 20,
-  maxHp: 20,
-  xp: 0,
-  level: 1,}
-
-let ennemiActuel = ennemis[0];
-
 function startGame() {
   document.getElementById("intro-screen").style.display = "none";
   document.getElementById("game").style.display = "block";
   document.body.classList.remove("lock-scroll");
 
   updateStory(
-    "Maelor s’aventure dans les terres brumeuses du Val Ténébreux, guidé par les murmures d’un serment oublié.<br><br>" +
-    "Il est le dernier descendant d’un ordre jadis puissant : <strong>L’Ordre Déchu</strong>. Trente années plus tôt, ses membres furent accusés de sorcellerie noire et exécutés sans procès. Leurs cendres dispersées, leur nom effacé des livres... sauf d’un.<br><br>" +
-    "Aujourd’hui, quelque chose rôde dans les bois. Les morts se lèvent. Le sang ancien appelle.<br><br>" +
-    "Maelor n’est pas là pour sauver le royaume.<br>Il est là pour réclamer ce qui lui revient.");
+    "Maelor s'aventure dans les terres brumeuses du Val Ténébreux, guidé par les murmures d'un serment oublié.<br><br>" +
+    "Il est le dernier descendant d'un ordre jadis puissant : <strong>L'Ordre Déchu</strong>. Trente années plus tôt, ses membres furent accusés de sorcellerie noire et exécutés sans procès. Leurs cendres dispersées, leur nom effacé des livres... sauf d'un.<br><br>" +
+    "Aujourd'hui, quelque chose rôde dans les bois. Les morts se lèvent. Le sang ancien appelle.<br><br>" +
+    "Maelor n'est pas là pour sauver le royaume.<br>Il est là pour réclamer ce qui lui revient.");
 
   document.getElementById("continue-button").style.display = "block";
 }
@@ -23,8 +15,10 @@ function startGame() {
 function launchGameplay() {
   document.getElementById("continue-button").style.display = "none";
   document.body.classList.add("game-started");
-  updateStory("Une créature surgit de l’ombre... prépare-toi à combattre !");
+  updateStory("Une créature surgit de l'ombre... prépare-toi à combattre !");
 }
+
+// — Logique pure —
 
 function calcPlayerAttack(gameState) {
   const damage = Math.floor(Math.random() * 3) + 1;
@@ -42,95 +36,89 @@ function calcRun() {
   return { success: Math.random() < 0.5 };
 }
 
-function fight() {
-  if (player.hp <= 0 || ennemis.length === 0) return;
+// — Actions (DOM + état) —
 
-  const { damage: damagePlayer, newEnemyHp } = calcPlayerAttack({ player, enemy: ennemiActuel });
-  ennemiActuel.hp = newEnemyHp;
+function fight() {
+  const { player, currentEnemy: enemy, enemies } = GameState;
+  if (player.hp <= 0 || enemies.length === 0) return;
+
+  const { damage, newEnemyHp } = calcPlayerAttack({ player, enemy });
+  enemy.hp = newEnemyHp;
+
   document.getElementById("enemy").classList.add("hit");
-  setTimeout(() => {
-    document.getElementById("enemy").classList.remove("hit");
-  }, 400);
+  setTimeout(() => document.getElementById("enemy").classList.remove("hit"), 400);
 
   updateEnnemiUI();
+  updateStory(`Tu attaques le ${enemy.name} ! Tu lui fais ${damage} dégâts ! Il lui reste ${enemy.hp} HP. <br>`);
 
-  updateStory(`Tu attaques le ${ennemiActuel.name} ! Tu lui fais ${damagePlayer} dégâts ! Il lui reste ${ennemiActuel.hp} HP. <br>`);
+  if (enemy.hp <= 0) {
+    GameState.currentEnemyIndex++;
+    let texte = `Tu as vaincu le monstre ! `;
 
-  if (ennemiActuel.hp <= 0) {
-  ennemis.shift();
+    if (gainXp(5)) {
+      texte += `<br>🆙 Tu es passé niveau ${player.level} !`;
+    }
 
-  let texte = `Tu as vaincu le monstre ! `;
+    updatePlayerUI();
 
-  if (gainXp(5)) {
-    texte += `<br>🆙 Tu es passé niveau ${player.level} !`;
+    if (GameState.currentEnemy) {
+      updateEnnemiUI();
+      texte += `<br>Un ${GameState.currentEnemy.name} approche...`;
+    } else {
+      texte += "<br><br>🎉 Tu as vaincu tous les monstres ! Victoire !";
+      finDePartie();
+    }
+
+    updateStory(texte);
+    return;
   }
-
-  updatePlayerUI();
-
-  if (ennemis.length > 0) {
-    ennemiActuel = ennemis[0];
-    updateEnnemiUI();
-    texte += `<br>Un ${ennemiActuel.name} approche...`;
-  } else {
-    texte += "<br><br>🎉 Tu as vaincu tous les monstres ! Victoire !";
-    finDePartie();
-  }
-
-  updateStory(texte);
-  return;
-}
-
 
   enemyCounterAttack();
 }
 
 function heal() {
-  if (player.hp <= 0 || ennemis.length === 0) return;
+  const { player, currentEnemy: enemy, enemies } = GameState;
+  if (player.hp <= 0 || enemies.length === 0) return;
 
   const { healAmount, newPlayerHp } = calcHeal({ player });
-  player.hp = newPlayerHp;
+  GameState.player.hp = newPlayerHp;
 
   updatePlayerUI();
-
-  updateStory(
-    `💖 Tu récupères ${healAmount} HP. Tu as maintenant ${player.hp} HP.`);
+  updateStory(`💖 Tu récupères ${healAmount} HP. Tu as maintenant ${GameState.player.hp} HP.`);
 
   enemyCounterAttack();
 }
 
 function run() {
-  if (player.hp <= 0 || ennemis.length === 0) return;
+  const { player, enemies } = GameState;
+  if (player.hp <= 0 || enemies.length === 0) return;
 
   const { success } = calcRun();
   if (success) {
-    updateStory(
-      "Maelor a fui. Mais l’Ordre Déchu l’attend toujours… Souhaites-tu affronter à nouveau ton destin ?");
+    updateStory("Maelor a fui. Mais l'Ordre Déchu l'attend toujours… Souhaites-tu affronter à nouveau ton destin ?");
     finDePartie();
   } else {
-    updateStory( "Tu n'as pas réussi à fuir le combat !");
-
+    updateStory("Tu n'as pas réussi à fuir le combat !");
     enemyCounterAttack();
   }
 }
 
 function enemyCounterAttack() {
   setTimeout(() => {
-    let damageMonster = Math.floor(Math.random() * 4);
-    player.hp -= damageMonster;
-    document.getElementById("player").classList.add("hit");
-    setTimeout(() => {
-      document.getElementById("player").classList.remove("hit");
-    }, 400);
+    const { player, currentEnemy: enemy } = GameState;
+    const damage = Math.floor(Math.random() * 4);
+    GameState.player.hp = Math.max(0, player.hp - damage);
 
-    if (player.hp < 0) player.hp = 0;
+    document.getElementById("player").classList.add("hit");
+    setTimeout(() => document.getElementById("player").classList.remove("hit"), 400);
 
     updatePlayerUI();
 
-    if (player.hp <= 0) {
-      updateStory(`Le ${ennemiActuel.name} t'attaque et te fait ${damageMonster} dégâts !<br>💀 Tu es mort !`);
+    if (GameState.player.hp <= 0) {
+      updateStory(`Le ${enemy.name} t'attaque et te fait ${damage} dégâts !<br>💀 Tu es mort !`);
       finDePartie();
     } else {
-      updateStory(`Le ${ennemiActuel.name} t'attaque ! Il te fait ${damageMonster} dégâts ! Il te reste ${player.hp} HP.`);
+      updateStory(`Le ${enemy.name} t'attaque ! Il te fait ${damage} dégâts ! Il te reste ${GameState.player.hp} HP.`);
     }
   }, 800);
 }
