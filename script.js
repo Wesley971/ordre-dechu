@@ -26,19 +26,33 @@ function launchGameplay() {
   updateStory("Une créature surgit de l’ombre... prépare-toi à combattre !");
 }
 
+function calcPlayerAttack(gameState) {
+  const damage = Math.floor(Math.random() * 3) + 1;
+  const newEnemyHp = Math.max(0, gameState.enemy.hp - damage);
+  return { damage, newEnemyHp };
+}
+
+function calcHeal(gameState) {
+  const healAmount = Math.floor(Math.random() * 5) + 2;
+  const newPlayerHp = Math.min(gameState.player.maxHp, gameState.player.hp + healAmount);
+  return { healAmount, newPlayerHp };
+}
+
+function calcRun() {
+  return { success: Math.random() < 0.5 };
+}
+
 function fight() {
   if (player.hp <= 0 || ennemis.length === 0) return;
 
-  let damagePlayer = Math.floor(Math.random() * 3) + 1;
-  ennemiActuel.hp -= damagePlayer;
+  const { damage: damagePlayer, newEnemyHp } = calcPlayerAttack({ player, enemy: ennemiActuel });
+  ennemiActuel.hp = newEnemyHp;
   document.getElementById("enemy").classList.add("hit");
   setTimeout(() => {
     document.getElementById("enemy").classList.remove("hit");
   }, 400);
 
-  if (ennemiActuel.hp < 0) ennemiActuel.hp = 0;
-
-  updateEnnemiUI()
+  updateEnnemiUI();
 
   updateStory(`Tu attaques le ${ennemiActuel.name} ! Tu lui fais ${damagePlayer} dégâts ! Il lui reste ${ennemiActuel.hp} HP. <br>`);
 
@@ -73,15 +87,13 @@ function fight() {
 function heal() {
   if (player.hp <= 0 || ennemis.length === 0) return;
 
-  let heal = Math.floor(Math.random() * 5) + 2;
-  player.hp += heal;
+  const { healAmount, newPlayerHp } = calcHeal({ player });
+  player.hp = newPlayerHp;
 
-  if (player.hp > player.maxHp) player.hp = player.maxHp;
-
-  updatePlayerUI()
+  updatePlayerUI();
 
   updateStory(
-    `💖 Tu récupères ${heal} HP. Tu as maintenant ${player.hp} HP.`);
+    `💖 Tu récupères ${healAmount} HP. Tu as maintenant ${player.hp} HP.`);
 
   enemyCounterAttack();
 }
@@ -89,8 +101,8 @@ function heal() {
 function run() {
   if (player.hp <= 0 || ennemis.length === 0) return;
 
-  let runChance = Math.random();
-  if (runChance < 0.5) {
+  const { success } = calcRun();
+  if (success) {
     updateStory(
       "Maelor a fui. Mais l’Ordre Déchu l’attend toujours… Souhaites-tu affronter à nouveau ton destin ?");
     finDePartie();
