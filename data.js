@@ -6,13 +6,13 @@ const ennemis = [
 ];
 
 const GameState = {
-  player: { hp: 20, maxHp: 20, xp: 0, level: 1 },
+  player: { hp: CONFIG.player.startHp, maxHp: CONFIG.player.startHp, xp: 0, level: 1 },
   enemies: ennemis.map(e => ({ ...e })),
   currentEnemyIndex: 0,
   get currentEnemy() { return this.enemies[this.currentEnemyIndex]; },
 
   reset() {
-    this.player = { hp: 20, maxHp: 20, xp: 0, level: 1 };
+    this.player = { hp: CONFIG.player.startHp, maxHp: CONFIG.player.startHp, xp: 0, level: 1 };
     this.enemies = ennemis.map(e => ({ ...e }));
     this.currentEnemyIndex = 0;
   }

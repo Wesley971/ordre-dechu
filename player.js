@@ -1,6 +1,6 @@
 function gainXp(xp) {
   GameState.player.xp += xp;
-  const newLevel = Math.floor(GameState.player.xp / 10) + 1;
+  const newLevel = Math.floor(GameState.player.xp / CONFIG.player.xpPerLevel) + 1;
 
   if (newLevel > GameState.player.level) {
     GameState.player.level = newLevel;

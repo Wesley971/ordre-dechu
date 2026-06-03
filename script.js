@@ -21,19 +21,21 @@ function launchGameplay() {
 // — Logique pure —
 
 function calcPlayerAttack(gameState) {
-  const damage = Math.floor(Math.random() * 3) + 1;
+  const { damageMin, damageMax } = CONFIG.player;
+  const damage = Math.floor(Math.random() * (damageMax - damageMin + 1)) + damageMin;
   const newEnemyHp = Math.max(0, gameState.enemy.hp - damage);
   return { damage, newEnemyHp };
 }
 
 function calcHeal(gameState) {
-  const healAmount = Math.floor(Math.random() * 5) + 2;
+  const { healMin, healMax } = CONFIG.player;
+  const healAmount = Math.floor(Math.random() * (healMax - healMin + 1)) + healMin;
   const newPlayerHp = Math.min(gameState.player.maxHp, gameState.player.hp + healAmount);
   return { healAmount, newPlayerHp };
 }
 
 function calcRun() {
-  return { success: Math.random() < 0.5 };
+  return { success: Math.random() < CONFIG.run.successChance };
 }
 
 // — Actions (DOM + état) —
