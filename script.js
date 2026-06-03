@@ -106,7 +106,7 @@ function run() {
 function enemyCounterAttack() {
   setTimeout(() => {
     const { player, currentEnemy: enemy } = GameState;
-    const damage = enemy.attack;
+    const damage = Math.floor(Math.random() * (GameState.currentEnemy.attack + 1));
     GameState.player.hp = Math.max(0, player.hp - damage);
 
     document.getElementById("player").classList.add("hit");
