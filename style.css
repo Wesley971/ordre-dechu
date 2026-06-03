@@ -98,14 +98,18 @@ body.lock-scroll { overflow: hidden; }
 
 /* ─── GAME / COMBAT LAYOUT ───────────────────────────────────────────── */
 
+/* JS fait game.style.display = "block" — on reste en block pour matcher */
 #game {
   position: relative; z-index: 1;
   width: 90%;
   max-width: 860px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
+  display: block;
   padding: var(--space-4) 0;
+}
+
+/* Espacement vertical entre les sections du jeu */
+#game > * + * {
+  margin-top: var(--space-5);
 }
 
 .char-row {
@@ -233,14 +237,18 @@ hr.divider {
 }
 
 /* ─── VISIBILITY — INTRO / GAME ─────────────────────────────────────── */
+/*
+ * #game     : caché au départ, JS le passe à display:block via startGame()
+ * #choices  : caché au départ, JS ajoute .game-started sur body
+ * #continue-button : caché au départ, JS le montre après startGame()
+ * Le style="display:none" dans le HTML garantit le masquage avant le CSS.
+ */
 
-#game,
 #choices,
 #continue-button {
   display: none;
 }
 
-body.game-started #game    { display: flex; }
 body.game-started #choices { display: flex; }
 
 /* ─── HIT ANIMATION ─────────────────────────────────────────────────── */
