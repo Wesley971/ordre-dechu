@@ -22,6 +22,20 @@ function updateStory(text) {
   document.getElementById("story").innerHTML = text;
 }
 
+function updateLog() {
+  const el = document.getElementById("combat-log");
+  if (!el) return;
+
+  el.innerHTML = GameState.log.slice().reverse().map(entry => {
+    let color;
+    if      (entry.action === "levelup")    color = "var(--xp-green)";
+    else if (entry.actor  === "player")     color = "var(--gold-title)";
+    else                                    color = "var(--hp-red)";
+
+    return `<div class="log-entry" style="color:${color}">${entry.message}</div>`;
+  }).join("");
+}
+
 function finDePartie() {
   document.querySelectorAll("#choices button").forEach(btn => {
     btn.disabled = true;
@@ -39,6 +53,7 @@ function finDePartie() {
       document.querySelector(".replay-btn").remove();
       updatePlayerUI();
       updateEnnemiUI();
+      updateLog();
       updateStory("Une nouvelle partie commence. Prépare-toi à combattre !");
     };
     document.getElementById("choices").appendChild(replayButton);
