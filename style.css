@@ -1,5 +1,9 @@
 /* ─── LAYOUT GLOBAL ────────────────────────────────────────────────── */
 
+html {
+  color-scheme: dark;
+}
+
 *,
 *::before,
 *::after { box-sizing: border-box; }
@@ -142,6 +146,7 @@ body.lock-scroll { overflow: hidden; }
   height: 68px;
   object-fit: contain;
   color-scheme: normal;
+  forced-color-adjust: none;
 }
 
 .char-name {
