@@ -147,6 +147,8 @@ body.lock-scroll { overflow: hidden; }
   object-fit: contain;
   color-scheme: normal;
   forced-color-adjust: none;
+  filter: none;
+  -webkit-filter: none;
 }
 
 .char-name {
