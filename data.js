@@ -10,13 +10,19 @@ const GameState = {
   enemies: ennemis.map(e => ({ ...e })),
   currentEnemyIndex: 0,
   log: [],
+  phase: "intro",
   get currentEnemy() { return this.enemies[this.currentEnemyIndex]; },
 
   reset() {
+    // Annule tout setTimeout de contre-attaque en vol
+    if (counterAttackTimeout) {
+      clearTimeout(counterAttackTimeout);
+      counterAttackTimeout = null;
+    }
     this.player = { hp: CONFIG.player.startHp, maxHp: CONFIG.player.startHp, xp: 0, level: 1 };
     this.enemies = ennemis.map(e => ({ ...e }));
     this.currentEnemyIndex = 0;
     this.log = [];
-    document.getElementById("story").classList.remove("combat-mode");
+    setPhase("intro");
   }
 };

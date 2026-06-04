@@ -1,36 +1,46 @@
-function startGame() {
-  document.getElementById("intro-screen").style.display = "none";
-  document.getElementById("game").style.display = "block";
-  document.body.classList.remove("lock-scroll");
+// var (pas let) pour être accessible depuis data.js et ui.js
+var counterAttackTimeout = null;
 
+// — FSM : transition de phase ——————————————————————————————————————————
+// Centralise toutes les mutations de visibilité. Le CSS [data-phase] prend le relais.
+
+function setPhase(name) {
+  GameState.phase = name;
+  document.body.dataset.phase = name;
+
+  // Nettoie les inline styles résiduels pour que le CSS [data-phase] prime
+  ["game", "intro-screen", "choices", "continue-button"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "";
+  });
+  const charRow = document.querySelector(".char-row");
+  if (charRow) charRow.style.display = "";
+}
+
+// — Écrans ————————————————————————————————————————————————————————————
+
+function startGame() {
+  setPhase("lore");
   updateStory(
     "Maelor s'aventure dans les terres brumeuses du Val Ténébreux, guidé par les murmures d'un serment oublié.<br><br>" +
     "Il est le dernier descendant d'un ordre jadis puissant : <strong>L'Ordre Déchu</strong>. Trente années plus tôt, ses membres furent accusés de sorcellerie noire et exécutés sans procès. Leurs cendres dispersées, leur nom effacé des livres... sauf d'un.<br><br>" +
     "Aujourd'hui, quelque chose rôde dans les bois. Les morts se lèvent. Le sang ancien appelle.<br><br>" +
     "Maelor n'est pas là pour sauver le royaume.<br>Il est là pour réclamer ce qui lui revient.");
-
-  document.querySelector(".char-row").style.display = "none";
-  document.getElementById("choices").style.display = "none";
-  document.getElementById("continue-button").style.display = "block";
 }
 
 function launchGameplay() {
-  document.getElementById("continue-button").style.display = "none";
-  document.querySelector(".char-row").style.display = "";
-  document.getElementById("choices").style.display = "";
-  document.getElementById("story").classList.add("combat-mode");
-  document.body.classList.add("game-started");
+  setPhase("combat");
   updateStory("Une créature surgit de l'ombre... prépare-toi à combattre !");
 }
 
-// — Journal de combat —
+// — Journal de combat —————————————————————————————————————————————————
 
 function addLogEntry(entry) {
   GameState.log = [...GameState.log, entry].slice(-5);
   updateLog();
 }
 
-// — Logique pure —
+// — Logique pure ——————————————————————————————————————————————————————
 
 function calcPlayerAttack(gameState) {
   const { damageMin, damageMax } = CONFIG.player;
@@ -50,11 +60,13 @@ function calcRun() {
   return { success: Math.random() < CONFIG.run.successChance };
 }
 
-// — Actions (DOM + état) —
+// — Actions (DOM + état) ——————————————————————————————————————————————
 
 function fight() {
-  const { player, currentEnemy: enemy, enemies } = GameState;
-  if (player.hp <= 0 || enemies.length === 0) return;
+  if (GameState.phase !== "combat") return;
+
+  const { player, currentEnemy: enemy } = GameState;
+  if (player.hp <= 0 || !enemy) return;
 
   const { damage, newEnemyHp } = calcPlayerAttack({ player, enemy });
   enemy.hp = newEnemyHp;
@@ -99,8 +111,10 @@ function fight() {
 }
 
 function heal() {
-  const { player, enemies } = GameState;
-  if (player.hp <= 0 || enemies.length === 0) return;
+  if (GameState.phase !== "combat") return;
+
+  const { player } = GameState;
+  if (player.hp <= 0 || !GameState.currentEnemy) return;
 
   const { healAmount, newPlayerHp } = calcHeal({ player });
   GameState.player.hp = newPlayerHp;
@@ -115,8 +129,10 @@ function heal() {
 }
 
 function run() {
-  const { player, enemies } = GameState;
-  if (player.hp <= 0 || enemies.length === 0) return;
+  if (GameState.phase !== "combat") return;
+
+  const { player } = GameState;
+  if (player.hp <= 0 || !GameState.currentEnemy) return;
 
   const { success } = calcRun();
   if (success) {
@@ -131,9 +147,14 @@ function run() {
 }
 
 function enemyCounterAttack() {
-  setTimeout(() => {
+  // Passe en phase "animating" : CSS désactive les boutons pendant le délai
+  setPhase("animating");
+
+  counterAttackTimeout = setTimeout(() => {
+    counterAttackTimeout = null;
+
     const { player, currentEnemy: enemy } = GameState;
-    const damage = Math.floor(Math.random() * (GameState.currentEnemy.attack + 1));
+    const damage = Math.floor(Math.random() * (enemy.attack + 1));
     GameState.player.hp = Math.max(0, player.hp - damage);
 
     document.getElementById("player").classList.add("hit");
@@ -147,6 +168,7 @@ function enemyCounterAttack() {
       updateStory(`Le ${enemy.name} t'attaque et te fait ${damage} dégâts !<br>💀 Tu es mort !`);
       finDePartie();
     } else {
+      setPhase("combat"); // Réactive les boutons
       addLogEntry({ actor: "enemy", action: "attack", value: damage, result: "hit",
         message: `${enemy.name} te frappe pour ${damage} dégâts` });
       updateStory(`Le ${enemy.name} t'attaque ! Il te fait ${damage} dégâts ! Il te reste ${GameState.player.hp} HP.`);
@@ -154,7 +176,7 @@ function enemyCounterAttack() {
   }, 800);
 }
 
-// — Initialisation —
+// — Initialisation ————————————————————————————————————————————————————
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("start-btn").addEventListener("click", startGame);

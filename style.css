@@ -38,7 +38,6 @@ body::before {
   z-index: 0;
 }
 
-body.lock-scroll { overflow: hidden; }
 
 /* ─── INTRO ─────────────────────────────────────────────────────────── */
 
@@ -109,12 +108,10 @@ body.lock-scroll { overflow: hidden; }
 
 /* ─── GAME / COMBAT LAYOUT ───────────────────────────────────────────── */
 
-/* JS fait game.style.display = "block" — on reste en block pour matcher */
 #game {
   position: relative; z-index: 1;
   width: 860px;
   max-width: 90vw;
-  display: block;
   padding: var(--space-4) 0;
 }
 
@@ -239,17 +236,6 @@ body.lock-scroll { overflow: hidden; }
 }
 
 
-#story.combat-mode {
-  height: auto;
-  min-height: 60px;
-  max-height: 100px;
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-#story.combat-mode::-webkit-scrollbar { display: none; }
-
 /* ─── JOURNAL DE COMBAT ─────────────────────────────────────────────── */
 
 #combat-log {
@@ -294,20 +280,67 @@ hr.divider {
   margin: 0;
 }
 
-/* ─── VISIBILITY — INTRO / GAME ─────────────────────────────────────── */
+/* ─── VISIBILITÉ PAR PHASE [data-phase] ─────────────────────────────── */
 /*
- * #game     : caché au départ, JS le passe à display:block via startGame()
- * #choices  : caché au départ, JS ajoute .game-started sur body
- * #continue-button : caché au départ, JS le montre après startGame()
- * Le style="display:none" dans le HTML garantit le masquage avant le CSS.
+ * La visibilité de chaque élément est pilotée par body[data-phase].
+ * setPhase(name) dans script.js est le seul point d'entrée.
+ * Phases : "intro" | "lore" | "combat" | "animating" | "victory" | "gameover"
  */
 
-#choices,
-#continue-button {
-  display: none;
+/* Défauts : intro visible, tout le reste caché */
+#game            { display: none; }
+#choices         { display: none; }
+#continue-button { display: none; }
+
+/* ── INTRO ── scroll bloqué */
+body[data-phase="intro"] { overflow: hidden; }
+
+/* ── LORE ── jeu visible, personnages cachés, bouton continuer */
+body[data-phase="lore"] #intro-screen    { display: none;  }
+body[data-phase="lore"] #game            { display: block; }
+body[data-phase="lore"] .char-row        { display: none;  }
+body[data-phase="lore"] #continue-button { display: block; }
+
+/* ── COMBAT + ANIMATING + VICTORY + GAMEOVER ── vue combat complète */
+body[data-phase="combat"]    #intro-screen,
+body[data-phase="animating"] #intro-screen,
+body[data-phase="victory"]   #intro-screen,
+body[data-phase="gameover"]  #intro-screen { display: none;  }
+
+body[data-phase="combat"]    #game,
+body[data-phase="animating"] #game,
+body[data-phase="victory"]   #game,
+body[data-phase="gameover"]  #game { display: block; }
+
+body[data-phase="combat"]    #choices,
+body[data-phase="animating"] #choices,
+body[data-phase="victory"]   #choices,
+body[data-phase="gameover"]  #choices { display: flex; }
+
+/* ── ANIMATING ── boutons visibles mais inactifs pendant le setTimeout */
+body[data-phase="animating"] #choices button:not(.replay-btn) {
+  pointer-events: none;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-body.game-started #choices { display: flex; }
+/* ── STORY en mode combat (toutes phases actives) ── */
+body[data-phase="combat"]    #story,
+body[data-phase="animating"] #story,
+body[data-phase="victory"]   #story,
+body[data-phase="gameover"]  #story {
+  height: auto;
+  min-height: 60px;
+  max-height: 100px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body[data-phase="combat"]    #story::-webkit-scrollbar,
+body[data-phase="animating"] #story::-webkit-scrollbar,
+body[data-phase="victory"]   #story::-webkit-scrollbar,
+body[data-phase="gameover"]  #story::-webkit-scrollbar { display: none; }
 
 /* ─── HIT ANIMATION ─────────────────────────────────────────────────── */
 /* (ord-shake défini dans colors_and_type.css, on surcharge pour la couleur) */

@@ -30,15 +30,18 @@ function updateLog() {
 
   el.innerHTML = GameState.log.slice().reverse().map(entry => {
     let color;
-    if      (entry.action === "levelup")    color = "var(--xp-green)";
-    else if (entry.actor  === "player")     color = "var(--gold-title)";
-    else                                    color = "var(--hp-red)";
+    if      (entry.action === "levelup") color = "var(--xp-green)";
+    else if (entry.actor  === "player")  color = "var(--gold-title)";
+    else                                 color = "var(--hp-red)";
 
     return `<div class="log-entry" style="color:${color}">${entry.message}</div>`;
   }).join("");
 }
 
 function finDePartie() {
+  // Distingue victoire (plus d'ennemis) et défaite/fuite
+  setPhase(!GameState.currentEnemy ? "victory" : "gameover");
+
   document.querySelectorAll("#choices button").forEach(btn => {
     btn.disabled = true;
   });
@@ -48,7 +51,8 @@ function finDePartie() {
     replayButton.textContent = "🔁 Rejouer";
     replayButton.classList.add("replay-btn");
     replayButton.onclick = () => {
-      GameState.reset();
+      GameState.reset();          // remet phase "intro" + clearTimeout
+      setPhase("combat");         // saute directement en combat pour le replay
       document.querySelectorAll("#choices button").forEach(btn => {
         btn.disabled = false;
       });
