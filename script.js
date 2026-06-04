@@ -18,6 +18,7 @@ function launchGameplay() {
   document.getElementById("continue-button").style.display = "none";
   document.querySelector(".char-row").style.display = "";
   document.getElementById("choices").style.display = "";
+  document.getElementById("story").classList.add("combat-mode");
   document.body.classList.add("game-started");
   updateStory("Une créature surgit de l'ombre... prépare-toi à combattre !");
 }

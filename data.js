@@ -17,5 +17,6 @@ const GameState = {
     this.enemies = ennemis.map(e => ({ ...e }));
     this.currentEnemyIndex = 0;
     this.log = [];
+    document.getElementById("story").classList.remove("combat-mode");
   }
 };

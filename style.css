@@ -238,6 +238,16 @@ body.lock-scroll { overflow: hidden; }
   min-height: 80px;
 }
 
+
+#story.combat-mode {
+  height: 80px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+#story.combat-mode::-webkit-scrollbar { display: none; }
+
 /* ─── JOURNAL DE COMBAT ─────────────────────────────────────────────── */
 
 #combat-log {
