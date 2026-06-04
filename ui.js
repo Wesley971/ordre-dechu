@@ -19,7 +19,9 @@ function updateEnnemiUI() {
 }
 
 function updateStory(text) {
-  document.getElementById("story").innerHTML = text;
+  const story = document.getElementById("story");
+  story.innerHTML = text;
+  if (story) story.scrollTop = story.scrollHeight;
 }
 
 function updateLog() {
