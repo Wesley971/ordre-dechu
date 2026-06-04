@@ -114,7 +114,7 @@ body {
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: var(--leading-normal);
-  cursor: url('assets/cursor-rpg.ico'), auto;
+  cursor: url('images/cursor-rpg.ico'), auto;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -194,7 +194,7 @@ button, .btn {
 button:hover, .btn:hover {
   background: linear-gradient(180deg, var(--btn-leather-hover), var(--btn-leather-mid));
   box-shadow: var(--shadow-btn), var(--glow-gold);
-  cursor: url('assets/cursor-hand.ico'), auto;
+  cursor: url('images/cursor-hand.ico'), auto;
 }
 
 button:active, .btn:active {
