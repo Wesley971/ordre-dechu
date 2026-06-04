@@ -141,7 +141,7 @@ body.lock-scroll { overflow: hidden; }
   width: 68px;
   height: 68px;
   object-fit: contain;
-  mix-blend-mode: multiply;
+
 }
 
 .char-name {
