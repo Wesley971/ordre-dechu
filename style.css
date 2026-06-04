@@ -240,7 +240,7 @@ body.lock-scroll { overflow: hidden; }
 
 
 #story.combat-mode {
-  height: 80px;
+  height: 100px;
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
