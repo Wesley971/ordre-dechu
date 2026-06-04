@@ -22,6 +22,13 @@ function launchGameplay() {
   updateStory("Une créature surgit de l'ombre... prépare-toi à combattre !");
 }
 
+// — Journal de combat —
+
+function addLogEntry(entry) {
+  GameState.log = [...GameState.log, entry].slice(-5);
+  updateLog();
+}
+
 // — Logique pure —
 
 function calcPlayerAttack(gameState) {
@@ -58,11 +65,16 @@ function fight() {
   updateStory(`Tu attaques le ${enemy.name} ! Tu lui fais ${damage} dégâts ! Il lui reste ${enemy.hp} HP. <br>`);
 
   if (enemy.hp <= 0) {
+    addLogEntry({ actor: "player", action: "attack", value: damage, result: "kill",
+      message: `Tu tues le ${enemy.name} (+${enemy.xpReward} XP)` });
+
     GameState.currentEnemyIndex++;
     let texte = `Tu as vaincu le monstre ! `;
 
     if (gainXp(enemy.xpReward)) {
       texte += `<br>🆙 Tu es passé niveau ${GameState.player.level} !`;
+      addLogEntry({ actor: "player", action: "levelup", value: GameState.player.level, result: "levelup",
+        message: `Niveau ${GameState.player.level} atteint !` });
     }
 
     updatePlayerUI();
@@ -79,6 +91,9 @@ function fight() {
     return;
   }
 
+  addLogEntry({ actor: "player", action: "attack", value: damage, result: "hit",
+    message: `Tu frappes le ${enemy.name} pour ${damage} dégâts` });
+
   enemyCounterAttack();
 }
 
@@ -92,6 +107,9 @@ function heal() {
   updatePlayerUI();
   updateStory(`💖 Tu récupères ${healAmount} HP. Tu as maintenant ${GameState.player.hp} HP.`);
 
+  addLogEntry({ actor: "player", action: "heal", value: healAmount, result: "healed",
+    message: `Tu te soignes de ${healAmount} HP` });
+
   enemyCounterAttack();
 }
 
@@ -101,6 +119,8 @@ function run() {
 
   const { success } = calcRun();
   if (success) {
+    addLogEntry({ actor: "player", action: "run", value: 0, result: "escaped",
+      message: "Maelor prend la fuite" });
     updateStory("Maelor a fui. Mais l'Ordre Déchu l'attend toujours… Souhaites-tu affronter à nouveau ton destin ?");
     finDePartie();
   } else {
@@ -121,9 +141,13 @@ function enemyCounterAttack() {
     updatePlayerUI();
 
     if (GameState.player.hp <= 0) {
+      addLogEntry({ actor: "enemy", action: "attack", value: damage, result: "kill",
+        message: `${enemy.name} te terrasse pour ${damage} dégâts` });
       updateStory(`Le ${enemy.name} t'attaque et te fait ${damage} dégâts !<br>💀 Tu es mort !`);
       finDePartie();
     } else {
+      addLogEntry({ actor: "enemy", action: "attack", value: damage, result: "hit",
+        message: `${enemy.name} te frappe pour ${damage} dégâts` });
       updateStory(`Le ${enemy.name} t'attaque ! Il te fait ${damage} dégâts ! Il te reste ${GameState.player.hp} HP.`);
     }
   }, 800);
