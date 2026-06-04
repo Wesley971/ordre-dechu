@@ -224,6 +224,8 @@ body::before {
 /* ─── STORY BOX ─────────────────────────────────────────────────────── */
 
 #story {
+  width: 100%;
+  box-sizing: border-box;
   background: var(--bg-overlay);
   border: var(--border-faint);
   border-radius: var(--radius-max);
