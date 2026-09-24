@@ -42,7 +42,7 @@ function calcMagic(caster, target, ability) {
 function calcHeal(caster, target, ability) {
   if (!isAlive(target)) return { type: "none" };
   const amount = ability.amount || Math.round(vary(ability.power + caster.mag * 2));
-  // Les soins brûlent les morts-vivants
+  // Les soins brûlent les créatures d'os (Squelettes)
   if (target.undead) return { type: "damage", amount, weak: true };
   return { type: "heal", amount };
 }
@@ -302,7 +302,10 @@ async function handleKnockouts(targets) {
     }
   }
 
-  const deadEnemies = fallen.filter(c => c.side === "enemy");
+  // Un ennemi « spareable » (le Dragon) reste à terre : c'est le joueur qui décidera de son sort
+  const fallenEnemies = fallen.filter(c => c.side === "enemy");
+  fallenEnemies.filter(c => c.spareable).forEach(showDefeated);
+  const deadEnemies = fallenEnemies.filter(c => !c.spareable);
   if (deadEnemies.length) await killEnemies(deadEnemies);
   updateBattleUI();
 }

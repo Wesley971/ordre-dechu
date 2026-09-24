@@ -2,57 +2,20 @@
 
 // — Écran titre —
 
-let titleActive = false;
-let titleIndex = 0;
-
-function titleOptions() {
-  return [...document.querySelectorAll(".title-option")].filter(button => !button.hidden);
-}
-
-function highlightTitleOption() {
-  titleOptions().forEach((button, i) => button.classList.toggle("selected", i === titleIndex));
-}
-
-function titleHandler(action) {
-  const options = titleOptions();
-  if (action === "up" || action === "down") {
-    titleIndex = (titleIndex + (action === "up" ? -1 : 1) + options.length) % options.length;
-    Sfx.play("cursor");
-    highlightTitleOption();
-  }
-  if (action === "confirm") options[titleIndex].click();
-}
-
-// Survol à la souris : la main suit le pointeur, comme dans les menus de combat
-function hoverTitleOption(button) {
-  if (!titleActive) return;
-  titleIndex = titleOptions().indexOf(button);
-  highlightTitleOption();
-}
-
-function backToTitle({ startLabel, canRetry = false }) {
+async function backToTitle({ startLabel, canRetry = false }) {
   showScreen("intro");
   $("#start-btn").textContent = startLabel;
   $("#retry-btn").hidden = !canRetry;
-  titleIndex = 0;
-  highlightTitleOption();
-  titleActive = true;
-  Input.push(titleHandler);
-}
 
-// Renvoie false si l'écran titre n'est déjà plus actif (double clic...)
-function leaveTitle() {
-  if (!titleActive) return false;
-  titleActive = false;
-  Input.pop();
-  Sfx.play("confirm");
-  return true;
+  const options = [...document.querySelectorAll(".title-option")].filter(button => !button.hidden);
+  const chosen = options[await pickOption(options)];
+  if (chosen.id === "retry-btn") retryChapter();
+  else newGame();
 }
 
 // — Partie —
 
 async function newGame() {
-  if (!leaveTitle()) return;
   GameState.reset();
   setSceneTint(CHAPTERS[0]);
   renderIdleScene(GameState.party);
@@ -63,7 +26,6 @@ async function newGame() {
 }
 
 async function retryChapter() {
-  if (!leaveTitle()) return;
   GameState.loadCheckpoint();
   showScreen("game");
   await playChapters();
@@ -79,7 +41,7 @@ async function playChapters() {
     if (chapter.rest) {
       restoreParty();
       updateBattleUI();
-      await Dialog.show({ title: chapter.title, pages: [{ html: chapter.story[0], sfx: "heal" }, ...chapter.story.slice(1)] });
+      await Dialog.show({ title: chapter.title, pages: chapter.story });
       GameState.chapterIndex++;
       continue;
     }
@@ -88,14 +50,43 @@ async function playChapters() {
     const result = await runBattle(chapter);
 
     if (result === "defeat") return gameOver();
-    if (result === "victory") await celebrateVictory();
-    else await Dialog.show({ pages: ["Le groupe s'enfonce dans les brumes... sans le moindre butin."] });
+    const spareable = Battle.enemies.find(enemy => enemy.spareable);
+    if (result === "escape") await Dialog.show({ pages: ["Le groupe s'enfonce dans les brumes... sans le moindre butin."] });
+    else if (spareable) await decideDragonFate(spareable);
+    else await celebrateVictory();
 
     GameState.chapterIndex++;
   }
 
-  await Dialog.show({ title: "Épilogue", pages: ENDING });
+  const fate = GameState.dragonSpared ? DRAGON_FATE.spare : DRAGON_FATE.kill;
+  await Dialog.show({ title: "Épilogue", pages: fate.ending });
   backToTitle({ startLabel: "Rejouer" });
+}
+
+// Le Dragon est à terre : Épargner (vraie fin) ou Achever (fausse fin, « Victoire ! » en façade)
+async function decideDragonFate(dragon) {
+  // Le combat est fini : les héros K.O. se relèvent (à 1 PV) pour la scène finale
+  for (const hero of GameState.party.filter(hero => !isAlive(hero))) {
+    hero.hp = 1;
+    hero.state = "charging";
+  }
+  updateBattleUI();
+
+  const choice = await Dialog.choose({
+    text: DRAGON_FATE.question,
+    options: ["spare", "kill"].map(id => ({ id, label: DRAGON_FATE[id].label })),
+  });
+  GameState.dragonSpared = choice === "spare";
+
+  if (GameState.dragonSpared) {
+    await animateSpare(dragon);
+    await Dialog.show({ pages: DRAGON_FATE.spare.scene });
+  } else {
+    const maelor = GameState.party.find(hero => hero.id === "maelor");
+    await animateFinishingBlow(maelor, dragon);
+    await Dialog.show({ pages: DRAGON_FATE.kill.scene });
+    await celebrateVictory();
+  }
 }
 
 async function celebrateVictory() {
@@ -131,12 +122,10 @@ async function gameOver() {
 // — Initialisation —
 
 document.addEventListener("DOMContentLoaded", () => {
-  $("#start-btn").addEventListener("click", newGame);
-  $("#retry-btn").addEventListener("click", retryChapter);
-  for (const button of document.querySelectorAll(".title-option")) {
-    button.addEventListener("mouseenter", () => hoverTitleOption(button));
-  }
-  $("#dialog").addEventListener("click", () => Input.emit("confirm"));
+  // Un clic dans la fenêtre de dialogue vaut « Valider », sauf pendant un choix (il faut cliquer une option)
+  $("#dialog").addEventListener("click", () => {
+    if ($("#dialog-choices").hidden) Input.emit("confirm");
+  });
   $("#target-hint").addEventListener("click", () => Menu.back());
 
   const soundButton = $("#sound-btn");

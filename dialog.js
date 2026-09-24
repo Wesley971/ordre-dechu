@@ -1,42 +1,69 @@
-// dialog.js - Fenêtre de dialogue avec texte qui s'écrit lettre par lettre
+// dialog.js - Fenêtre de dialogue : texte qui s'écrit lettre par lettre, et choix
 // Une page est une chaîne HTML, ou { html, sfx } pour jouer un son à l'ouverture de la page
 
 const Dialog = {
-  advance: null, // passe à la suite : termine la page en cours ou la ferme
+  onConfirm: null, // réaction à « Valider » : finir d'écrire la page, ou passer à la suivante
 
-  async show({ title = "", pages }) {
-    const box = $("#dialog");
+  open(title) {
     $("#dialog-title").innerHTML = title;
     $("#dialog-title").hidden = !title;
-    box.hidden = false;
+    $("#dialog").hidden = false;
     Input.push(action => {
-      if (action === "confirm" && this.advance) this.advance();
+      if (action === "confirm" && this.onConfirm) this.onConfirm();
     });
+  },
 
+  close() {
+    Input.pop();
+    this.onConfirm = null;
+    $("#dialog").hidden = true;
+  },
+
+  async show({ title = "", pages }) {
+    this.open(title);
     for (const page of pages) {
       const { html, sfx } = typeof page === "string" ? { html: page } : page;
       if (sfx) Sfx.play(sfx);
-      await this.typePage(html);
+      await this.type(html);
+      await this.waitForNext();
     }
-
-    Input.pop();
-    box.hidden = true;
+    this.close();
   },
 
-  typePage(html) {
+  // Pose une question ; options : [{ id, label }] · renvoie l'id de l'option choisie
+  async choose({ title = "", text, options }) {
+    this.open(title);
+    await this.type(text);
+
+    const list = $("#dialog-choices");
+    const items = options.map(option => {
+      const item = document.createElement("li");
+      item.className = "menu-item";
+      item.textContent = option.label;
+      return item;
+    });
+    list.replaceChildren(...items);
+    list.hidden = false;
+    const index = await pickOption(items, { preselect: false }); // Valider seul ne peut pas choisir par accident
+    list.hidden = true;
+
+    this.close();
+    return options[index].id;
+  },
+
+  // Les balises sont recopiées d'un coup, le texte lettre par lettre ; « Valider » affiche tout
+  type(html) {
     const text = $("#dialog-text");
-    const next = $("#dialog-next");
-    // Les balises sont recopiées d'un coup, le texte lettre par lettre
     const tokens = html.split(/(<[^>]+>)/).filter(Boolean);
-    let shown = "", tokenIndex = 0, charIndex = 0, typing = true;
-    next.hidden = true;
+    let shown = "", tokenIndex = 0, charIndex = 0;
+    $("#dialog-next").hidden = true;
 
     return new Promise(resolve => {
       const finish = () => {
         clearInterval(timer);
         text.innerHTML = html;
-        typing = false;
-        next.hidden = false;
+        this.onConfirm = null;
+        resolve();
       };
 
       const timer = setInterval(() => {
@@ -52,10 +79,19 @@ const Dialog = {
         if (tokenIndex >= tokens.length) finish();
       }, CONFIG.timing.typewriter);
 
-      this.advance = () => {
-        if (typing) return finish();
+      this.onConfirm = finish;
+    });
+  },
+
+  // Affiche ▼ et attend « Valider » pour passer à la suite
+  waitForNext() {
+    const next = $("#dialog-next");
+    next.hidden = false;
+    return new Promise(resolve => {
+      this.onConfirm = () => {
         Sfx.play("cursor");
-        this.advance = null;
+        next.hidden = true;
+        this.onConfirm = null;
         resolve();
       };
     });

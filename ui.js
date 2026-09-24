@@ -299,15 +299,18 @@ function spawnPopup(sprite, text, className) {
   setTimeout(() => popup.remove(), CONFIG.timing.popup);
 }
 
+function spawnFx(sprite, visual) {
+  const fx = document.createElement("div");
+  fx.className = "fx fx-" + visual;
+  sprite.appendChild(fx);
+  setTimeout(() => fx.remove(), CONFIG.timing.spellFx);
+}
+
 function showEffect(target, effect, ability) {
   const sprite = spriteEl(target);
   if (!sprite) return;
 
-  const fx = document.createElement("div");
-  fx.className = "fx fx-" + effectVisual(ability);
-  sprite.appendChild(fx);
-  setTimeout(() => fx.remove(), CONFIG.timing.spellFx);
-
+  spawnFx(sprite, effectVisual(ability));
   Sfx.play(effectSound(effect, ability));
   const classes = [effect.type, effect.crit && "crit", effect.weak && "weak"].filter(Boolean).join(" ");
   spawnPopup(sprite, popupText(effect), classes);
@@ -338,4 +341,32 @@ async function animateEscape() {
 
 function victoryPose(party) {
   party.filter(isAlive).forEach(hero => spriteEl(hero).classList.add("victory"));
+}
+
+// — Sort du Dragon —
+
+// Vaincu mais pas mort : il reste à terre
+function showDefeated(enemy) {
+  spriteEl(enemy).classList.add("defeated");
+}
+
+// Épargner : il se relève, apaisé
+async function animateSpare(enemy) {
+  const sprite = spriteEl(enemy);
+  sprite.classList.remove("defeated");
+  Sfx.play("heal");
+  await pulse(sprite, "casting", CONFIG.timing.cast);
+}
+
+// Achever : le héros s'avance et porte le coup de grâce
+async function animateFinishingBlow(hero, enemy) {
+  const heroSprite = spriteEl(hero);
+  heroSprite.classList.add("acting");
+  await wait(CONFIG.timing.step);
+  spawnFx(spriteEl(enemy), "slash");
+  Sfx.play("crit");
+  pulse($("#battle-scene"), "quake", CONFIG.timing.hit);
+  await killEnemies([enemy]);
+  heroSprite.classList.remove("acting");
+  await wait(CONFIG.timing.step);
 }

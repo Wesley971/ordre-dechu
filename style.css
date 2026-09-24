@@ -276,6 +276,14 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 .sprite.dying .sprite-body  { animation: enemy-dissolve 0.7s ease-in forwards; }
 .sprite.dead                { visibility: hidden; pointer-events: none; }
 
+/* Vaincu mais pas mort (Dragon) : il reste à terre en attendant le choix du joueur */
+.sprite.enemy .sprite-img        { transition: transform 0.6s ease, filter 0.6s ease; }
+.sprite.enemy.defeated .sprite-img {
+  animation: none;
+  filter: grayscale(0.5) brightness(0.55);
+  transform: translateY(12%) rotate(-8deg);
+}
+
 @keyframes enemy-appear {
   from { opacity: 0; filter: brightness(3) blur(4px); }
   to   { opacity: 1; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.6)); }
@@ -583,6 +591,7 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 }
 
 #dialog .window-title { margin-bottom: var(--space-1); }
+#dialog-choices        { margin-top: var(--space-2); }
 
 #dialog-next {
   position: absolute;
@@ -597,6 +606,9 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 }
 
 .speaker { color: var(--gold-title); }
+
+/* Fragment de mémoire révélé par le blason de Maelor */
+.memory { color: var(--gold-title); }
 
 /* ─── DIVERS ───────────────────────────────────────────────────────── */
 

@@ -92,6 +92,7 @@ const SOUNDS = {
   run:       s => s.arpeggio([880, 740, 587, 440], 0.05, { volume: 0.04 }),
   encounter: s => { s.tone(220, 0.5, { type: "sawtooth", volume: 0.05, slideTo: 880 }); s.noise(0.5, { volume: 0.05, cutoff: 1200 }); },
   levelUp:   s => s.arpeggio([523, 659, 784, 1047, 1319], 0.06, { volume: 0.04 }),
+  memory:    s => s.arpeggio([659, 988, 1319, 988, 1319, 1976], 0.11, { type: "sine", volume: 0.035 }),
   victory:   s => {
     // Petite fanfare originale : arpège montant puis accord tenu
     s.arpeggio([392, 523, 659, 784], 0.1, { volume: 0.045 });

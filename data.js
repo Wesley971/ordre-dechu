@@ -3,6 +3,9 @@
 // Réplique d'un personnage dans un dialogue
 const say = (name, text) => `<span class="speaker">${name} :</span> ${text}`;
 
+// Fragment de mémoire révélé par le blason de Maelor : une page à part, avec son propre son
+const memory = html => ({ html: `<span class="memory">${html}</span>`, sfx: "memory" });
+
 // — Héros —
 // stats : valeurs au niveau 1 · growth : gain à chaque niveau · spells : sorts appris par niveau
 
@@ -72,6 +75,7 @@ const ENEMY_SKILLS = {
 // — Ennemis —
 // elements : "weak" | "resist" | "absorb" · skills : capacités tirées au hasard
 // pattern  : suite d'actions jouées en boucle · rage : nouveau pattern sous un seuil de PV
+// spareable : vaincu, il reste à terre et le joueur choisit de l'épargner ou de l'achever (DRAGON_FATE)
 
 const ENEMIES = {
   goblin: {
@@ -93,7 +97,7 @@ const ENEMIES = {
     xp: 55, gil: 90, drop: { item: "potion", chance: 0.6 },
   },
   dragon: {
-    name: "Dragon", image: "images/dragon.png", boss: true,
+    name: "Dragon", image: "images/dragon.png", boss: true, spareable: true,
     maxHp: 1800, atk: 30, def: 14, mag: 26, res: 12, spd: 10,
     elements: { ice: "weak", fire: "absorb" },
     pattern: ["attack", "attack", "fireBreath"],
@@ -150,8 +154,8 @@ const CHAPTERS = [
     tint: "rgba(20, 60, 70, 0.30)",
     rest: true,
     story: [
-      "Au cœur d'une clairière, une source brille d'une lueur pâle. Ses eaux referment les plaies et rendent l'éclat aux esprits las.<br><br>" +
-      "<em>Les PV et les PM du groupe sont entièrement restaurés.</em>",
+      { html: "Au cœur d'une clairière, une source brille d'une lueur pâle. Ses eaux referment les plaies et rendent l'éclat aux esprits las.<br><br>" +
+              "<em>Les PV et les PM du groupe sont entièrement restaurés.</em>", sfx: "heal" },
     ],
   },
   {
@@ -168,13 +172,61 @@ const CHAPTERS = [
   },
 ];
 
-const ENDING = [
-  "Le Dragon s'effondre dans un fracas de pierre. Sous ses écailles calcinées luit un blason terni : celui de l'Ordre.<br><br>" +
-  "Maelor le ramasse. Il ne dit rien.",
+// — Fin : le sort du Dragon —
+// question : affichée avec les deux options · scene : juste après le choix · ending : épilogue
 
-  "Pour la première fois depuis trente ans, le Val Ténébreux est silencieux.<br><br>" +
-  "L'Ordre Déchu n'est plus un nom effacé des livres.<br><br><strong>— FIN —</strong>",
-];
+const DRAGON_FATE = {
+  question:
+    "Le Dragon s'effondre sur les ossements. Il ne se relève pas. Son souffle n'est plus qu'une braise.<br><br>" +
+    "Il regarde Maelor, sans haine. Maelor lève son arme.",
+
+  // Vraie fin : le lien est restauré, le nom se complète
+  spare: {
+    label: "Épargner",
+    scene: [
+      "Maelor baisse son arme. Il pose la main sur le museau brûlant du Dragon, comme le chevalier du souvenir.<br><br>" +
+      "La bête ne mord pas. Elle ferme les yeux.",
+
+      memory(
+        "Tout revient d'un coup, cette fois sans trou. Les passages gardés à deux, les noms transmis de l'un à l'autre, la promesse de ne jamais s'oublier.<br>" +
+        "Ce que l'Ordre était venu faire, Maelor vient de le refaire.<br><br>" +
+        "Le nom, enfin entier : <strong>Rédror Drakunis</strong>."),
+
+      "Le Dragon se relève. Du bout du museau, il pousse vers Maelor le blason qu'il gardait depuis trente ans.<br><br>" +
+      say("Maelor", "On ne l'oubliera plus. Toi non plus.") + "<br>" +
+      say("Elwen", "Chaque vie peut être sauvée. Même celle-là."),
+    ],
+    ending: [
+      "Le Dragon quitte son antre pour la première fois depuis trente ans. Au-dessus du Val Ténébreux, les villageois lèvent les yeux vers ses ailes et, pour une fois, ne s'enfuient pas.<br><br>" +
+      "Il vole au-dessus du groupe, comme un allié veille sur les siens.",
+
+      "Maelor porte désormais deux blasons : le sien, et celui du chevalier que le Dragon lui a confié. Le second n'est plus un souvenir. C'est une promesse à tenir.<br><br>" +
+      "Il était venu chercher un sens. Il repart avec une tâche : que les hommes et les dragons ne s'oublient plus.",
+
+      "Le monde parle encore de l'Ordre Déchu. Maelor, lui, connaît son vrai nom, et ce qu'il était venu faire.<br><br>" +
+      "<strong>— FIN —</strong>",
+    ],
+  },
+
+  // Fausse fin : « Victoire ! » en façade, le nom reste incomplet, rien n'est réparé
+  kill: {
+    label: "Achever",
+    scene: [
+      "Le Dragon s'éteint sans un cri.<br><br>" +
+      "Contre la poitrine de Maelor, le blason devient froid. Les souvenirs se taisent, inachevés.<br><br>" +
+      say("Maelor", "On a gagné... Alors pourquoi ai-je l'impression d'avoir perdu quelque chose ?"),
+    ],
+    ending: [
+      "Parmi les cendres de la bête, Maelor ramasse le blason intact. Ce n'est plus qu'un morceau de métal. Il ne dit rien.",
+
+      "Au village, on sonne les cloches : la bête folle est morte. Pour la première fois depuis trente ans, le ciel du Val Ténébreux est vide.<br><br>" +
+      "Le monde parle toujours de l'Ordre Déchu. Son vrai nom reste effacé, et personne ne le cherche.",
+
+      "Maelor avait choisi de venir. Il ne sait plus pourquoi.<br><br>" +
+      "<strong>— FIN —</strong>",
+    ],
+  },
+};
 
 const GAME_OVER = [
   "Le Val Ténébreux referme ses brumes sur le groupe.<br><br>" +
@@ -188,6 +240,7 @@ const GameState = {
   inventory: {},
   gil: 0,
   chapterIndex: 0,
+  dragonSpared: null, // choix final : true (Épargner), false (Achever), null tant qu'il n'est pas fait
   checkpoint: null, // copie de l'état au début du chapitre, pour « Réessayer »
   get currentChapter() { return CHAPTERS[this.chapterIndex]; },
 
@@ -196,12 +249,13 @@ const GameState = {
     this.inventory = { ...CONFIG.startingItems };
     this.gil = 0;
     this.chapterIndex = 0;
+    this.dragonSpared = null;
     this.checkpoint = null;
   },
 
   saveCheckpoint() {
-    const { party, inventory, gil, chapterIndex } = this;
-    this.checkpoint = JSON.stringify({ party, inventory, gil, chapterIndex });
+    const { party, inventory, gil, chapterIndex, dragonSpared } = this;
+    this.checkpoint = JSON.stringify({ party, inventory, gil, chapterIndex, dragonSpared });
   },
 
   loadCheckpoint() {
