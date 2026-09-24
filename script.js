@@ -1,140 +1,148 @@
-function startGame() {
-  document.getElementById("intro-screen").style.display = "none";
-  document.getElementById("game").style.display = "block";
-  document.body.classList.remove("lock-scroll");
+// script.js - Déroulement de la partie : titre, histoire, combats, fin
 
-  updateStory(
-    "Maelor s'aventure dans les terres brumeuses du Val Ténébreux, guidé par les murmures d'un serment oublié.<br><br>" +
-    "Il est le dernier descendant d'un ordre jadis puissant : <strong>L'Ordre Déchu</strong>. Trente années plus tôt, ses membres furent accusés de sorcellerie noire et exécutés sans procès. Leurs cendres dispersées, leur nom effacé des livres... sauf d'un.<br><br>" +
-    "Aujourd'hui, quelque chose rôde dans les bois. Les morts se lèvent. Le sang ancien appelle.<br><br>" +
-    "Maelor n'est pas là pour sauver le royaume.<br>Il est là pour réclamer ce qui lui revient.");
+// — Écran titre —
 
-  document.querySelector(".char-row").style.display = "none";
-  document.getElementById("choices").style.display = "none";
-  document.getElementById("continue-button").style.display = "block";
+let titleActive = false;
+let titleIndex = 0;
+
+function titleOptions() {
+  return [...document.querySelectorAll(".title-option")].filter(button => !button.hidden);
 }
 
-function launchGameplay() {
-  document.getElementById("continue-button").style.display = "none";
-  document.querySelector(".char-row").style.display = "";
-  document.getElementById("choices").style.display = "";
-  document.body.classList.add("game-started");
-  updateStory("Une créature surgit de l'ombre... prépare-toi à combattre !");
+function highlightTitleOption() {
+  titleOptions().forEach((button, i) => button.classList.toggle("selected", i === titleIndex));
 }
 
-// — Logique pure —
-
-function calcPlayerAttack(gameState) {
-  const { damageMin, damageMax } = CONFIG.player;
-  const damage = Math.floor(Math.random() * (damageMax - damageMin + 1)) + damageMin;
-  const newEnemyHp = Math.max(0, gameState.enemy.hp - damage);
-  return { damage, newEnemyHp };
+function titleHandler(action) {
+  const options = titleOptions();
+  if (action === "up" || action === "down") {
+    titleIndex = (titleIndex + (action === "up" ? -1 : 1) + options.length) % options.length;
+    Sfx.play("cursor");
+    highlightTitleOption();
+  }
+  if (action === "confirm") options[titleIndex].click();
 }
 
-function calcHeal(gameState) {
-  const { healMin, healMax } = CONFIG.player;
-  const healAmount = Math.floor(Math.random() * (healMax - healMin + 1)) + healMin;
-  const newPlayerHp = Math.min(gameState.player.maxHp, gameState.player.hp + healAmount);
-  return { healAmount, newPlayerHp };
+// Survol à la souris : la main suit le pointeur, comme dans les menus de combat
+function hoverTitleOption(button) {
+  if (!titleActive) return;
+  titleIndex = titleOptions().indexOf(button);
+  highlightTitleOption();
 }
 
-function calcRun() {
-  return { success: Math.random() < CONFIG.run.successChance };
+function backToTitle({ startLabel, canRetry = false }) {
+  showScreen("intro");
+  $("#start-btn").textContent = startLabel;
+  $("#retry-btn").hidden = !canRetry;
+  titleIndex = 0;
+  highlightTitleOption();
+  titleActive = true;
+  Input.push(titleHandler);
 }
 
-// — Actions (DOM + état) —
+// Renvoie false si l'écran titre n'est déjà plus actif (double clic...)
+function leaveTitle() {
+  if (!titleActive) return false;
+  titleActive = false;
+  Input.pop();
+  Sfx.play("confirm");
+  return true;
+}
 
-function fight() {
-  const { player, currentEnemy: enemy, enemies } = GameState;
-  if (player.hp <= 0 || enemies.length === 0) return;
+// — Partie —
 
-  const { damage, newEnemyHp } = calcPlayerAttack({ player, enemy });
-  enemy.hp = newEnemyHp;
+async function newGame() {
+  if (!leaveTitle()) return;
+  GameState.reset();
+  setSceneTint(CHAPTERS[0]);
+  renderIdleScene(GameState.party);
+  showScreen("game");
 
-  document.getElementById("enemy").classList.add("hit");
-  setTimeout(() => document.getElementById("enemy").classList.remove("hit"), 400);
+  await Dialog.show({ title: "Prologue", pages: PROLOGUE });
+  await playChapters();
+}
 
-  updateEnnemiUI();
-  updateStory(`Tu attaques le ${enemy.name} ! Tu lui fais ${damage} dégâts ! Il lui reste ${enemy.hp} HP. <br>`);
+async function retryChapter() {
+  if (!leaveTitle()) return;
+  GameState.loadCheckpoint();
+  showScreen("game");
+  await playChapters();
+}
 
-  if (enemy.hp <= 0) {
-    GameState.currentEnemyIndex++;
-    let texte = `Tu as vaincu le monstre ! `;
+async function playChapters() {
+  while (GameState.chapterIndex < CHAPTERS.length) {
+    const chapter = GameState.currentChapter;
+    GameState.saveCheckpoint();
+    setSceneTint(chapter);
+    renderIdleScene(GameState.party);
 
-    if (gainXp(enemy.xpReward)) {
-      texte += `<br>🆙 Tu es passé niveau ${GameState.player.level} !`;
+    if (chapter.rest) {
+      restoreParty();
+      updateBattleUI();
+      await Dialog.show({ title: chapter.title, pages: [{ html: chapter.story[0], sfx: "heal" }, ...chapter.story.slice(1)] });
+      GameState.chapterIndex++;
+      continue;
     }
 
-    updatePlayerUI();
+    await Dialog.show({ title: chapter.title, pages: chapter.story });
+    const result = await runBattle(chapter);
 
-    if (GameState.currentEnemy) {
-      updateEnnemiUI();
-      texte += `<br>Un ${GameState.currentEnemy.name} approche...`;
-    } else {
-      texte += "<br><br>🎉 Tu as vaincu tous les monstres ! Victoire !";
-      finDePartie();
-    }
+    if (result === "defeat") return gameOver();
+    if (result === "victory") await celebrateVictory();
+    else await Dialog.show({ pages: ["Le groupe s'enfonce dans les brumes... sans le moindre butin."] });
 
-    updateStory(texte);
-    return;
+    GameState.chapterIndex++;
   }
 
-  enemyCounterAttack();
+  await Dialog.show({ title: "Épilogue", pages: ENDING });
+  backToTitle({ startLabel: "Rejouer" });
 }
 
-function heal() {
-  const { player, enemies } = GameState;
-  if (player.hp <= 0 || enemies.length === 0) return;
-
-  const { healAmount, newPlayerHp } = calcHeal({ player });
-  GameState.player.hp = newPlayerHp;
-
-  updatePlayerUI();
-  updateStory(`💖 Tu récupères ${healAmount} HP. Tu as maintenant ${GameState.player.hp} HP.`);
-
-  enemyCounterAttack();
+async function celebrateVictory() {
+  Sfx.play("victory");
+  victoryPose(GameState.party);
+  const rewards = grantRewards(Battle.enemies);
+  updateBattleUI();
+  await Dialog.show({ title: "Victoire !", pages: formatRewards(rewards) });
 }
 
-function run() {
-  const { player, enemies } = GameState;
-  if (player.hp <= 0 || enemies.length === 0) return;
+function formatRewards({ xp, gil, drops, levelUps }) {
+  let loot = `Chaque héros debout gagne <strong>${xp} XP</strong>.<br>Le groupe ramasse <strong>${gil} Gils</strong> (total : ${GameState.gil}).`;
+  if (drops.length) loot += `<br>Objets trouvés : <strong>${drops.join(", ")}</strong>`;
+  const pages = [loot];
 
-  const { success } = calcRun();
-  if (success) {
-    updateStory("Maelor a fui. Mais l'Ordre Déchu l'attend toujours… Souhaites-tu affronter à nouveau ton destin ?");
-    finDePartie();
-  } else {
-    updateStory("Tu n'as pas réussi à fuir le combat !");
-    enemyCounterAttack();
+  if (levelUps.length) {
+    const lines = levelUps.map(({ hero, level, learned }) =>
+      `<strong>${hero.name}</strong> passe au niveau ${level} !` +
+      learned.map(spell => `<br>${hero.name} apprend <strong>${spell}</strong> !`).join(""));
+    pages.push({ html: lines.join("<br>"), sfx: "levelUp" });
   }
+  return pages;
 }
 
-function enemyCounterAttack() {
-  setTimeout(() => {
-    const { player, currentEnemy: enemy } = GameState;
-    const damage = Math.floor(Math.random() * (GameState.currentEnemy.attack + 1));
-    GameState.player.hp = Math.max(0, player.hp - damage);
-
-    document.getElementById("player").classList.add("hit");
-    setTimeout(() => document.getElementById("player").classList.remove("hit"), 400);
-
-    updatePlayerUI();
-
-    if (GameState.player.hp <= 0) {
-      updateStory(`Le ${enemy.name} t'attaque et te fait ${damage} dégâts !<br>💀 Tu es mort !`);
-      finDePartie();
-    } else {
-      updateStory(`Le ${enemy.name} t'attaque ! Il te fait ${damage} dégâts ! Il te reste ${GameState.player.hp} HP.`);
-    }
-  }, 800);
+async function gameOver() {
+  Sfx.play("gameOver");
+  document.body.classList.add("game-over");
+  await Dialog.show({ title: "Défaite", pages: GAME_OVER });
+  document.body.classList.remove("game-over");
+  backToTitle({ startLabel: "Nouvelle partie", canRetry: true });
 }
 
 // — Initialisation —
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("start-btn").addEventListener("click", startGame);
-  document.getElementById("launch-btn").addEventListener("click", launchGameplay);
-  document.getElementById("fight-btn").addEventListener("click", fight);
-  document.getElementById("heal-btn").addEventListener("click", heal);
-  document.getElementById("run-btn").addEventListener("click", run);
+  $("#start-btn").addEventListener("click", newGame);
+  $("#retry-btn").addEventListener("click", retryChapter);
+  for (const button of document.querySelectorAll(".title-option")) {
+    button.addEventListener("mouseenter", () => hoverTitleOption(button));
+  }
+  $("#dialog").addEventListener("click", () => Input.emit("confirm"));
+  $("#target-hint").addEventListener("click", () => Menu.back());
+
+  const soundButton = $("#sound-btn");
+  const syncSound = () => soundButton.classList.toggle("off", !Sfx.enabled);
+  soundButton.addEventListener("click", () => { Sfx.toggle(); syncSound(); });
+  syncSound();
+
+  backToTitle({ startLabel: "Nouvelle partie" });
 });

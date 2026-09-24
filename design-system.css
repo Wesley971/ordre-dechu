@@ -1,0 +1,101 @@
+/*
+ * L'Ordre Déchu — Design System
+ * design-system.css : tokens (couleurs, typographie, espacements) et styles de base
+ * Polices : Cinzel Decorative pour le logo, DotGothic16 pour tout le reste
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@900&family=DotGothic16&display=swap");
+
+:root {
+
+  /* ─── FONDS (du plus sombre au plus clair) ───────────────────────── */
+  --bg-void:   #0d0a07;   /* fond de page */
+  --bg-deep:   #150e07;   /* bas des fenêtres */
+  --bg-raised: #2a1c0f;   /* haut des fenêtres */
+
+  /* ─── OR : bordures et accents ───────────────────────────────────── */
+  --gold-aged:   #8b6914; /* bordures, séparateurs */
+  --gold-title:  #c9a84c; /* titres, libellés, noms qui parlent */
+  --gold-bright: #f0c95a; /* surbrillance : héros actif, PV critiques, mots importants */
+
+  /* ─── TEXTE ──────────────────────────────────────────────────────── */
+  --text-light:     #f1e4c3; /* texte principal */
+  --text-parchment: #d4b483; /* texte secondaire, messages du jeu */
+  --text-dim:       #9a7d55; /* en-têtes, options indisponibles */
+  --text-shadow:    2px 2px 0 #000;
+
+  /* ─── ÉTATS DE COMBAT ────────────────────────────────────────────── */
+  --state-hp:   #b3241f;  /* barre de PV des ennemis */
+  --state-ko:   #e0564b;  /* héros K.O. */
+  --state-heal: #8fd68a;  /* soins */
+  --state-mp:   #8fb8e0;  /* PM */
+  --state-weak: #f0913a;  /* faiblesse élémentaire */
+
+  --atb-charging: linear-gradient(90deg, #4a3a22, #9c8660); /* jauge en charge : terne */
+  --atb-full:     linear-gradient(90deg, #d08a1c, #ffe07a); /* jauge pleine : or vif */
+
+  /* ─── FENÊTRES ───────────────────────────────────────────────────── */
+  --window-bg:     linear-gradient(180deg, var(--bg-raised), var(--bg-deep) 85%);
+  --window-border: 2px solid var(--gold-aged);
+  --window-shadow:
+    0 0 0 1px #000,                         /* liseré noir extérieur */
+    inset 0 0 0 1px rgba(0, 0, 0, 0.6),     /* liseré noir intérieur */
+    inset 0 0 0 3px rgba(201, 168, 76, 0.14),
+    0 6px 18px rgba(0, 0, 0, 0.7);
+  --radius: 2px;          /* rayon unique, jamais plus */
+
+  /* ─── TYPOGRAPHIE ────────────────────────────────────────────────── */
+  --font-display: "Cinzel Decorative", Georgia, serif;   /* logo uniquement */
+  --font-ui:      "DotGothic16", "Courier New", monospace;
+
+  --text-xs:   13px;  /* en-têtes de colonnes, aides, « Retour » */
+  --text-sm:   15px;  /* titres de fenêtres, descriptions */
+  --text-base: 18px;  /* menus, dialogues, noms */
+  --text-lg:   20px;  /* bandeau d'annonce */
+  --text-xl:   26px;  /* chiffres de dégâts */
+  --text-2xl:  34px;  /* coups critiques */
+  --text-logo: 72px;
+
+  --tracking-wide: 0.1em;  /* titres de fenêtres et en-têtes */
+
+  /* ─── ESPACEMENTS ────────────────────────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --hand-gutter: 32px; /* place laissée à gauche pour le curseur main */
+
+  /* ─── CURSEURS DE SOURIS ─────────────────────────────────────────── */
+  --cursor-default: url("images/cursor.ico"), auto;
+  --cursor-pointer: url("images/cursor-hand.ico"), pointer;
+}
+
+/* ─── STYLES DE BASE ─────────────────────────────────────────────────── */
+
+body {
+  background-color: var(--bg-void);
+  color: var(--text-light);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: 1.4;
+  cursor: var(--cursor-default);
+}
+
+strong, b { font-weight: normal; color: var(--gold-bright); }
+em, i     { font-style: normal; color: var(--text-parchment); }
+
+/* Les boutons n'ont pas de style propre : ce sont des options de menu ou des fenêtres */
+button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  text-shadow: inherit;
+  cursor: var(--cursor-pointer);
+}
