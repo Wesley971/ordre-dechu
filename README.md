@@ -3,7 +3,7 @@
 Bienvenue dans mon **mini RPG** développé en pur **HTML / CSS / JavaScript**, dans l'esprit des **Final Fantasy à l'ancienne** (jauges ATB, menus de commande, magie et objets), habillé aux couleurs sombres et dorées de *L'Ordre Déchu*.
 Ce projet est né d'une passion pour les jeux vidéo et d'une volonté d'apprendre par la pratique, sans framework ni moteur de jeu.
 
-Il met en scène *Maelor*, dernier héritier d'un ordre oublié, accompagné de *Lyra* la mage noire et d'*Elwen* la mage blanche, dans une aventure sombre en cinq chapitres.
+Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé des mémoires, accompagné de *Lyra* la mage noire et d'*Elwen* la mage blanche, dans une aventure sombre en cinq chapitres. Personne ne l'a choisi : il a choisi de venir.
 
 ## 🎮 Fonctionnalités actuelles
 
@@ -13,13 +13,15 @@ Il met en scène *Maelor*, dernier héritier d'un ordre oublié, accompagné de 
 * Menu de commandes façon FF : **Attaque**, **Techniques / Magie**, **Objet**, **Défense**, **Fuite**
 * **Magie et PM** : Feu, Glace, Foudre, Brasier, Soin, Soin+, Vie, et les techniques de Maelor (Lame Déchue, Tourbillon)
 * **Faiblesses élémentaires** : le Squelette craint le feu, l'Ogre la foudre, le Dragon la glace… et il **absorbe** le feu
-* Les soins **blessent les morts-vivants** (vise un Squelette avec Soin ou une Potion)
+* Les soins **brûlent les créatures d'os** (vise un Squelette avec Soin ou une Potion)
 * **Objets** partagés : Potion, Éther, Queue de Phénix
 * Coups critiques, attaques ratées, **K.O.** et réanimation
 * **Boss** avec phase de fureur sous 50 % de PV
 * **Écran de victoire** : XP, Gils, objets trouvés, montées de niveau, nouveaux sorts appris
 * Chiffres de dégâts rebondissants, effets de sorts, héros qui s'avancent pour agir
 * Dialogues avec **texte qui s'écrit lettre par lettre**
+* **Fragments de mémoire** : le blason de Maelor révèle, chapitre après chapitre, le passé de l'Ordre et son lien avec les dragons
+* **Choix final** : une fois le Dragon vaincu, l'épargner ou l'achever mène à deux fins différentes
 * **Bruitages 8-bit** générés en direct avec la Web Audio API (aucun fichier son), bouton pour couper le son
 * Jouable au **clavier**, à la **souris / au doigt**, et à la **manette** (API Gamepad : Xbox, PlayStation…)
 * **Défaite** avec possibilité de réessayer le chapitre en cours
@@ -48,9 +50,9 @@ Il met en scène *Maelor*, dernier héritier d'un ordre oublié, accompagné de 
 | `sfx.js` | Bruitages 8-bit (Web Audio API) |
 | `input.js` | Clavier et manette traduits en actions (`up`, `confirm`, `cancel`…) |
 | `battle.js` | Moteur de combat : calculs purs (dégâts, soins, ciblage) et boucle ATB |
-| `menu.js` | Menus de commande et sélection des cibles |
+| `menu.js` | Petit menu de choix (titre, dialogues), menus de commande et sélection des cibles |
 | `ui.js` | Affichage DOM : scène, fenêtres, chiffres de dégâts, animations |
-| `dialog.js` | Fenêtre de dialogue avec effet machine à écrire |
+| `dialog.js` | Fenêtre de dialogue avec effet machine à écrire, et questions à choix |
 | `script.js` | Déroulement de la partie : titre, chapitres, victoire, défaite |
 
 ## 🛠️ Technologies utilisées
