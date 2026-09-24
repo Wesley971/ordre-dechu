@@ -54,7 +54,7 @@ const SPELLS = {
   blaze:       { name: "Brasier",     mp: 12, kind: "magic", power: 30, element: "fire",    target: "all-foes",
                  desc: "Flammes sur tous les ennemis." },
   cure:        { name: "Soin",        mp: 5,  kind: "heal", power: 40, target: "ally",
-                 desc: "Rend des PV. Blesse les morts-vivants." },
+                 desc: "Rend des PV. Brûle les créatures d'os." },
   curePlus:    { name: "Soin+",       mp: 14, kind: "heal", power: 30, target: "all-allies",
                  desc: "Rend des PV à tout le groupe." },
   life:        { name: "Vie",         mp: 12, kind: "revive", target: "ko-ally",
@@ -107,18 +107,27 @@ const ENEMIES = {
 };
 
 // — Histoire —
-// Chaque page de dialogue est un bloc de texte (HTML simple autorisé)
+// Chaque page de dialogue est un bloc de texte (HTML simple autorisé).
+// Le monde ne connaît l'Ordre que sous le nom d'« Ordre Déchu » ; son vrai nom n'apparaît que dans
+// les fragments du blason, de plus en plus lisible, et ne se complète que si le Dragon est épargné.
 
 const PROLOGUE = [
-  "Maelor s'aventure dans les terres brumeuses du Val Ténébreux, guidé par les murmures d'un serment oublié.<br><br>" +
-  "Il est le dernier descendant d'un ordre jadis puissant : <strong>L'Ordre Déchu</strong>. Trente années plus tôt, ses membres furent accusés de sorcellerie noire et exécutés sans procès. Leurs cendres dispersées, leur nom effacé des livres... sauf d'un.",
+  "Dans ces terres, on se bat depuis si longtemps que plus personne ne sait pourquoi. L'origine des guerres s'est effacée des mémoires, puis des livres. Il ne reste que les guerres.<br><br>" +
+  "Il y a trente ans, un ordre de chevaliers fut accusé de sorcellerie et exécuté sans procès. Son nom disparut avec lui. Le monde ne l'appelle plus que <strong>l'Ordre Déchu</strong>.",
 
-  "Aujourd'hui, quelque chose rôde dans les bois. Les morts se lèvent. Le sang ancien appelle.<br><br>" +
-  "Maelor n'est pas là pour sauver le royaume.<br>Il est là pour réclamer ce qui lui revient.",
+  "Maelor porte au cou un blason aux armes de cet ordre, transmis dans sa famille depuis deux générations. Pour son grand-père comme pour son père, ce n'était qu'un souvenir de métal terni.<br><br>" +
+  "Chez Maelor, le blason s'est éveillé. Il est né avec une affinité pour les dragons, un don rare distribué au hasard des naissances, comme d'autres naissent gauchers. Près de certains lieux, le blason se réchauffe et lui montre des souvenirs qui ne sont pas les siens.",
+
+  "Personne n'a appelé Maelor dans le Val Ténébreux. Il n'y cherche ni trésor ni vengeance. Il cherche un sens : pourquoi l'Ordre est tombé, pourquoi on se bat encore, pourquoi le monde oublie tout sans que personne s'en soucie.<br><br>" +
+  "Sa colère n'a pas de visage. Elle vise l'indifférence.<br><br>" +
+  say("Maelor", "Je ne suis pas celui qu'on attendait. Personne ne m'a choisi. J'ai choisi de venir."),
 
   "Il ne marche pas seul.<br><br>" +
-  "<strong>Lyra</strong>, mage noire au regard de braise. Son maître a brûlé sur le même bûcher que l'Ordre ; elle n'a gardé de lui qu'un chapeau et une colère.<br><br>" +
-  "<strong>Elwen</strong>, mage blanche chassée du temple pour avoir soigné des condamnés. Elle croit encore que chaque vie peut être sauvée. Même celle de Maelor.",
+  "<strong>Lyra</strong>, mage noire au regard de braise. Son maître n'a jamais pratiqué la magie noire. Un village effrayé l'a brûlé sur une rumeur, sans procès. Puis la foule s'est dispersée, et plus personne ne se souvient de rien.<br><br>" +
+  "Elle a gardé de lui un chapeau, et une colère qui n'a personne à frapper. Elle en veut à un monde qui juge vite, détruit vite, et oublie plus vite encore.",
+
+  "<strong>Elwen</strong>, mage blanche. Son temple enseignait que la guérison se mérite, et qu'on ne la donne pas aux condamnés. Elle en a soigné quand même, ceux qu'on avait abandonnés. On l'a chassée.<br><br>" +
+  "Qui peut juger avec certitude, dans un monde qui a oublié jusqu'à l'origine de ses propres guerres ? Elwen croit que chaque vie peut être sauvée. Même celle qu'on a déjà jugée perdue.",
 ];
 
 const CHAPTERS = [
@@ -135,7 +144,17 @@ const CHAPTERS = [
     title: "II · Le Cimetière des Parjures",
     tint: "rgba(20, 40, 50, 0.45)",
     story: [
-      "Au-delà des bois s'étend un cimetière sans croix. C'est ici qu'on a jeté les corps de l'Ordre. La terre remue.<br><br>" +
+      "Au-delà des bois s'étend un cimetière sans croix. C'est ici qu'on a jeté les corps de l'Ordre, dans une fosse sans nom.<br><br>" +
+      "Contre la poitrine de Maelor, le blason se met à brûler.",
+
+      memory(
+        "Des chevaliers à genoux dans la boue, les mains liées. On arrache leur bannière : un dragon d'argent sur fond noir.<br>" +
+        "Une voix crie « sorcellerie ». D'autres reprennent le mot sans savoir d'où il vient.<br>" +
+        "Un chevalier lève les yeux vers le ciel vide : « Ils ne viendront pas. Plus maintenant. »<br><br>" +
+        "Le nom qu'on efface ce jour-là tremble sur le blason : <strong>R····r D······s</strong>."),
+
+      "Un raclement tire Maelor du souvenir. Entre les tombes, des silhouettes creusent.<br><br>" +
+      "Des Squelettes. Rien à voir avec les morts qu'ils dépouillent : c'est une race à part, qui récolte l'os humain comme d'autres coupent du bois, parce qu'il se taille bien et tient longtemps.<br><br>" +
       say("Elwen", "Ces os craignent le feu. Et la lumière d'un soin les brûle plus sûrement qu'une lame."),
     ],
     enemies: ["skeleton", "goblin", "skeleton"],
@@ -156,6 +175,18 @@ const CHAPTERS = [
     story: [
       { html: "Au cœur d'une clairière, une source brille d'une lueur pâle. Ses eaux referment les plaies et rendent l'éclat aux esprits las.<br><br>" +
               "<em>Les PV et les PM du groupe sont entièrement restaurés.</em>", sfx: "heal" },
+
+      "Sur les pierres du bassin, des empreintes de griffes côtoient des empreintes de mains, gravées ensemble dans la roche.<br><br>" +
+      "Le blason se réchauffe.",
+
+      memory(
+        "Un dragon boit à la source. Un chevalier sans armure pose la main sur ses écailles.<br>" +
+        "Ils ne se parlent pas avec des mots. L'homme sent ce que sent la bête, la bête sait ce que pense l'homme. Comment ? Le souvenir ne le dit pas.<br>" +
+        "« Nous ne les commandons pas. Nous marchons à côté d'eux, pour que les hommes et les dragons ne s'oublient jamais. »<br><br>" +
+        "Sur le blason, le nom se précise : <strong>Ré·r·r Dra··n·s</strong>."),
+
+      say("Maelor", "Ils ne domptaient pas les dragons. Ils marchaient avec eux.") + "<br>" +
+      say("Lyra", "Alors pourquoi tout le monde raconte l'inverse ?"),
     ],
   },
   {
@@ -164,8 +195,17 @@ const CHAPTERS = [
     boss: true,
     canRun: false,
     story: [
-      "La grotte exhale une chaleur de forge. Sur un lit d'ossements et de blasons brisés repose la bête qui a dévoré l'Ordre.<br><br>" +
-      say("Maelor", "Trente ans que j'attends ce jour.") + "<br>" +
+      "La grotte exhale une chaleur de forge. Sur un lit d'ossements et de blasons brisés repose la bête qui, dit-on, a dévoré l'Ordre. Au village, on la dit folle.<br><br>" +
+      "À l'écart des débris, un seul blason est intact. Usé, poli, comme si on l'avait tenu chaque jour pendant trente ans. Le blason de Maelor s'embrase.",
+
+      memory(
+        "Le même dragon, plus jeune. Un chevalier dort contre son flanc, ce blason intact sur la poitrine. Ils sont amis.<br>" +
+        "Puis des torches, des cris, une flèche. Le chevalier ne se relève pas. Personne ne sait plus qui a tiré le premier.<br>" +
+        "Depuis, le dragon croit tous les hommes hostiles, et les hommes le croient fou. Il a gardé le blason de son ami. Il attend quelqu'un qui se souvienne.<br><br>" +
+        "Le nom, presque entier : <strong>Rédr·r Draku·is</strong>."),
+
+      "Le Dragon ouvre les yeux. Il ne voit que des humains armés dans son antre, comme il y a trente ans.<br><br>" +
+      say("Maelor", "Il n'est pas fou. Il croit qu'on vient le tuer.") + "<br>" +
       say("Elwen", "Son souffle est de feu. Garde tes flammes, Lyra. La glace, peut-être..."),
     ],
     enemies: ["dragon"],
