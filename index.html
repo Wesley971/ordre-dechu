@@ -10,102 +10,77 @@
   <meta property="og:type" content="website">
   <meta name="color-scheme" content="dark light">
   <title>L'Ordre Déchu</title>
-  <link rel="stylesheet" href="colors_and_type.css">
+  <link rel="stylesheet" href="design-system.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="lock-scroll">
 
-  <!-- ── ÉCRAN D'INTRO ───────────────────────────────────────────── -->
+  <!-- ── ÉCRAN TITRE ─────────────────────────────────────────────── -->
   <div id="intro-screen">
-    <div class="intro-card">
+    <header class="logo">
       <div class="rule"></div>
       <h1>L'Ordre<br>Déchu</h1>
       <div class="rule"></div>
-      <p class="intro-sub">Une aventure de Maelor du Val Ténébreux</p>
-      <button id="start-btn">🎬 Commencer l'aventure</button>
+      <p class="logo-sub">Une aventure de Maelor du Val Ténébreux</p>
+    </header>
+    <div class="window title-menu">
+      <button id="retry-btn" class="menu-item title-option" hidden>Réessayer le combat</button>
+      <button id="start-btn" class="menu-item title-option">Nouvelle partie</button>
     </div>
+    <p class="intro-keys">Flèches · Entrée pour valider · Échap pour revenir — ou une manette</p>
   </div>
 
-  <!-- ── ÉCRAN PRINCIPAL DU JEU ─────────────────────────────────── -->
-  <div id="game" style="display:none">
+  <!-- ── JEU ────────────────────────────────────────────────────── -->
+  <main id="game" hidden>
 
-    <!-- Personnages -->
-    <div class="char-row">
+    <!-- Scène : ennemis à gauche, groupe à droite -->
+    <section id="battle-scene" class="window">
+      <div id="battle-banner" class="window" hidden></div>
+      <div id="enemy-area"></div>
+      <div id="hero-area"></div>
+    </section>
 
-      <!-- Héros -->
-      <div id="player" class="char-card">
-        <div class="char-head">
-          <img src="images/geralt-emoji.png" alt="Maelor" class="char-sprite sprite-float">
-          <div>
-            <div class="char-name">Maelor</div>
-            <div class="char-sub" id="player-level-text">Val Ténébreux · Niv. 1</div>
-          </div>
-        </div>
-        <hr class="divider">
-        <div class="stat-row">
-          <div class="stat-top">
-            <span class="stat-label">HP</span>
-            <span class="stat-val" id="player-hp-text">20</span>
-          </div>
-          <div class="bar-wrap">
-            <div class="bar-fill hp" id="player-hp-bar" style="width:100%"></div>
-          </div>
-        </div>
-        <div class="stat-row">
-          <div class="stat-top">
-            <span class="stat-label">XP</span>
-            <span class="stat-val" id="player-xp-text">0</span>
-          </div>
-        </div>
+    <!-- Fenêtres du bas -->
+    <section id="battle-hud">
+      <div id="left-window" class="window">
+        <ul id="enemy-list"></ul>
+        <div id="command-window" hidden></div>
+        <div id="target-hint" hidden>Choisis une cible<br><span>◀ Retour</span></div>
       </div>
 
-      <!-- Ennemi -->
-      <div id="enemy" class="char-card">
-        <div class="char-head">
-          <img id="enemy-image" src="images/gobelin.png" alt="Ennemi" class="char-sprite sprite-float">
-          <div>
-            <div class="char-name" id="enemy-name">Gobelin</div>
-            <div class="char-sub">Ennemi</div>
-          </div>
+      <div id="party-window" class="window">
+        <div class="party-row party-head">
+          <span>Nom</span><span>PV</span><span>PM</span><span>Temps</span>
         </div>
-        <hr class="divider">
-        <div class="stat-row">
-          <div class="stat-top">
-            <span class="stat-label">HP</span>
-            <span class="stat-val" id="enemy-hp-text">10</span>
-          </div>
-          <div class="bar-wrap">
-            <div class="bar-fill hp" id="enemy-hp-bar" style="width:100%"></div>
-          </div>
-        </div>
+        <div id="party-rows"></div>
       </div>
 
-    </div><!-- /char-row -->
+      <div id="list-window" class="window" hidden></div>
+    </section>
 
-    <!-- Texte narratif -->
-    <div id="story">
-      Une brume épaisse recouvre la forêt... un bruit de pas approche.
-    </div>
+  </main>
 
-    <!-- Boutons d'action -->
-    <div id="choices" class="actions">
-      <button id="fight-btn">⚔ Attaquer</button>
-      <button id="heal-btn">🧪 Se soigner</button>
-      <button id="run-btn">🏃 Fuir</button>
-    </div>
+  <!-- Dialogues : histoire, résultats, fin -->
+  <div id="dialog" class="window" hidden>
+    <div id="dialog-title" class="window-title"></div>
+    <div id="dialog-text"></div>
+    <ul id="dialog-choices" class="menu" hidden></ul>
+    <div id="dialog-next">▼</div>
+  </div>
 
-    <!-- Bouton "Continuer" (lore → combat) -->
-    <div id="continue-button" class="actions">
-      <button id="launch-btn">➡️ Continuer</button>
-    </div>
-
-  </div><!-- /game -->
+  <div id="flash"></div>
+  <button id="sound-btn" class="window" title="Son" aria-label="Couper / remettre le son">♪</button>
 
   <script src="config.js"></script>
-  <script src="data.js"></script>
-  <script src="script.js"></script>
-  <script src="ui.js"></script>
   <script src="player.js"></script>
+  <script src="data.js"></script>
+  <script src="sfx.js"></script>
+  <script src="input.js"></script>
+  <script src="battle.js"></script>
+  <script src="menu.js"></script>
+  <script src="ui.js"></script>
+  <script src="dialog.js"></script>
+  <script src="script.js"></script>
 
 </body>
 </html>

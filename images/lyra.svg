@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <g stroke="#363427" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- visage dans l'ombre -->
+    <ellipse cx="50" cy="56" rx="19" ry="17" fill="#0e0e14"/>
+    <!-- robe -->
+    <path d="M14 99 C16 79 28 70 50 70 C72 70 84 79 86 99 Z" fill="#2c3b86"/>
+    <path d="M36 71 L50 86 L64 71" fill="none"/>
+    <path d="M20 99 C22 90 26 84 30 81" fill="none" stroke="#1d2860" stroke-width="2"/>
+    <path d="M80 99 C78 90 74 84 70 81" fill="none" stroke="#1d2860" stroke-width="2"/>
+    <!-- chapeau -->
+    <ellipse cx="50" cy="44" rx="41" ry="10" fill="#b8894a"/>
+    <path d="M29 42 C31 28 40 15 53 7 C56 5 61 7 62 10 C59 12 57 15 59 19 C63 27 69 35 71 42 C58 46 42 46 29 42 Z" fill="#c99a55"/>
+    <path d="M30 37 C43 41 57 41 70 37 L71 42 C58 46 42 46 29 42 Z" fill="#5a3b1e"/>
+  </g>
+  <!-- yeux lumineux -->
+  <ellipse cx="43" cy="59" rx="3.4" ry="4.2" fill="#ffd23a"/>
+  <ellipse cx="57" cy="59" rx="3.4" ry="4.2" fill="#ffd23a"/>
+  <ellipse cx="43" cy="59" rx="6" ry="6.5" fill="#ffd23a" opacity="0.18"/>
+  <ellipse cx="57" cy="59" rx="6" ry="6.5" fill="#ffd23a" opacity="0.18"/>
+</svg>
