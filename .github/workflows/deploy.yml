@@ -37,6 +37,9 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      # Vite compile le TypeScript sans vérifier les types : une erreur de type bloque ici la publication
+      - name: Typecheck
+        run: npm run typecheck
       - name: Build
         run: npm run build
       - name: Setup Pages
