@@ -1,7 +1,17 @@
-// input.js - Clavier et manette traduits en actions : up, down, left, right, confirm, cancel
+// input.ts - Clavier et manette traduits en actions : up, down, left, right, confirm, cancel
 // Chaque écran empile son gestionnaire ; seul celui du dessus reçoit les actions.
 
-export const Input = {
+export type Action = "up" | "down" | "left" | "right" | "confirm" | "cancel";
+type Handler = (action: Action) => void;
+
+interface InputStack {
+  handlers: Handler[];
+  push(handler: Handler): void;
+  pop(): void;
+  emit(action: Action): void;
+}
+
+export const Input: InputStack = {
   handlers: [],
   push(handler) { this.handlers.push(handler); },
   pop() { this.handlers.pop(); },
@@ -11,7 +21,7 @@ export const Input = {
   },
 };
 
-const KEYS = {
+const KEYS: Record<string, Action> = {
   ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
   Enter: "confirm", " ": "confirm", z: "confirm", Z: "confirm",
   Escape: "cancel", Backspace: "cancel", x: "cancel", X: "cancel",
@@ -28,14 +38,14 @@ document.addEventListener("keydown", event => {
 
 // — Manette (API Gamepad, disposition standard : Xbox 360, etc.) —
 
-const PAD_BUTTONS = { 12: "up", 13: "down", 14: "left", 15: "right", 0: "confirm", 1: "cancel" };
+const PAD_BUTTONS: Record<number, Action> = { 12: "up", 13: "down", 14: "left", 15: "right", 0: "confirm", 1: "cancel" };
 const PAD_REPEAT = { delay: 350, interval: 110 };
-const padState = {}; // action → instant de la prochaine répétition (ou null si relâché)
+const padState: Record<string, number | null> = {}; // action → instant de la prochaine répétition (ou null si relâché)
 
-function readPad(pad) {
-  const pressed = new Set();
+function readPad(pad: Gamepad) {
+  const pressed = new Set<Action>();
   for (const [index, action] of Object.entries(PAD_BUTTONS)) {
-    if (pad.buttons[index] && pad.buttons[index].pressed) pressed.add(action);
+    if (pad.buttons[Number(index)] && pad.buttons[Number(index)].pressed) pressed.add(action);
   }
   const [x = 0, y = 0] = pad.axes;
   if (y < -0.5) pressed.add("up");
@@ -45,11 +55,11 @@ function readPad(pad) {
   return pressed;
 }
 
-function pollGamepads(now) {
-  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+function pollGamepads(now: number) {
+  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(pad => pad !== null) : [];
   const pressed = new Set(pads.flatMap(pad => [...readPad(pad)]));
 
-  for (const action of ["up", "down", "left", "right", "confirm", "cancel"]) {
+  for (const action of ["up", "down", "left", "right", "confirm", "cancel"] satisfies Action[]) {
     if (!pressed.has(action)) {
       padState[action] = null;
       continue;

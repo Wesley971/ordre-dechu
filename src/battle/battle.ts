@@ -1,27 +1,69 @@
-// battle.js - Moteur de combat : calculs (logique pure) et boucle ATB
+// battle.ts - Moteur de combat : calculs (logique pure) et boucle ATB
 
-import { CONFIG } from "../config.js";
-import { ATTACK, ENEMY_SKILLS, ENEMIES, GameState } from "../data/game-data.js";
-import { Sfx } from "../audio/sfx.js";
-import { Menu } from "./battle-menu.js";
+import { CONFIG } from "../config.ts";
+import { ATTACK, ENEMY_SKILLS, ENEMIES, GameState } from "../data/game-data.ts";
+import type {
+  Ability, BattleChapter, ElementName, EnemyAction, EnemyDef, EnemyId, HealAbility, ItemId,
+  MagicAbility, PhysicalAbility, TargetType,
+} from "../data/game-data.ts";
+import type { Hero } from "../party/heroes.ts";
+import { Sfx } from "../audio/sfx.ts";
+import { Menu } from "./battle-menu.ts";
 import {
   renderBattle, updateBattleUI, updateAtbUI, showMessage, playBattleIntro,
   animateActorStart, animateActorEnd, showEffect, showDefend, showDefeated, killEnemies, animateEscape,
-} from "../ui/view.js";
+} from "../ui/view.ts";
 
-export const wait       = ms => new Promise(resolve => setTimeout(resolve, ms));
-const randomItem = list => list[Math.floor(Math.random() * list.length)];
-export const isAlive    = combatant => combatant.hp > 0;
+// charging : la jauge se remplit · ready : héros en attente d'un ordre · queued : action en file · ko : à terre
+export type CombatState = "charging" | "ready" | "queued" | "ko";
+
+export interface Enemy extends EnemyDef {
+  id: string;
+  side: "enemy";
+  hp: number;
+  mp: number;
+  maxMp: number;
+  atb: number;
+  state: CombatState;
+  defending: boolean;
+  turns: number;
+  enraged: boolean;
+}
+
+export type Combatant = Hero | Enemy;
+
+// Résultat d'une action sur une cible ; crit et weak ne concernent que les dégâts
+export type Effect = { crit?: boolean; weak?: boolean } & (
+  | { type: "miss" }
+  | { type: "damage"; amount: number }
+  | { type: "heal"; amount: number; absorbed?: boolean }
+  | { type: "mp"; amount: number }
+  | { type: "revive"; amount: number }
+  | { type: "none" }
+);
+
+export interface QueuedAction {
+  actor: Combatant;
+  ability: Ability;
+  targets: Combatant[];
+  itemId?: ItemId | null;
+}
+
+export type BattleResult = "victory" | "defeat" | "escape";
+
+export const wait       = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+const randomItem = <T>(list: T[]) => list[Math.floor(Math.random() * list.length)];
+export const isAlive    = (combatant: Combatant) => combatant.hp > 0;
 
 // ±variance autour d'une valeur
-function vary(value) {
+function vary(value: number) {
   const v = CONFIG.damage.variance;
   return value * (1 - v + Math.random() * 2 * v);
 }
 
 // — Logique pure —
 
-function elementMultiplier(target, element) {
+function elementMultiplier(target: Combatant, element: ElementName | undefined) {
   const affinity = element && target.elements && target.elements[element];
   if (affinity === "weak")   return CONFIG.damage.weakMultiplier;
   if (affinity === "resist") return CONFIG.damage.resistMultiplier;
@@ -29,7 +71,7 @@ function elementMultiplier(target, element) {
   return 1;
 }
 
-function calcPhysical(attacker, target, ability) {
+function calcPhysical(attacker: Combatant, target: Combatant, ability: PhysicalAbility): Effect {
   const { missChance, critChance, critMultiplier, defendMultiplier } = CONFIG.damage;
   if (Math.random() < missChance) return { type: "miss" };
 
@@ -40,7 +82,7 @@ function calcPhysical(attacker, target, ability) {
   return { type: "damage", amount: Math.max(1, Math.round(damage)), crit };
 }
 
-function calcMagic(caster, target, ability) {
+function calcMagic(caster: Combatant, target: Combatant, ability: MagicAbility): Effect {
   const multiplier = elementMultiplier(target, ability.element);
   const base = Math.max(1, vary(ability.power + caster.mag * 2) - target.res);
   const amount = Math.round(base * Math.abs(multiplier));
@@ -48,20 +90,21 @@ function calcMagic(caster, target, ability) {
   return { type: "damage", amount, weak: multiplier > 1 };
 }
 
-function calcHeal(caster, target, ability) {
+function calcHeal(caster: Combatant, target: Combatant, ability: HealAbility): Effect {
   if (!isAlive(target)) return { type: "none" };
-  const amount = ability.amount || Math.round(vary(ability.power + caster.mag * 2));
+  // Objet : quantité fixe · sort : puissance + magie du lanceur
+  const amount = "amount" in ability ? ability.amount : Math.round(vary(ability.power + caster.mag * 2));
   // Les soins brûlent les créatures d'os (Squelettes)
   if (target.undead) return { type: "damage", amount, weak: true };
   return { type: "heal", amount };
 }
 
-function calcRevive(target) {
+function calcRevive(target: Combatant): Effect {
   if (isAlive(target)) return { type: "none" };
   return { type: "revive", amount: Math.max(1, Math.round(target.maxHp * CONFIG.revivePct)) };
 }
 
-function computeEffect(actor, ability, target) {
+function computeEffect(actor: Combatant, ability: Ability, target: Combatant): Effect {
   switch (ability.kind) {
     case "physical": return calcPhysical(actor, target, ability);
     case "magic":    return calcMagic(actor, target, ability);
@@ -72,7 +115,7 @@ function computeEffect(actor, ability, target) {
   }
 }
 
-function applyEffect(target, effect) {
+function applyEffect(target: Combatant, effect: Effect) {
   switch (effect.type) {
     case "damage": target.hp = Math.max(0, target.hp - effect.amount); break;
     case "heal":   target.hp = Math.min(target.maxHp, target.hp + effect.amount); break;
@@ -87,8 +130,8 @@ function applyEffect(target, effect) {
 
 // — Ennemis —
 
-function createEnemies(keys) {
-  const total = {}, seen = {};
+function createEnemies(keys: EnemyId[]): Enemy[] {
+  const total: Record<string, number> = {}, seen: Record<string, number> = {};
   keys.forEach(key => total[key] = (total[key] || 0) + 1);
 
   return keys.map((key, i) => {
@@ -103,9 +146,9 @@ function createEnemies(keys) {
   });
 }
 
-function chooseEnemyAction(enemy) {
-  const pattern = enemy.enraged ? enemy.rage.pattern : enemy.pattern;
-  let choice = "attack";
+function chooseEnemyAction(enemy: Enemy): QueuedAction {
+  const pattern = enemy.enraged ? enemy.rage?.pattern : enemy.pattern;
+  let choice: EnemyAction = "attack";
 
   if (pattern) {
     choice = pattern[enemy.turns % pattern.length];
@@ -122,25 +165,25 @@ function chooseEnemyAction(enemy) {
 // — Ciblage —
 
 // relation "foe" : le camp adverse de actor · "ally" : son propre camp
-export function groupOf(actor, relation) {
+export function groupOf(actor: Combatant, relation: "foe" | "ally"): Combatant[] {
   const heroSide = (actor.side === "hero") === (relation === "ally");
   return heroSide ? Battle.heroes : Battle.enemies;
 }
 
-export function targetCandidates(actor, targetType) {
+export function targetCandidates(actor: Combatant, targetType: TargetType) {
   if (targetType === "ko-ally") return groupOf(actor, "ally").filter(c => !isAlive(c));
   const relation = targetType.includes("foe") ? "foe" : "ally";
   return groupOf(actor, relation).filter(isAlive);
 }
 
-function pickTargets(actor, targetType) {
+function pickTargets(actor: Combatant, targetType: TargetType) {
   const candidates = targetCandidates(actor, targetType);
   if (targetType.startsWith("all-")) return candidates;
   return candidates.length ? [randomItem(candidates)] : [];
 }
 
 // Si la cible est tombée entre le choix et l'action, on vise un autre membre du même camp
-function retarget(actor, ability, chosen) {
+function retarget(actor: Combatant, ability: Ability, chosen: Combatant[]) {
   if (ability.target.startsWith("all-")) return targetCandidates(actor, ability.target);
   if (ability.target === "ko-ally") return chosen;
 
@@ -154,27 +197,39 @@ function retarget(actor, ability, chosen) {
 
 // — Boucle de combat (ATB) —
 
-export const Battle = {
+export interface BattleState {
+  heroes: Hero[];
+  enemies: Enemy[];
+  chapter: BattleChapter | null;
+  readyQueue: Hero[];           // héros dont la jauge est pleine, en attente d'un ordre
+  actionQueue: QueuedAction[];  // actions choisies, exécutées une par une
+  busy: boolean;                // une action est en cours d'animation
+  over: boolean;
+  lastTime: number;
+  resolve: (result: BattleResult) => void;
+}
+
+export const Battle: BattleState = {
   heroes: [], enemies: [], chapter: null,
-  readyQueue: [],  // héros dont la jauge est pleine, en attente d'un ordre
-  actionQueue: [], // actions choisies, exécutées une par une
-  busy: false,     // une action est en cours d'animation
+  readyQueue: [],
+  actionQueue: [],
+  busy: false,
   over: false,
   lastTime: 0,
-  resolve: null,
+  resolve: () => {}, // remplacé par runBattle
 };
 
-function allCombatants() {
+function allCombatants(): Combatant[] {
   return [...Battle.heroes, ...Battle.enemies];
 }
 
 // Joue un combat complet ; renvoie "victory", "defeat" ou "escape"
-export async function runBattle(chapter) {
+export async function runBattle(chapter: BattleChapter) {
   Object.assign(Battle, {
     heroes: GameState.party, enemies: createEnemies(chapter.enemies), chapter,
     readyQueue: [], actionQueue: [], busy: true, over: false,
   });
-  const ended = new Promise(resolve => Battle.resolve = resolve);
+  const ended = new Promise<BattleResult>(resolve => Battle.resolve = resolve);
 
   for (const c of allCombatants()) {
     c.atb = isAlive(c) ? Math.random() * CONFIG.atb.startMax : 0;
@@ -194,7 +249,7 @@ export async function runBattle(chapter) {
   return result;
 }
 
-function battleLoop(now) {
+function battleLoop(now: number) {
   if (Battle.over) return;
   const dt = Math.min((now - Battle.lastTime) / 1000, 0.1);
   Battle.lastTime = now;
@@ -210,7 +265,7 @@ function isTimeFrozen() {
   return Battle.busy || (CONFIG.atb.mode === "wait" && Menu.isInSubmenu());
 }
 
-function fillGauges(dt) {
+function fillGauges(dt: number) {
   for (const c of allCombatants()) {
     if (!isAlive(c) || c.state !== "charging") continue;
     c.atb = Math.min(100, c.atb + (c.spd + 20) * CONFIG.atb.fillRate * dt);
@@ -222,7 +277,7 @@ function fillGauges(dt) {
   }
 }
 
-function heroReady(hero) {
+function heroReady(hero: Hero) {
   hero.defending = false;
   Battle.readyQueue.push(hero);
   Sfx.play("ready");
@@ -230,18 +285,18 @@ function heroReady(hero) {
   Menu.onHeroReady();
 }
 
-function enemyReady(enemy) {
+function enemyReady(enemy: Enemy) {
   enemy.state = "queued";
   Battle.actionQueue.push(chooseEnemyAction(enemy));
 }
 
-function removeFromReadyQueue(hero) {
+function removeFromReadyQueue(hero: Hero) {
   Battle.readyQueue = Battle.readyQueue.filter(h => h !== hero);
 }
 
 // — Ordres du joueur —
 
-export function queueHeroAction(hero, ability, targets, itemId = null) {
+export function queueHeroAction(hero: Hero, ability: Ability, targets: Combatant[], itemId: ItemId | null = null) {
   removeFromReadyQueue(hero);
   hero.state = "queued";
   if (itemId) GameState.inventory[itemId]--;  // réservé dès le choix, rendu si l'action n'a pas lieu
@@ -249,7 +304,7 @@ export function queueHeroAction(hero, ability, targets, itemId = null) {
   updateBattleUI();
 }
 
-export function defend(hero) {
+export function defend(hero: Hero) {
   removeFromReadyQueue(hero);
   hero.defending = true;
   hero.atb = 0;
@@ -261,8 +316,9 @@ export function defend(hero) {
 // — Exécution des actions —
 
 async function runNextAction() {
-  Battle.busy = true;
   const action = Battle.actionQueue.shift();
+  if (!action) return;
+  Battle.busy = true;
   const { actor, ability } = action;
 
   if (isAlive(actor)) {
@@ -280,7 +336,7 @@ async function runNextAction() {
   Battle.busy = false;
 }
 
-async function performAbility({ actor, ability, targets: chosen }) {
+async function performAbility({ actor, ability, targets: chosen }: QueuedAction) {
   const targets = retarget(actor, ability, chosen);
   if (ability.mp) actor.mp = Math.max(0, actor.mp - ability.mp);
 
@@ -299,7 +355,7 @@ async function performAbility({ actor, ability, targets: chosen }) {
   await animateActorEnd(actor);
 }
 
-async function handleKnockouts(targets) {
+async function handleKnockouts(targets: Combatant[]) {
   const fallen = targets.filter(t => !isAlive(t) && t.state !== "ko");
   for (const c of fallen) {
     c.state = "ko";
@@ -319,7 +375,7 @@ async function handleKnockouts(targets) {
   updateBattleUI();
 }
 
-async function checkRage(targets) {
+async function checkRage(targets: Combatant[]) {
   for (const enemy of targets) {
     if (!enemy.rage || enemy.enraged || !isAlive(enemy)) continue;
     if (enemy.hp / enemy.maxHp > enemy.rage.threshold) continue;
@@ -330,7 +386,7 @@ async function checkRage(targets) {
 }
 
 async function attemptRun() {
-  if (Battle.chapter.canRun === false) {
+  if (Battle.chapter?.canRun === false) {
     await showMessage("Impossible de fuir !");
     return;
   }
@@ -348,7 +404,7 @@ function checkBattleEnd() {
   else if (!Battle.heroes.some(isAlive)) endBattle("defeat");
 }
 
-function endBattle(result) {
+function endBattle(result: BattleResult) {
   Battle.over = true;
   Battle.readyQueue = [];
   Battle.actionQueue = [];

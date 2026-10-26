@@ -1,18 +1,75 @@
-// game-data.js - Données du jeu : héros, sorts, objets, ennemis, histoire, état de la partie
+// game-data.ts - Données du jeu : héros, sorts, objets, ennemis, histoire, état de la partie
 
-import { CONFIG } from "../config.js";
-import { createHero } from "../party/heroes.js";
+import { CONFIG } from "../config.ts";
+import { createHero, type Hero } from "../party/heroes.ts";
+import type { CombatState } from "../battle/battle.ts";
+import type { SoundName } from "../audio/sfx.ts";
+
+// — Types —
+
+// Page de dialogue : texte HTML, ou { html, sfx } pour jouer un son à l'ouverture de la page
+export interface PageObject {
+  html: string;
+  sfx?: SoundName;
+}
+export type Page = string | PageObject;
+
+export interface Stats {
+  maxHp: number;
+  maxMp: number;
+  atk: number;
+  def: number;
+  mag: number;
+  res: number;
+  spd: number;
+}
+export type StatName = keyof Stats;
+
+export interface HeroDef {
+  id: string;
+  name: string;
+  job: string;
+  image: string;
+  command: string;
+  stats: Stats;
+  growth: Stats;
+  spells: Record<number, SpellId[]>;
+}
+
+export type ElementName = "fire" | "ice" | "thunder";
+export type Affinity = "weak" | "resist" | "absorb";
+export type TargetType = "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" | "none";
+
+interface AbilityBase {
+  name: string;
+  target: TargetType;
+  mp?: number;
+  element?: ElementName;
+  desc?: string;
+}
+export interface PhysicalAbility extends AbilityBase { kind: "physical"; power: number; pierce?: boolean }
+export interface MagicAbility    extends AbilityBase { kind: "magic"; power: number; element: ElementName }
+export interface HealSpell       extends AbilityBase { kind: "heal"; power: number }
+export interface HealItem        extends AbilityBase { kind: "heal"; amount: number }
+export interface MpAbility       extends AbilityBase { kind: "mp"; amount: number }
+export interface ReviveAbility   extends AbilityBase { kind: "revive" }
+export interface RunAbility      extends AbilityBase { kind: "run" }
+export type HealAbility = HealSpell | HealItem;
+export type Ability = PhysicalAbility | MagicAbility | HealAbility | MpAbility | ReviveAbility | RunAbility;
+
+type Spell = Ability & { mp: number; desc: string };
+type Item = Ability & { desc: string };
 
 // Réplique d'un personnage dans un dialogue
-const say = (name, text) => `<span class="speaker">${name} :</span> ${text}`;
+const say = (name: string, text: string) => `<span class="speaker">${name} :</span> ${text}`;
 
 // Fragment de mémoire révélé par le blason de Maelor : une page à part, avec son propre son
-const memory = html => ({ html: `<span class="memory">${html}</span>`, sfx: "memory" });
+const memory = (html: string): PageObject => ({ html: `<span class="memory">${html}</span>`, sfx: "memory" });
 
 // — Héros —
 // stats : valeurs au niveau 1 · growth : gain à chaque niveau · spells : sorts appris par niveau
 
-export const HEROES = [
+export const HEROES: HeroDef[] = [
   {
     id: "maelor", name: "Maelor", job: "Chevalier déchu", image: "images/maelor.png",
     command: "Techniques",
@@ -40,8 +97,8 @@ export const HEROES = [
 // kind   : "physical" | "magic" | "heal" | "mp" | "revive" | "run"
 // target : "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" | "none"
 
-export const ATTACK = { name: "Attaque", kind: "physical", power: 1, target: "foe" };
-export const RUN    = { name: "Fuite",   kind: "run", target: "none" };
+export const ATTACK: PhysicalAbility = { name: "Attaque", kind: "physical", power: 1, target: "foe" };
+export const RUN: RunAbility         = { name: "Fuite",   kind: "run", target: "none" };
 
 export const SPELLS = {
   fallenBlade: { name: "Lame Déchue", mp: 6,  kind: "physical", power: 2, pierce: true, target: "foe",
@@ -62,23 +119,48 @@ export const SPELLS = {
                  desc: "Rend des PV à tout le groupe." },
   life:        { name: "Vie",         mp: 12, kind: "revive", target: "ko-ally",
                  desc: "Ranime un allié K.O." },
-};
+} satisfies Record<string, Spell>;
+export type SpellId = keyof typeof SPELLS;
 
 export const ITEMS = {
   potion:  { name: "Potion",          kind: "heal",   amount: 100, target: "ally",    desc: "Rend 100 PV." },
   ether:   { name: "Éther",           kind: "mp",     amount: 30,  target: "ally",    desc: "Rend 30 PM." },
   phoenix: { name: "Queue de Phénix", kind: "revive",              target: "ko-ally", desc: "Ranime un allié K.O." },
-};
+} satisfies Record<string, Item>;
+export type ItemId = keyof typeof ITEMS;
 
 export const ENEMY_SKILLS = {
   crush:      { name: "Écrasement",     kind: "physical", power: 1.6, target: "foe" },
   fireBreath: { name: "Souffle ardent", kind: "magic", power: 34, element: "fire", target: "all-foes" },
-};
+} satisfies Record<string, Ability>;
+export type EnemySkillId = keyof typeof ENEMY_SKILLS;
+export type EnemyAction = "attack" | EnemySkillId;
 
 // — Ennemis —
 // elements : "weak" | "resist" | "absorb" · skills : capacités tirées au hasard
 // pattern  : suite d'actions jouées en boucle · rage : nouveau pattern sous un seuil de PV
 // spareable : vaincu, il reste à terre et le joueur choisit de l'épargner ou de l'achever (DRAGON_FATE)
+
+export interface EnemyDef {
+  name: string;
+  image: string;
+  maxHp: number;
+  atk: number;
+  def: number;
+  mag: number;
+  res: number;
+  spd: number;
+  xp: number;
+  gil: number;
+  drop?: { item: ItemId; chance: number };
+  undead?: boolean;
+  elements?: Partial<Record<ElementName, Affinity>>;
+  skills?: { skill: EnemySkillId; chance: number }[];
+  pattern?: EnemyAction[];
+  rage?: { threshold: number; pattern: EnemyAction[]; message: string };
+  boss?: boolean;
+  spareable?: boolean;
+}
 
 export const ENEMIES = {
   goblin: {
@@ -107,14 +189,15 @@ export const ENEMIES = {
     rage: { threshold: 0.5, pattern: ["fireBreath", "attack"], message: "Le Dragon entre en fureur !" },
     xp: 300, gil: 1000, drop: { item: "phoenix", chance: 1 },
   },
-};
+} satisfies Record<string, EnemyDef>;
+export type EnemyId = keyof typeof ENEMIES;
 
 // — Histoire —
 // Chaque page de dialogue est un bloc de texte (HTML simple autorisé).
 // Le monde ne connaît l'Ordre que sous le nom d'« Ordre Déchu » ; son vrai nom n'apparaît que dans
 // les fragments du blason, de plus en plus lisible, et ne se complète que si le Dragon est épargné.
 
-export const PROLOGUE = [
+export const PROLOGUE: Page[] = [
   "Dans ces terres, on se bat depuis si longtemps que plus personne ne sait pourquoi. L'origine des guerres s'est effacée des mémoires, puis des livres. Il ne reste que les guerres.<br><br>" +
   "Il y a trente ans, un ordre de chevaliers fut accusé de sorcellerie et exécuté sans procès. Son nom disparut avec lui. Le monde ne l'appelle plus que <strong>l'Ordre Déchu</strong>.",
 
@@ -133,7 +216,24 @@ export const PROLOGUE = [
   "Qui peut juger avec certitude, dans un monde qui a oublié jusqu'à l'origine de ses propres guerres ? Elwen croit que chaque vie peut être sauvée. Même celle qu'on a déjà jugée perdue.",
 ];
 
-export const CHAPTERS = [
+interface ChapterBase {
+  title: string;
+  tint: string;
+  story: Page[];
+}
+// Chapitre de repos : PV et PM restaurés, pas de combat
+export interface RestChapter extends ChapterBase {
+  rest: true;
+}
+export interface BattleChapter extends ChapterBase {
+  rest?: never;
+  enemies: EnemyId[];
+  boss?: boolean;
+  canRun?: boolean;
+}
+export type Chapter = RestChapter | BattleChapter;
+
+export const CHAPTERS: Chapter[] = [
   {
     title: "I · La Lisière",
     tint: "rgba(8, 18, 40, 0.30)",
@@ -218,7 +318,14 @@ export const CHAPTERS = [
 // — Fin : le sort du Dragon —
 // question : affichée avec les deux options · scene : juste après le choix · ending : épilogue
 
-export const DRAGON_FATE = {
+export type FateId = "spare" | "kill";
+interface Fate {
+  label: string;
+  scene: Page[];
+  ending: Page[];
+}
+
+export const DRAGON_FATE: { question: string } & Record<FateId, Fate> = {
   question:
     "Le Dragon s'effondre sur les ossements. Il ne se relève pas. Son souffle n'est plus qu'une braise.<br><br>" +
     "Il regarde Maelor, sans haine. Maelor lève son arme.",
@@ -271,16 +378,33 @@ export const DRAGON_FATE = {
   },
 };
 
-export const GAME_OVER = [
+export const GAME_OVER: Page[] = [
   "Le Val Ténébreux referme ses brumes sur le groupe.<br><br>" +
   "L'Ordre Déchu retombe dans l'oubli... pour cette fois.",
 ];
 
 // — État de la partie —
 
-export const GameState = {
+// Ce que garde le point de reprise
+interface Checkpoint {
+  party: Hero[];
+  inventory: Record<ItemId, number>;
+  gil: number;
+  chapterIndex: number;
+  dragonSpared: boolean | null;
+}
+
+interface GameStateStore extends Checkpoint {
+  checkpoint: string | null;
+  readonly currentChapter: Chapter;
+  reset(): void;
+  saveCheckpoint(): void;
+  loadCheckpoint(): void;
+}
+
+export const GameState: GameStateStore = {
   party: [],
-  inventory: {},
+  inventory: { potion: 0, ether: 0, phoenix: 0 },
   gil: 0,
   chapterIndex: 0,
   dragonSpared: null, // choix final : true (Épargner), false (Achever), null tant qu'il n'est pas fait
@@ -301,7 +425,71 @@ export const GameState = {
     this.checkpoint = JSON.stringify({ party, inventory, gil, chapterIndex, dragonSpared });
   },
 
+  // Une copie absente, illisible ou d'une forme inattendue fait repartir la partie de zéro
   loadCheckpoint() {
-    Object.assign(this, JSON.parse(this.checkpoint));
+    const saved = parseCheckpoint(this.checkpoint);
+    if (saved) Object.assign(this, saved);
+    else this.reset();
   },
 };
+
+// — Lecture du point de reprise —
+// JSON.parse ne garantit rien sur la forme de la donnée : chaque champ est vérifié avant d'être repris.
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+const isNumber = (value: unknown): value is number => typeof value === "number";
+const isString = (value: unknown): value is string => typeof value === "string";
+const isSpellId = (value: unknown): value is SpellId => isString(value) && Object.hasOwn(SPELLS, value);
+
+// Une entrée par état : TypeScript signale celui qui manquerait si CombatState change
+const COMBAT_STATES = Object.values({
+  charging: "charging", ready: "ready", queued: "queued", ko: "ko",
+} satisfies { [K in CombatState]: K });
+const isCombatState = (value: unknown): value is CombatState => COMBAT_STATES.some(state => state === value);
+
+function parseHero(value: unknown): Hero | null {
+  if (!isRecord(value)) return null;
+  const {
+    id, name, job, image, command, side, level, xp, spells, atb, state, defending,
+    maxHp, maxMp, atk, def, mag, res, spd, hp, mp,
+  } = value;
+
+  if (!isString(id) || !HEROES.some(hero => hero.id === id)) return null;
+  if (!isString(name) || !isString(job) || !isString(image) || !isString(command)) return null;
+  if (side !== "hero" || !isCombatState(state) || typeof defending !== "boolean") return null;
+  if (!Array.isArray(spells) || !spells.every(isSpellId)) return null;
+  if (!isNumber(level) || !isNumber(xp) || !isNumber(atb) || !isNumber(hp) || !isNumber(mp)) return null;
+  if (!isNumber(maxHp) || !isNumber(maxMp) || !isNumber(atk) || !isNumber(def)) return null;
+  if (!isNumber(mag) || !isNumber(res) || !isNumber(spd)) return null;
+
+  return {
+    id, name, job, image, command, side, level, xp, spells, atb, state, defending,
+    maxHp, maxMp, atk, def, mag, res, spd, hp, mp,
+  };
+}
+
+function parseInventory(value: unknown): Record<ItemId, number> | null {
+  if (!isRecord(value)) return null;
+  const { potion, ether, phoenix } = value;
+  if (!isNumber(potion) || !isNumber(ether) || !isNumber(phoenix)) return null;
+  return { potion, ether, phoenix };
+}
+
+function parseCheckpoint(json: string | null): Checkpoint | null {
+  if (json === null) return null;
+  let data: unknown;
+  try { data = JSON.parse(json); } catch { return null; }
+  if (!isRecord(data)) return null;
+
+  const { party, inventory, gil, chapterIndex, dragonSpared } = data;
+  if (!Array.isArray(party)) return null;
+  const heroes = party.map(parseHero);
+  if (heroes.length !== HEROES.length || !heroes.every(hero => hero !== null)) return null;
+
+  const items = parseInventory(inventory);
+  if (!items || !isNumber(gil)) return null;
+  if (!isNumber(chapterIndex) || !Number.isInteger(chapterIndex) || chapterIndex < 0 || chapterIndex >= CHAPTERS.length) return null;
+  if (dragonSpared !== null && typeof dragonSpared !== "boolean") return null;
+
+  return { party: heroes, inventory: items, gil, chapterIndex, dragonSpared };
+}

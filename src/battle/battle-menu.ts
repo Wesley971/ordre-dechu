@@ -1,24 +1,26 @@
-// battle-menu.js - Menus : petit menu de choix (écran titre, dialogues), menus de combat et sélection des cibles
+// battle-menu.ts - Menus : petit menu de choix (écran titre, dialogues), menus de combat et sélection des cibles
 
-import { ATTACK, RUN, SPELLS, ITEMS, GameState } from "../data/game-data.js";
-import { Input } from "../input/input.js";
-import { Sfx } from "../audio/sfx.js";
-import { Battle, isAlive, groupOf, targetCandidates, queueHeroAction, defend } from "./battle.js";
-import { renderMenu, updateMenuCursor, listColumns } from "../ui/view.js";
+import { ATTACK, RUN, SPELLS, ITEMS, GameState } from "../data/game-data.ts";
+import type { Ability, ItemId } from "../data/game-data.ts";
+import type { Hero } from "../party/heroes.ts";
+import { Input, type Action } from "../input/input.ts";
+import { Sfx } from "../audio/sfx.ts";
+import { Battle, isAlive, groupOf, targetCandidates, queueHeroAction, defend, type Combatant } from "./battle.ts";
+import { renderMenu, updateMenuCursor, listColumns } from "../ui/view.ts";
 
 // — Petit menu de choix —
 
 // Options verticales avec le curseur main : flèches, Valider, survol ou clic.
 // preselect: false → aucune option désignée au départ, il faut d'abord bouger la main.
 // Renvoie une promesse résolue avec l'index de l'option choisie.
-export function pickOption(items, { preselect = true } = {}) {
+export function pickOption(items: HTMLElement[], { preselect = true }: { preselect?: boolean } = {}) {
   let cursor = preselect ? 0 : -1;
   const highlight = () => items.forEach((item, i) => item.classList.toggle("selected", i === cursor));
   const listeners = new AbortController();
   highlight();
 
-  return new Promise(resolve => {
-    const choose = index => {
+  return new Promise<number>(resolve => {
+    const choose = (index: number) => {
       Input.pop();
       listeners.abort();
       Sfx.play("confirm");
@@ -48,7 +50,27 @@ export function pickOption(items, { preselect = true } = {}) {
 // — Menus de combat —
 // Le menu est une pile de niveaux : commande → liste (magie / objets) → cible
 
-function commandEntries(hero) {
+export interface MenuEntry {
+  label: string;
+  detail?: string;
+  help?: string;
+  disabled?: boolean;
+  select?: () => void; // absent pour « Aucun objet »
+}
+
+export interface CommandLevel { type: "command"; cursor: number; entries: MenuEntry[] }
+export interface ListLevel    { type: "list"; kind: "spell" | "item"; cursor: number; entries: MenuEntry[] }
+export interface TargetLevel {
+  type: "target";
+  ability: Ability;
+  itemId: ItemId | null;
+  cursor: number;
+  all?: boolean;              // toute une équipe à la fois
+  relation?: "foe" | "ally";  // camp visé, pour une cible unique
+}
+export type MenuLevel = CommandLevel | ListLevel | TargetLevel;
+
+function commandEntries(hero: Hero): MenuEntry[] {
   return [
     { label: "Attaque",    select: () => Menu.chooseTarget(ATTACK) },
     { label: hero.command, select: () => Menu.openList("spell"), disabled: hero.spells.length === 0 },
@@ -58,7 +80,7 @@ function commandEntries(hero) {
   ];
 }
 
-function spellEntries(hero) {
+function spellEntries(hero: Hero): MenuEntry[] {
   return hero.spells.map(id => {
     const spell = SPELLS[id];
     return {
@@ -69,8 +91,9 @@ function spellEntries(hero) {
   });
 }
 
-function itemEntries(hero) {
-  const entries = Object.entries(GameState.inventory)
+function itemEntries(hero: Hero): MenuEntry[] {
+  // Object.entries perd le type des clés : ce sont bien des identifiants d'objets
+  const entries = (Object.entries(GameState.inventory) as [ItemId, number][])
     .filter(([, quantity]) => quantity > 0)
     .map(([id, quantity]) => {
       const item = ITEMS[id];
@@ -84,10 +107,37 @@ function itemEntries(hero) {
 }
 
 // Une cible unique peut changer de camp (soigner un mort-vivant, frapper un allié...)
-const canSwitchSide = ability => ability.target === "foe" || ability.target === "ally";
+const canSwitchSide = (ability: Ability) => ability.target === "foe" || ability.target === "ally";
 
-export const Menu = {
-  hero: null, // héros dont le menu est ouvert
+export interface MenuController {
+  hero: Hero | null; // héros dont le menu est ouvert
+  stack: MenuLevel[];
+  readonly level: MenuLevel | undefined;
+  isInSubmenu(): boolean;
+  attach(): void;
+  detach(): void;
+  onHeroReady(): void;
+  onHeroDown(hero: Hero): void;
+  openNext(): void;
+  close(): void;
+  done(): void;
+  render(): void;
+  openList(kind: "spell" | "item"): void;
+  chooseTarget(ability: Ability, itemId?: ItemId | null): void;
+  targetsOf(level: TargetLevel): Combatant[];
+  confirmAction(ability: Ability, targets: Combatant[], itemId?: ItemId | null): void;
+  back(): void;
+  handle(action: Action): void;
+  select(index: number): void;
+  handleTarget(level: TargetLevel, action: Action): void;
+  switchSide(level: TargetLevel, relation: "foe" | "ally"): void;
+  clickEntry(depth: number, index: number): void;
+  hoverEntry(depth: number, index: number): void;
+  clickTarget(combatant: Combatant): void;
+}
+
+export const Menu: MenuController = {
+  hero: null,
   stack: [],
 
   get level() { return this.stack[this.stack.length - 1]; },
@@ -128,18 +178,19 @@ export const Menu = {
   },
 
   openList(kind) {
+    if (!this.hero) return;
     const entries = kind === "spell" ? spellEntries(this.hero) : itemEntries(this.hero);
     this.stack.push({ type: "list", kind, cursor: 0, entries });
     this.render();
   },
 
   chooseTarget(ability, itemId = null) {
-    const level = { type: "target", ability, itemId, cursor: 0 };
+    const level: TargetLevel = { type: "target", ability, itemId, cursor: 0 };
     if (ability.target.startsWith("all-")) {
       level.all = true;
     } else {
       level.relation = ability.target === "foe" ? "foe" : "ally";
-      level.cursor = defaultTargetIndex(this.hero, ability, this.targetsOf(level));
+      level.cursor = defaultTargetIndex(ability, this.targetsOf(level));
     }
     this.stack.push(level);
     this.render();
@@ -147,11 +198,13 @@ export const Menu = {
 
   // Cibles possibles du niveau "target", recalculées à chaque fois (un ennemi peut mourir pendant le choix)
   targetsOf(level) {
-    if (level.all || level.ability.target === "ko-ally") return targetCandidates(this.hero, level.ability.target);
+    if (!this.hero) return [];
+    if (level.all || level.ability.target === "ko-ally" || !level.relation) return targetCandidates(this.hero, level.ability.target);
     return groupOf(this.hero, level.relation).filter(isAlive);
   },
 
   confirmAction(ability, targets, itemId = null) {
+    if (!this.hero) return;
     queueHeroAction(this.hero, ability, targets, itemId);
     this.done();
   },
@@ -163,7 +216,8 @@ export const Menu = {
       this.render();
     } else if (Battle.readyQueue.length > 1) {
       // Comme dans FF : Annuler au menu principal passe la main au héros prêt suivant
-      Battle.readyQueue.push(Battle.readyQueue.shift());
+      const first = Battle.readyQueue.shift();
+      if (first) Battle.readyQueue.push(first);
       Sfx.play("cursor");
       this.openNext();
     }
@@ -176,7 +230,7 @@ export const Menu = {
 
     const count = level.entries.length;
     const columns = level.type === "list" ? listColumns() : 1;
-    const move = delta => {
+    const move = (delta: number) => {
       level.cursor = (level.cursor + delta + count) % count;
       Sfx.play("cursor");
       this.render();
@@ -193,10 +247,12 @@ export const Menu = {
   },
 
   select(index) {
-    const entry = this.level.entries[index];
+    const level = this.level;
+    if (!level || level.type === "target") return;
+    const entry = level.entries[index];
     if (!entry || entry.disabled) return Sfx.play("error");
     Sfx.play("confirm");
-    entry.select();
+    entry.select?.();
   },
 
   handleTarget(level, action) {
@@ -234,7 +290,7 @@ export const Menu = {
       level.relation = previous;
       return;
     }
-    level.cursor = defaultTargetIndex(this.hero, level.ability, targets);
+    level.cursor = defaultTargetIndex(level.ability, targets);
     Sfx.play("cursor");
   },
 
@@ -273,7 +329,7 @@ export const Menu = {
 };
 
 // Soins : on vise d'abord l'allié le plus blessé ; sinon le premier de la liste
-function defaultTargetIndex(hero, ability, targets) {
+function defaultTargetIndex(ability: Ability, targets: Combatant[]) {
   const healing = ability.kind === "heal" && targets.every(t => t.side === "hero");
   if (!healing) return 0;
   let best = 0;
