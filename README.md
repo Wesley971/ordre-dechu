@@ -1,6 +1,6 @@
-# 🧙‍♂️ Mini RPG - Projet JavaScript
+# 🧙‍♂️ L'Ordre Déchu - Projet JavaScript
 
-Bienvenue dans mon **mini RPG** développé en pur **HTML / CSS / JavaScript**, dans l'esprit des **Final Fantasy à l'ancienne** (jauges ATB, menus de commande, magie et objets), habillé aux couleurs sombres et dorées de *L'Ordre Déchu*.
+Bienvenue dans **L'Ordre Déchu**, mon RPG développé en pur **HTML / CSS / JavaScript**, dans l'esprit des **Final Fantasy à l'ancienne** (jauges ATB, menus de commande, magie et objets), habillé de couleurs sombres et dorées.
 Ce projet est né d'une passion pour les jeux vidéo et d'une volonté d'apprendre par la pratique, sans framework ni moteur de jeu.
 
 Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé des mémoires, accompagné de *Lyra* la mage noire et d'*Elwen* la mage blanche, dans une aventure sombre en cinq chapitres. Personne ne l'a choisi : il a choisi de venir.
@@ -68,11 +68,11 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 3. Choisis « Nouvelle partie » et profite de l'expérience !
 
 ```bash
-git clone https://github.com/Wesley971/Mini-RPG.git
+git clone https://github.com/Wesley971/ordre-dechu.git
 ```
 
 Ou teste directement la démo ici :
-🔗 [https://wesley971.github.io/Mini-RPG/](https://wesley971.github.io/Mini-RPG/)
+🔗 [https://wesley971.github.io/ordre-dechu/](https://wesley971.github.io/ordre-dechu/)
 
 ## 🔧 Conventions du code
 
