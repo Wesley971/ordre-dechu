@@ -5,8 +5,21 @@ RPG au tour par tour (combat ATB) en JavaScript, modules ES, build Vite, publié
 ## Suivi
 - Tickets dans YouTrack, projet **MAE**.
 - Parcours d'un ticket : /task-flow au début, /lead-review puis /git-commit avant chaque commit.
-- Statuts : Ouvert → En cours → à vérifier (`To Verify`) → Terminé.
-- Terminé seulement quand le code est sur `main`, le déploiement GitHub Pages réussi et la vérification sur le site en ligne faite.
+- Statuts : Open → In Progress → To Verify → Done.
+- Done seulement quand le code est sur `main`, le déploiement GitHub Pages réussi et la vérification sur le site en ligne faite.
+- Le passage en Done se fait uniquement sur le « oui » de Wesley.
+
+## Tickets
+- Format des nouveaux tickets, et d'un ticket existant quand on l'ouvre avec /task-flow. Pas de réécriture en masse.
+- Champs : Type, State, Priority, Assignee.
+- Titre : un verbe à l'impératif suivi de l'objet concret, compréhensible sans jargon.
+- Description, dans cet ordre (Contexte, Décisions et Hors périmètre si besoin) :
+  - `Version : vX` en tête
+  - `## Objectif`
+  - `## Contexte`
+  - `## Décisions du JJ/MM/AAAA`
+  - `## Critères d'acceptation` (cases à cocher)
+  - `## Hors périmètre`
 
 ## Branches
 - Branche principale : `main`.
