@@ -1,8 +1,19 @@
-// script.js - Déroulement de la partie : titre, histoire, combats, fin
+// game-flow.js - Déroulement de la partie : titre, histoire, combats, fin
+
+import { CHAPTERS, PROLOGUE, DRAGON_FATE, GAME_OVER, GameState } from "../data/game-data.js";
+import { grantRewards, restoreParty } from "../party/heroes.js";
+import { Battle, runBattle, isAlive } from "../battle/battle.js";
+import { pickOption } from "../battle/battle-menu.js";
+import { Sfx } from "../audio/sfx.js";
+import { Dialog } from "./dialog.js";
+import {
+  $, showScreen, setSceneTint, renderIdleScene, updateBattleUI, victoryPose,
+  animateSpare, animateFinishingBlow,
+} from "../ui/view.js";
 
 // — Écran titre —
 
-async function backToTitle({ startLabel, canRetry = false }) {
+export async function backToTitle({ startLabel, canRetry = false }) {
   showScreen("intro");
   $("#start-btn").textContent = startLabel;
   $("#retry-btn").hidden = !canRetry;
@@ -118,20 +129,3 @@ async function gameOver() {
   document.body.classList.remove("game-over");
   backToTitle({ startLabel: "Nouvelle partie", canRetry: true });
 }
-
-// — Initialisation —
-
-document.addEventListener("DOMContentLoaded", () => {
-  // Un clic dans la fenêtre de dialogue vaut « Valider », sauf pendant un choix (il faut cliquer une option)
-  $("#dialog").addEventListener("click", () => {
-    if ($("#dialog-choices").hidden) Input.emit("confirm");
-  });
-  $("#target-hint").addEventListener("click", () => Menu.back());
-
-  const soundButton = $("#sound-btn");
-  const syncSound = () => soundButton.classList.toggle("off", !Sfx.enabled);
-  soundButton.addEventListener("click", () => { Sfx.toggle(); syncSound(); });
-  syncSound();
-
-  backToTitle({ startLabel: "Nouvelle partie" });
-});

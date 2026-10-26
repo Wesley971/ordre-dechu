@@ -1,6 +1,6 @@
 // sfx.js - Bruitages 8-bit générés avec la Web Audio API (aucun fichier son)
 
-const Sfx = {
+export const Sfx = {
   ctx: null,
   enabled: true,
 

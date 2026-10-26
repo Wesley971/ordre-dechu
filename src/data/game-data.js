@@ -1,4 +1,7 @@
-// data.js - Données du jeu : héros, sorts, objets, ennemis, histoire, état de la partie
+// game-data.js - Données du jeu : héros, sorts, objets, ennemis, histoire, état de la partie
+
+import { CONFIG } from "../config.js";
+import { createHero } from "../party/heroes.js";
 
 // Réplique d'un personnage dans un dialogue
 const say = (name, text) => `<span class="speaker">${name} :</span> ${text}`;
@@ -9,7 +12,7 @@ const memory = html => ({ html: `<span class="memory">${html}</span>`, sfx: "mem
 // — Héros —
 // stats : valeurs au niveau 1 · growth : gain à chaque niveau · spells : sorts appris par niveau
 
-const HEROES = [
+export const HEROES = [
   {
     id: "maelor", name: "Maelor", job: "Chevalier déchu", image: "images/maelor.png",
     command: "Techniques",
@@ -37,10 +40,10 @@ const HEROES = [
 // kind   : "physical" | "magic" | "heal" | "mp" | "revive" | "run"
 // target : "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" | "none"
 
-const ATTACK = { name: "Attaque", kind: "physical", power: 1, target: "foe" };
-const RUN    = { name: "Fuite",   kind: "run", target: "none" };
+export const ATTACK = { name: "Attaque", kind: "physical", power: 1, target: "foe" };
+export const RUN    = { name: "Fuite",   kind: "run", target: "none" };
 
-const SPELLS = {
+export const SPELLS = {
   fallenBlade: { name: "Lame Déchue", mp: 6,  kind: "physical", power: 2, pierce: true, target: "foe",
                  desc: "Frappe double qui ignore la défense." },
   whirlwind:   { name: "Tourbillon",  mp: 10, kind: "physical", power: 1.2, target: "all-foes",
@@ -61,13 +64,13 @@ const SPELLS = {
                  desc: "Ranime un allié K.O." },
 };
 
-const ITEMS = {
+export const ITEMS = {
   potion:  { name: "Potion",          kind: "heal",   amount: 100, target: "ally",    desc: "Rend 100 PV." },
   ether:   { name: "Éther",           kind: "mp",     amount: 30,  target: "ally",    desc: "Rend 30 PM." },
   phoenix: { name: "Queue de Phénix", kind: "revive",              target: "ko-ally", desc: "Ranime un allié K.O." },
 };
 
-const ENEMY_SKILLS = {
+export const ENEMY_SKILLS = {
   crush:      { name: "Écrasement",     kind: "physical", power: 1.6, target: "foe" },
   fireBreath: { name: "Souffle ardent", kind: "magic", power: 34, element: "fire", target: "all-foes" },
 };
@@ -77,7 +80,7 @@ const ENEMY_SKILLS = {
 // pattern  : suite d'actions jouées en boucle · rage : nouveau pattern sous un seuil de PV
 // spareable : vaincu, il reste à terre et le joueur choisit de l'épargner ou de l'achever (DRAGON_FATE)
 
-const ENEMIES = {
+export const ENEMIES = {
   goblin: {
     name: "Gobelin", image: "images/goblin.png",
     maxHp: 70, atk: 14, def: 4, mag: 0, res: 4, spd: 12,
@@ -111,7 +114,7 @@ const ENEMIES = {
 // Le monde ne connaît l'Ordre que sous le nom d'« Ordre Déchu » ; son vrai nom n'apparaît que dans
 // les fragments du blason, de plus en plus lisible, et ne se complète que si le Dragon est épargné.
 
-const PROLOGUE = [
+export const PROLOGUE = [
   "Dans ces terres, on se bat depuis si longtemps que plus personne ne sait pourquoi. L'origine des guerres s'est effacée des mémoires, puis des livres. Il ne reste que les guerres.<br><br>" +
   "Il y a trente ans, un ordre de chevaliers fut accusé de sorcellerie et exécuté sans procès. Son nom disparut avec lui. Le monde ne l'appelle plus que <strong>l'Ordre Déchu</strong>.",
 
@@ -130,7 +133,7 @@ const PROLOGUE = [
   "Qui peut juger avec certitude, dans un monde qui a oublié jusqu'à l'origine de ses propres guerres ? Elwen croit que chaque vie peut être sauvée. Même celle qu'on a déjà jugée perdue.",
 ];
 
-const CHAPTERS = [
+export const CHAPTERS = [
   {
     title: "I · La Lisière",
     tint: "rgba(8, 18, 40, 0.30)",
@@ -215,7 +218,7 @@ const CHAPTERS = [
 // — Fin : le sort du Dragon —
 // question : affichée avec les deux options · scene : juste après le choix · ending : épilogue
 
-const DRAGON_FATE = {
+export const DRAGON_FATE = {
   question:
     "Le Dragon s'effondre sur les ossements. Il ne se relève pas. Son souffle n'est plus qu'une braise.<br><br>" +
     "Il regarde Maelor, sans haine. Maelor lève son arme.",
@@ -268,14 +271,14 @@ const DRAGON_FATE = {
   },
 };
 
-const GAME_OVER = [
+export const GAME_OVER = [
   "Le Val Ténébreux referme ses brumes sur le groupe.<br><br>" +
   "L'Ordre Déchu retombe dans l'oubli... pour cette fois.",
 ];
 
 // — État de la partie —
 
-const GameState = {
+export const GameState = {
   party: [],
   inventory: {},
   gil: 0,

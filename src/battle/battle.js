@@ -1,8 +1,17 @@
 // battle.js - Moteur de combat : calculs (logique pure) et boucle ATB
 
-const wait       = ms => new Promise(resolve => setTimeout(resolve, ms));
+import { CONFIG } from "../config.js";
+import { ATTACK, ENEMY_SKILLS, ENEMIES, GameState } from "../data/game-data.js";
+import { Sfx } from "../audio/sfx.js";
+import { Menu } from "./battle-menu.js";
+import {
+  renderBattle, updateBattleUI, updateAtbUI, showMessage, playBattleIntro,
+  animateActorStart, animateActorEnd, showEffect, showDefend, showDefeated, killEnemies, animateEscape,
+} from "../ui/view.js";
+
+export const wait       = ms => new Promise(resolve => setTimeout(resolve, ms));
 const randomItem = list => list[Math.floor(Math.random() * list.length)];
-const isAlive    = combatant => combatant.hp > 0;
+export const isAlive    = combatant => combatant.hp > 0;
 
 // ±variance autour d'une valeur
 function vary(value) {
@@ -113,12 +122,12 @@ function chooseEnemyAction(enemy) {
 // — Ciblage —
 
 // relation "foe" : le camp adverse de actor · "ally" : son propre camp
-function groupOf(actor, relation) {
+export function groupOf(actor, relation) {
   const heroSide = (actor.side === "hero") === (relation === "ally");
   return heroSide ? Battle.heroes : Battle.enemies;
 }
 
-function targetCandidates(actor, targetType) {
+export function targetCandidates(actor, targetType) {
   if (targetType === "ko-ally") return groupOf(actor, "ally").filter(c => !isAlive(c));
   const relation = targetType.includes("foe") ? "foe" : "ally";
   return groupOf(actor, relation).filter(isAlive);
@@ -145,7 +154,7 @@ function retarget(actor, ability, chosen) {
 
 // — Boucle de combat (ATB) —
 
-const Battle = {
+export const Battle = {
   heroes: [], enemies: [], chapter: null,
   readyQueue: [],  // héros dont la jauge est pleine, en attente d'un ordre
   actionQueue: [], // actions choisies, exécutées une par une
@@ -160,7 +169,7 @@ function allCombatants() {
 }
 
 // Joue un combat complet ; renvoie "victory", "defeat" ou "escape"
-async function runBattle(chapter) {
+export async function runBattle(chapter) {
   Object.assign(Battle, {
     heroes: GameState.party, enemies: createEnemies(chapter.enemies), chapter,
     readyQueue: [], actionQueue: [], busy: true, over: false,
@@ -232,7 +241,7 @@ function removeFromReadyQueue(hero) {
 
 // — Ordres du joueur —
 
-function queueHeroAction(hero, ability, targets, itemId = null) {
+export function queueHeroAction(hero, ability, targets, itemId = null) {
   removeFromReadyQueue(hero);
   hero.state = "queued";
   if (itemId) GameState.inventory[itemId]--;  // réservé dès le choix, rendu si l'action n'a pas lieu
@@ -240,7 +249,7 @@ function queueHeroAction(hero, ability, targets, itemId = null) {
   updateBattleUI();
 }
 
-function defend(hero) {
+export function defend(hero) {
   removeFromReadyQueue(hero);
   hero.defending = true;
   hero.atb = 0;

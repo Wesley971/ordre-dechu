@@ -1,7 +1,13 @@
 // dialog.js - Fenêtre de dialogue : texte qui s'écrit lettre par lettre, et choix
+
+import { CONFIG } from "../config.js";
+import { Input } from "../input/input.js";
+import { Sfx } from "../audio/sfx.js";
+import { pickOption } from "../battle/battle-menu.js";
+import { $ } from "../ui/view.js";
 // Une page est une chaîne HTML, ou { html, sfx } pour jouer un son à l'ouverture de la page
 
-const Dialog = {
+export const Dialog = {
   onConfirm: null, // réaction à « Valider » : finir d'écrire la page, ou passer à la suivante
 
   open(title) {

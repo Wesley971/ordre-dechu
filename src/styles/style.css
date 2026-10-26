@@ -18,7 +18,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: var(--bg-void) url("images/background.png") center / cover no-repeat fixed;
+  background: var(--bg-void) url("/images/background.png") center / cover no-repeat fixed;
   text-shadow: var(--text-shadow);
 }
 
@@ -57,7 +57,7 @@ body.lock-scroll { overflow: hidden; }
   z-index: 6;
   width: 26px;
   height: 16px;
-  background: url("images/hand.svg") center / contain no-repeat;
+  background: url("/images/hand.svg") center / contain no-repeat;
   image-rendering: pixelated;
   animation: hand-bob 0.5s steps(2) infinite;
 }
@@ -159,7 +159,7 @@ body.lock-scroll { overflow: hidden; }
   background:
     linear-gradient(var(--scene-tint), var(--scene-tint)),
     linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 30%, rgba(0, 0, 0, 0.55)),
-    url("images/background.png") center 65% / cover;
+    url("/images/background.png") center 65% / cover;
   transition: filter 1.2s ease;
 }
 
@@ -257,7 +257,7 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   bottom: 0;
   width: 22px;
   height: 26px;
-  background: url("images/shield.svg") center / contain no-repeat;
+  background: url("/images/shield.svg") center / contain no-repeat;
   image-rendering: pixelated;
 }
 

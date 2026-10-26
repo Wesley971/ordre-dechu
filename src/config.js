@@ -1,6 +1,6 @@
-// config.js - Constantes de gameplay et durées (chargé en premier)
+// config.js - Constantes de gameplay et durées
 
-const CONFIG = {
+export const CONFIG = {
   atb: {
     fillRate: 1.1,   // la jauge gagne (vitesse + 20) × fillRate points par seconde (pleine à 100)
     startMax: 60,    // remplissage aléatoire au début du combat (entre 0 et startMax)
