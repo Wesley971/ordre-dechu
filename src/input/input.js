@@ -1,7 +1,7 @@
 // input.js - Clavier et manette traduits en actions : up, down, left, right, confirm, cancel
 // Chaque écran empile son gestionnaire ; seul celui du dessus reçoit les actions.
 
-const Input = {
+export const Input = {
   handlers: [],
   push(handler) { this.handlers.push(handler); },
   pop() { this.handlers.pop(); },

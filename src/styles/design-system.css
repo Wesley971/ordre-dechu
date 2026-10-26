@@ -69,8 +69,8 @@
   --hand-gutter: 32px; /* place laissée à gauche pour le curseur main */
 
   /* ─── CURSEURS DE SOURIS ─────────────────────────────────────────── */
-  --cursor-default: url("images/cursor.ico"), auto;
-  --cursor-pointer: url("images/cursor-hand.ico"), pointer;
+  --cursor-default: url("/images/cursor.ico"), auto;
+  --cursor-pointer: url("/images/cursor-hand.ico"), pointer;
 }
 
 /* ─── STYLES DE BASE ─────────────────────────────────────────────────── */

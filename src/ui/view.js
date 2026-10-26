@@ -1,6 +1,12 @@
-// ui.js - Affichage : scène de combat, fenêtres, menus, animations
+// view.js - Affichage : scène de combat, fenêtres, menus, animations
 
-const $ = selector => document.querySelector(selector);
+import { CONFIG } from "../config.js";
+import { ATTACK, GameState } from "../data/game-data.js";
+import { Sfx } from "../audio/sfx.js";
+import { Battle, isAlive, wait } from "../battle/battle.js";
+import { Menu } from "../battle/battle-menu.js";
+
+export const $ = selector => document.querySelector(selector);
 
 // Positions (en % de la zone) selon le nombre d'ennemis, et des héros en diagonale
 const FORMATIONS = {
@@ -14,12 +20,12 @@ function spriteEl(c)   { return $(`[data-sprite="${c.id}"]`); }
 function rowEl(c)      { return $(`[data-row="${c.id}"]`); }
 function listItemEl(c) { return $(`[data-item="${c.id}"]`); }
 
-function showScreen(name) {
+export function showScreen(name) {
   $("#intro-screen").hidden = name !== "intro";
   $("#game").hidden = name !== "game";
 }
 
-function setSceneTint(chapter) {
+export function setSceneTint(chapter) {
   $("#battle-scene").style.setProperty("--scene-tint", chapter.tint || "transparent");
 }
 
@@ -37,7 +43,7 @@ function createSprite(c, [x, y]) {
 }
 
 // Scène sans combat : le groupe seul, entre deux affrontements
-function renderIdleScene(party) {
+export function renderIdleScene(party) {
   $("#enemy-area").replaceChildren();
   $("#enemy-list").replaceChildren();
   $("#hero-area").replaceChildren(...party.map((hero, i) => createSprite(hero, HERO_SLOTS[i])));
@@ -45,7 +51,7 @@ function renderIdleScene(party) {
   renderMenu(Menu);
 }
 
-function renderBattle(state) {
+export function renderBattle(state) {
   renderIdleScene(state.heroes);
   const slots = FORMATIONS[state.enemies.length];
   $("#enemy-area").replaceChildren(...state.enemies.map((enemy, i) => createSprite(enemy, slots[i])));
@@ -83,7 +89,7 @@ function renderEnemyList(enemies) {
 
 // — Mise à jour —
 
-function updateBattleUI() {
+export function updateBattleUI() {
   for (const hero of GameState.party) {
     const alive = isAlive(hero);
     const flags = {
@@ -113,7 +119,7 @@ function updateBattleUI() {
   }
 }
 
-function updateAtbUI(heroes) {
+export function updateAtbUI(heroes) {
   for (const hero of heroes) {
     const row = rowEl(hero);
     if (!row) continue;
@@ -126,7 +132,7 @@ function updateAtbUI(heroes) {
 // — Menus —
 
 // Même seuil que le @media de style.css
-function listColumns() {
+export function listColumns() {
   return window.matchMedia("(max-width: 640px)").matches ? 1 : 2;
 }
 
@@ -154,7 +160,7 @@ function backLink() {
 
 // Survol à la souris : on déplace seulement le curseur, sans reconstruire le menu
 // (remplacer l'élément sous le pointeur ferait perdre le clic qui suit)
-function updateMenuCursor(menu, depth) {
+export function updateMenuCursor(menu, depth) {
   const level = menu.stack[depth];
   const container = level.type === "list" ? $("#list-window") : $("#command-window");
   container.querySelectorAll(".menu-item").forEach((li, i) => li.classList.toggle("selected", i === level.cursor));
@@ -164,7 +170,7 @@ function updateMenuCursor(menu, depth) {
   }
 }
 
-function renderMenu(menu) {
+export function renderMenu(menu) {
   const commandWindow = $("#command-window");
   const listWindow = $("#list-window");
   document.querySelectorAll(".targeted").forEach(el => el.classList.remove("targeted", "all"));
@@ -223,7 +229,7 @@ function hideBanner() {
   $("#battle-banner").hidden = true;
 }
 
-async function showMessage(text, duration = CONFIG.timing.message) {
+export async function showMessage(text, duration = CONFIG.timing.message) {
   showBanner(text);
   await wait(duration);
   hideBanner();
@@ -239,7 +245,7 @@ async function pulse(el, className, duration) {
   el.classList.remove(className);
 }
 
-async function playBattleIntro(state) {
+export async function playBattleIntro(state) {
   Sfx.play("encounter");
   document.querySelectorAll(".sprite.enemy").forEach(el => pulse(el, "appear", CONFIG.timing.appear));
   await pulse($("#flash"), "on", CONFIG.timing.flash);
@@ -247,7 +253,7 @@ async function playBattleIntro(state) {
   await showMessage(boss ? `${boss.name} se dresse devant le groupe !` : "Des ennemis surgissent !", CONFIG.timing.introMessage);
 }
 
-async function animateActorStart(actor, ability) {
+export async function animateActorStart(actor, ability) {
   const sprite = spriteEl(actor);
   if (ability !== ATTACK) showBanner(ability.name);
   if (actor.side === "hero") {
@@ -259,7 +265,7 @@ async function animateActorStart(actor, ability) {
   if (ability.kind !== "physical") await pulse(sprite, "casting", CONFIG.timing.cast);
 }
 
-async function animateActorEnd(actor) {
+export async function animateActorEnd(actor) {
   hideBanner();
   const sprite = spriteEl(actor);
   if (sprite) sprite.classList.remove("acting");
@@ -306,7 +312,7 @@ function spawnFx(sprite, visual) {
   setTimeout(() => fx.remove(), CONFIG.timing.spellFx);
 }
 
-function showEffect(target, effect, ability) {
+export function showEffect(target, effect, ability) {
   const sprite = spriteEl(target);
   if (!sprite) return;
 
@@ -319,39 +325,39 @@ function showEffect(target, effect, ability) {
   if (effect.crit) pulse($("#battle-scene"), "quake", CONFIG.timing.hit);
 }
 
-function showDefend(hero) {
+export function showDefend(hero) {
   Sfx.play("defend");
   const sprite = spriteEl(hero);
   if (sprite) spawnPopup(sprite, "Défense", "info");
 }
 
-async function killEnemies(enemies) {
+export async function killEnemies(enemies) {
   Sfx.play("enemyDie");
   enemies.forEach(enemy => spriteEl(enemy).classList.add("dying"));
   await wait(CONFIG.timing.death);
   enemies.forEach(enemy => spriteEl(enemy).classList.add("dead"));
 }
 
-async function animateEscape() {
+export async function animateEscape() {
   Sfx.play("run");
   await showMessage("Le groupe prend la fuite !", CONFIG.timing.escapeMessage);
   document.querySelectorAll(".sprite.hero").forEach(el => el.classList.add("fleeing"));
   await wait(CONFIG.timing.flee);
 }
 
-function victoryPose(party) {
+export function victoryPose(party) {
   party.filter(isAlive).forEach(hero => spriteEl(hero).classList.add("victory"));
 }
 
 // — Sort du Dragon —
 
 // Vaincu mais pas mort : il reste à terre
-function showDefeated(enemy) {
+export function showDefeated(enemy) {
   spriteEl(enemy).classList.add("defeated");
 }
 
 // Épargner : il se relève, apaisé
-async function animateSpare(enemy) {
+export async function animateSpare(enemy) {
   const sprite = spriteEl(enemy);
   sprite.classList.remove("defeated");
   Sfx.play("heal");
@@ -359,7 +365,7 @@ async function animateSpare(enemy) {
 }
 
 // Achever : le héros s'avance et porte le coup de grâce
-async function animateFinishingBlow(hero, enemy) {
+export async function animateFinishingBlow(hero, enemy) {
   const heroSprite = spriteEl(hero);
   heroSprite.classList.add("acting");
   await wait(CONFIG.timing.step);
