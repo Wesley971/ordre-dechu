@@ -5,12 +5,12 @@ const Sfx = {
   enabled: true,
 
   init() {
-    try { this.enabled = localStorage.getItem("mini-rpg-sound") !== "off"; } catch {}
+    try { this.enabled = localStorage.getItem("ordre-dechu-sound") !== "off"; } catch {}
   },
 
   toggle() {
     this.enabled = !this.enabled;
-    try { localStorage.setItem("mini-rpg-sound", this.enabled ? "on" : "off"); } catch {}
+    try { localStorage.setItem("ordre-dechu-sound", this.enabled ? "on" : "off"); } catch {}
     return this.enabled;
   },
 
