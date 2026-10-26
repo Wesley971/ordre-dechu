@@ -1,6 +1,10 @@
-// player.js - Création des héros, XP, montées de niveau
+// heroes.js - Création des héros, XP, montées de niveau
 
-function createHero(def) {
+import { CONFIG } from "../config.js";
+import { HEROES, SPELLS, ITEMS, GameState } from "../data/game-data.js";
+import { isAlive } from "../battle/battle.js";
+
+export function createHero(def) {
   const hero = {
     id: def.id, name: def.name, job: def.job, image: def.image, command: def.command,
     side: "hero", level: 1, xp: 0, spells: [],
@@ -61,7 +65,7 @@ function gainXp(hero, xp) {
 }
 
 // Récompenses de fin de combat : XP pour chaque héros debout, Gils et objets pour le groupe
-function grantRewards(enemies) {
+export function grantRewards(enemies) {
   const xp  = enemies.reduce((sum, e) => sum + e.xp, 0);
   const gil = enemies.reduce((sum, e) => sum + e.gil, 0);
   GameState.gil += gil;
@@ -84,7 +88,7 @@ function grantRewards(enemies) {
 }
 
 // Source sacrée : PV/PM au maximum, les K.O. se relèvent
-function restoreParty() {
+export function restoreParty() {
   for (const hero of GameState.party) {
     hero.hp = hero.maxHp;
     hero.mp = hero.maxMp;

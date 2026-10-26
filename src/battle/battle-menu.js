@@ -1,11 +1,17 @@
-// menu.js - Menus : petit menu de choix (écran titre, dialogues), menus de combat et sélection des cibles
+// battle-menu.js - Menus : petit menu de choix (écran titre, dialogues), menus de combat et sélection des cibles
+
+import { ATTACK, RUN, SPELLS, ITEMS, GameState } from "../data/game-data.js";
+import { Input } from "../input/input.js";
+import { Sfx } from "../audio/sfx.js";
+import { Battle, isAlive, groupOf, targetCandidates, queueHeroAction, defend } from "./battle.js";
+import { renderMenu, updateMenuCursor, listColumns } from "../ui/view.js";
 
 // — Petit menu de choix —
 
 // Options verticales avec le curseur main : flèches, Valider, survol ou clic.
 // preselect: false → aucune option désignée au départ, il faut d'abord bouger la main.
 // Renvoie une promesse résolue avec l'index de l'option choisie.
-function pickOption(items, { preselect = true } = {}) {
+export function pickOption(items, { preselect = true } = {}) {
   let cursor = preselect ? 0 : -1;
   const highlight = () => items.forEach((item, i) => item.classList.toggle("selected", i === cursor));
   const listeners = new AbortController();
@@ -80,7 +86,7 @@ function itemEntries(hero) {
 // Une cible unique peut changer de camp (soigner un mort-vivant, frapper un allié...)
 const canSwitchSide = ability => ability.target === "foe" || ability.target === "ally";
 
-const Menu = {
+export const Menu = {
   hero: null, // héros dont le menu est ouvert
   stack: [],
 
