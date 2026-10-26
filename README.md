@@ -1,6 +1,6 @@
-# 🧙‍♂️ L'Ordre Déchu - Projet JavaScript
+# 🧙‍♂️ L'Ordre Déchu - Projet TypeScript
 
-Bienvenue dans **L'Ordre Déchu**, mon RPG développé en pur **HTML / CSS / JavaScript**, dans l'esprit des **Final Fantasy à l'ancienne** (jauges ATB, menus de commande, magie et objets), habillé de couleurs sombres et dorées.
+Bienvenue dans **L'Ordre Déchu**, mon RPG développé en pur **HTML / CSS / TypeScript**, dans l'esprit des **Final Fantasy à l'ancienne** (jauges ATB, menus de commande, magie et objets), habillé de couleurs sombres et dorées.
 Ce projet est né d'une passion pour les jeux vidéo et d'une volonté d'apprendre par la pratique, sans framework ni moteur de jeu.
 
 Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé des mémoires, accompagné de *Lyra* la mage noire et d'*Elwen* la mage blanche, dans une aventure sombre en cinq chapitres. Personne ne l'a choisi : il a choisi de venir.
@@ -9,7 +9,7 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 
 * **Groupe de 3 héros** aux rôles distincts : Maelor (chevalier déchu), Lyra (mage noire), Elwen (mage blanche)
 * **Combat ATB** (Active Time Battle) : chaque combattant a une jauge qui se remplit selon sa vitesse ; les ennemis n'attendent pas
-* Mode **Attente** : le temps se fige quand tu fouilles dans les menus Magie / Objet (réglable dans `src/config.js`)
+* Mode **Attente** : le temps se fige quand tu fouilles dans les menus Magie / Objet (réglable dans `src/config.ts`)
 * Menu de commandes façon FF : **Attaque**, **Techniques / Magie**, **Objet**, **Défense**, **Fuite**
 * **Magie et PM** : Feu, Glace, Foudre, Brasier, Soin, Soin+, Vie, et les techniques de Maelor (Lame Déchue, Tourbillon)
 * **Faiblesses élémentaires** : le Squelette craint le feu, l'Ogre la foudre, le Dragon la glace… et il **absorbe** le feu
@@ -25,7 +25,7 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 * **Bruitages 8-bit** générés en direct avec la Web Audio API (aucun fichier son), bouton pour couper le son
 * Jouable au **clavier**, à la **souris / au doigt**, et à la **manette** (API Gamepad : Xbox, PlayStation…)
 * **Défaite** avec possibilité de réessayer le chapitre en cours
-* Toutes les valeurs de gameplay centralisées dans `src/config.js` et `src/data/game-data.js`
+* Toutes les valeurs de gameplay centralisées dans `src/config.ts` et `src/data/game-data.ts`
 
 ## 🕹️ Commandes
 
@@ -39,35 +39,34 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 
 ## 🗂️ Architecture des fichiers
 
-| Fichier | Rôle |
-|---|---|
-Chaque fichier JS est un module ES qui importe explicitement ce qu'il utilise.
+Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il utilise. Les types sont déclarés à côté du code qui les produit.
 
 | Fichier | Rôle |
 |---|---|
-| `index.html` | Structure HTML du jeu, IDs utilisés par le JS |
-| `src/main.js` | Point d'entrée : branche les contrôles de la page et lance l'écran titre |
-| `src/config.js` | Constantes de gameplay (vitesse ATB, dégâts, XP par niveau) et toutes les durées |
-| `src/data/game-data.js` | Héros, sorts, objets, ennemis, chapitres, textes + objet `GameState` |
-| `src/party/heroes.js` | Création des héros, XP, montées de niveau, récompenses |
-| `src/battle/battle.js` | Moteur de combat : calculs purs (dégâts, soins, ciblage) et boucle ATB |
-| `src/battle/battle-menu.js` | Petit menu de choix (titre, dialogues), menus de commande et sélection des cibles |
-| `src/story/game-flow.js` | Déroulement de la partie : titre, chapitres, victoire, défaite |
-| `src/story/dialog.js` | Fenêtre de dialogue avec effet machine à écrire, et questions à choix |
-| `src/ui/view.js` | Affichage DOM : scène, fenêtres, chiffres de dégâts, animations |
-| `src/audio/sfx.js` | Bruitages 8-bit (Web Audio API) |
-| `src/input/input.js` | Clavier et manette traduits en actions (`up`, `confirm`, `cancel`…) |
+| `index.html` | Structure HTML du jeu, IDs utilisés par le code |
+| `src/main.ts` | Point d'entrée : branche les contrôles de la page et lance l'écran titre |
+| `src/config.ts` | Constantes de gameplay (vitesse ATB, dégâts, XP par niveau) et toutes les durées |
+| `src/data/game-data.ts` | Héros, sorts, objets, ennemis, chapitres, textes + objet `GameState` |
+| `src/party/heroes.ts` | Création des héros, XP, montées de niveau, récompenses |
+| `src/battle/battle.ts` | Moteur de combat : calculs purs (dégâts, soins, ciblage) et boucle ATB |
+| `src/battle/battle-menu.ts` | Petit menu de choix (titre, dialogues), menus de commande et sélection des cibles |
+| `src/story/game-flow.ts` | Déroulement de la partie : titre, chapitres, victoire, défaite |
+| `src/story/dialog.ts` | Fenêtre de dialogue avec effet machine à écrire, et questions à choix |
+| `src/ui/view.ts` | Affichage DOM : scène, fenêtres, chiffres de dégâts, animations |
+| `src/audio/sfx.ts` | Bruitages 8-bit (Web Audio API) |
+| `src/input/input.ts` | Clavier et manette traduits en actions (`up`, `confirm`, `cancel`…) |
 | `src/styles/design-system.css` | Design System : tokens CSS (couleurs, typographie, espacements) et styles de base |
 | `src/styles/style.css` | Mise en page, fenêtres, sprites, animations |
 | `public/images/` | Images, copiées telles quelles dans le build |
-| `vite.config.js` | Configuration de Vite (`base` de GitHub Pages) |
-| `.github/workflows/deploy.yml` | Build et publication sur GitHub Pages à chaque push sur `main` |
+| `vite.config.ts` | Configuration de Vite (`base` de GitHub Pages) |
+| `tsconfig.json` | Configuration de TypeScript (mode strict) |
+| `.github/workflows/deploy.yml` | Vérification des types, build et publication sur GitHub Pages à chaque push sur `main` |
 
 ## 🛠️ Technologies utilisées
 
 * HTML (structure du jeu)
 * CSS (style, ambiance RPG, animations)
-* JavaScript en modules ES (logique de combat, DOM, interactivité, narration)
+* TypeScript strict en modules ES (logique de combat, DOM, interactivité, narration)
 * [Vite](https://vite.dev/) (serveur de développement et build)
 
 ## 🚀 Lancer le jeu
@@ -85,21 +84,23 @@ Puis ouvre l'adresse affichée (`http://localhost:5173/ordre-dechu/`) et choisis
 
 Pour tester la version de production : `npm run build`, puis `npm run preview`.
 
+Pour vérifier les types : `npm run typecheck` (Vite compile le TypeScript sans le vérifier).
+
 Ou teste directement la démo ici :
 🔗 [https://wesley971.github.io/ordre-dechu/](https://wesley971.github.io/ordre-dechu/)
 
 ## 🔧 Conventions du code
 
-Le code a d'abord été refactorisé en 5 chantiers (extraction de fonctions, état centralisé, logique pure séparée du DOM, `addEventListener` au lieu des `onclick`, constantes dans `config.js`). Ces principes sont restés et s'appliquent partout :
+Le code a d'abord été refactorisé en 5 chantiers (extraction de fonctions, état centralisé, logique pure séparée du DOM, `addEventListener` au lieu des `onclick`, constantes dans `config.ts`). Ces principes sont restés et s'appliquent partout :
 
 | Règle | Exemple |
 |---|---|
 | **Identifiants en anglais**, textes affichés et commentaires en français | `SPELLS.fire` s'affiche « Feu », `ENEMIES.goblin` s'affiche « Gobelin » |
-| **Logique pure séparée du DOM** | `calcPhysical`, `calcMagic`, `calcHeal` (`battle.js`) ne touchent jamais à la page ; `view.js` affiche |
+| **Logique pure séparée du DOM** | `calcPhysical`, `calcMagic`, `calcHeal` (`battle.ts`) ne touchent jamais à la page ; `view.ts` affiche |
 | **Un objet par module qui garde un état**, nommé en PascalCase | `GameState`, `Battle`, `Menu`, `Dialog`, `Input`, `Sfx` |
-| **Réglages dans `config.js`, contenu dans `game-data.js`** | `CONFIG.timing.death`, `CONFIG.damage.critChance`, `ENEMIES.dragon` |
+| **Réglages dans `config.ts`, contenu dans `game-data.ts`** | `CONFIG.timing.death`, `CONFIG.damage.critChance`, `ENEMIES.dragon` |
 | **Couleurs de l'interface via les tokens** (seuls les effets de sorts et les ombres ont leurs propres valeurs) | `var(--gold-bright)`, `var(--state-heal)` |
-| **Fichiers et images en kebab-case anglais**, rangés par domaine sous `src/` ; l'image d'un héros porte son id | `src/battle/battle-menu.js`, `images/maelor.png` |
+| **Fichiers et images en kebab-case anglais**, rangés par domaine sous `src/` ; l'image d'un héros porte son id | `src/battle/battle-menu.ts`, `images/maelor.png` |
 
 ## 🎨 Design System
 

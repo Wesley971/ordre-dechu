@@ -1,6 +1,6 @@
 # L'Ordre Déchu : règles du dépôt
 
-RPG au tour par tour (combat ATB) en JavaScript, modules ES, build Vite, publié sur GitHub Pages.
+RPG au tour par tour (combat ATB) en TypeScript strict, modules ES, build Vite, publié sur GitHub Pages.
 
 ## Suivi
 - Tickets dans YouTrack, projet **MAE**.
@@ -33,6 +33,7 @@ RPG au tour par tour (combat ATB) en JavaScript, modules ES, build Vite, publié
 | `npm run dev` | Serveur de développement : `http://localhost:5173/ordre-dechu/` |
 | `npm run build` | Build de production dans `dist/` |
 | `npm run preview` | Servir `dist/` comme sur GitHub Pages |
+| `npm run typecheck` | Vérifier les types (`tsc --noEmit`), aussi lancé par le déploiement avant le build |
 
 Pas encore de lint ni de tests automatisés (MAE-23).
 Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm run preview`.
@@ -44,12 +45,12 @@ Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm r
 ## Convention de noms
 - Fichiers en minuscules avec tirets (kebab-case), en anglais, sans accents ni espaces.
 - Code regroupé par domaine sous `src/` : `battle/`, `story/`, `party/`, `data/`, `ui/`, `audio/`, `input/`, `styles/`.
-- Images dans `public/images/`, référencées en `images/...` dans le JS et en `/images/...` dans le CSS.
+- Images dans `public/images/`, référencées en `images/...` dans le code et en `/images/...` dans le CSS.
 - Identifiants en anglais ; textes affichés et commentaires en français.
 
 ## Modules
 - Chaque fichier importe explicitement ce qu'il utilise, sans variable globale partagée.
-- Aucun code exécuté au chargement d'un module ne doit appeler un autre module : les modules s'importent en boucle (combat, menu, affichage), et un tel appel tomberait sur une valeur pas encore initialisée. Le code de démarrage va dans `src/main.js`.
+- Aucun code exécuté au chargement d'un module ne doit appeler un autre module : les modules s'importent en boucle (combat, menu, affichage), et un tel appel tomberait sur une valeur pas encore initialisée. Le code de démarrage va dans `src/main.ts`.
 
 ## Interface et design
 - Tout écran ou élément d'interface se code d'après une maquette validée dans le ticket de design correspondant (epic MAE-15).
