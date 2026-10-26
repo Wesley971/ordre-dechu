@@ -1,6 +1,37 @@
-// sfx.js - Bruitages 8-bit générés avec la Web Audio API (aucun fichier son)
+// sfx.ts - Bruitages 8-bit générés avec la Web Audio API (aucun fichier son)
 
-export const Sfx = {
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext; // anciens Safari
+  }
+}
+
+interface ToneOptions {
+  type?: OscillatorType;
+  volume?: number;
+  delay?: number;
+  slideTo?: number;
+}
+
+interface NoiseOptions {
+  volume?: number;
+  delay?: number;
+  cutoff?: number;
+}
+
+interface SfxPlayer {
+  ctx: AudioContext | null;
+  enabled: boolean;
+  init(): void;
+  toggle(): boolean;
+  audio(): AudioContext | null;
+  tone(freq: number, duration: number, options?: ToneOptions): void;
+  noise(duration: number, options?: NoiseOptions): void;
+  arpeggio(notes: number[], step: number, options: ToneOptions): void;
+  play(name: SoundName): void;
+}
+
+export const Sfx: SfxPlayer = {
   ctx: null,
   enabled: true,
 
@@ -99,6 +130,8 @@ const SOUNDS = {
     [1047, 784, 659].forEach(f => s.tone(f, 0.9, { volume: 0.03, delay: 0.45 }));
   },
   gameOver:  s => s.arpeggio([330, 294, 262, 247, 196], 0.28, { type: "triangle", volume: 0.06 }),
-};
+} satisfies Record<string, (s: SfxPlayer) => void>;
+
+export type SoundName = keyof typeof SOUNDS;
 
 Sfx.init();

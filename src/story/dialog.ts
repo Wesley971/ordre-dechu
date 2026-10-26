@@ -1,14 +1,25 @@
-// dialog.js - Fenêtre de dialogue : texte qui s'écrit lettre par lettre, et choix
+// dialog.ts - Fenêtre de dialogue : texte qui s'écrit lettre par lettre, et choix
 
-import { CONFIG } from "../config.js";
-import { Input } from "../input/input.js";
-import { Sfx } from "../audio/sfx.js";
-import { pickOption } from "../battle/battle-menu.js";
-import { $ } from "../ui/view.js";
+import { CONFIG } from "../config.ts";
+import type { Page, PageObject } from "../data/game-data.ts";
+import { Input } from "../input/input.ts";
+import { Sfx } from "../audio/sfx.ts";
+import { pickOption } from "../battle/battle-menu.ts";
+import { $ } from "../ui/view.ts";
 // Une page est une chaîne HTML, ou { html, sfx } pour jouer un son à l'ouverture de la page
 
-export const Dialog = {
-  onConfirm: null, // réaction à « Valider » : finir d'écrire la page, ou passer à la suivante
+interface DialogWindow {
+  onConfirm: (() => void) | null; // réaction à « Valider » : finir d'écrire la page, ou passer à la suivante
+  open(title: string): void;
+  close(): void;
+  show(options: { title?: string; pages: Page[] }): Promise<void>;
+  choose<T extends string>(options: { title?: string; text: string; options: { id: T; label: string }[] }): Promise<T>;
+  type(html: string): Promise<void>;
+  waitForNext(): Promise<void>;
+}
+
+export const Dialog: DialogWindow = {
+  onConfirm: null,
 
   open(title) {
     $("#dialog-title").innerHTML = title;
@@ -28,7 +39,7 @@ export const Dialog = {
   async show({ title = "", pages }) {
     this.open(title);
     for (const page of pages) {
-      const { html, sfx } = typeof page === "string" ? { html: page } : page;
+      const { html, sfx }: PageObject = typeof page === "string" ? { html: page } : page;
       if (sfx) Sfx.play(sfx);
       await this.type(html);
       await this.waitForNext();

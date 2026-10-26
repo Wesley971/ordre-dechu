@@ -1,4 +1,4 @@
-// config.js - Constantes de gameplay et durées
+// config.ts - Constantes de gameplay et durées
 
 export const CONFIG = {
   atb: {
