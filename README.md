@@ -9,7 +9,7 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 
 * **Groupe de 3 héros** aux rôles distincts : Maelor (chevalier déchu), Lyra (mage noire), Elwen (mage blanche)
 * **Combat ATB** (Active Time Battle) : chaque combattant a une jauge qui se remplit selon sa vitesse ; les ennemis n'attendent pas
-* Mode **Attente** : le temps se fige quand tu fouilles dans les menus Magie / Objet (réglable dans `config.js`)
+* Mode **Attente** : le temps se fige quand tu fouilles dans les menus Magie / Objet (réglable dans `src/config.js`)
 * Menu de commandes façon FF : **Attaque**, **Techniques / Magie**, **Objet**, **Défense**, **Fuite**
 * **Magie et PM** : Feu, Glace, Foudre, Brasier, Soin, Soin+, Vie, et les techniques de Maelor (Lame Déchue, Tourbillon)
 * **Faiblesses élémentaires** : le Squelette craint le feu, l'Ogre la foudre, le Dragon la glace… et il **absorbe** le feu
@@ -25,7 +25,7 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 * **Bruitages 8-bit** générés en direct avec la Web Audio API (aucun fichier son), bouton pour couper le son
 * Jouable au **clavier**, à la **souris / au doigt**, et à la **manette** (API Gamepad : Xbox, PlayStation…)
 * **Défaite** avec possibilité de réessayer le chapitre en cours
-* Toutes les valeurs de gameplay centralisées dans `config.js` et `data.js`
+* Toutes les valeurs de gameplay centralisées dans `src/config.js` et `src/data/game-data.js`
 
 ## 🕹️ Commandes
 
@@ -41,35 +41,49 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 
 | Fichier | Rôle |
 |---|---|
+Chaque fichier JS est un module ES qui importe explicitement ce qu'il utilise.
+
+| Fichier | Rôle |
+|---|---|
 | `index.html` | Structure HTML du jeu, IDs utilisés par le JS |
-| `design-system.css` | Design System : tokens CSS (couleurs, typographie, espacements) et styles de base |
-| `style.css` | Mise en page, fenêtres, sprites, animations |
-| `config.js` | Constantes de gameplay (vitesse ATB, dégâts, XP par niveau) et toutes les durées — chargé en premier |
-| `player.js` | Création des héros, XP, montées de niveau, récompenses |
-| `data.js` | Héros, sorts, objets, ennemis, chapitres, textes + objet `GameState` |
-| `sfx.js` | Bruitages 8-bit (Web Audio API) |
-| `input.js` | Clavier et manette traduits en actions (`up`, `confirm`, `cancel`…) |
-| `battle.js` | Moteur de combat : calculs purs (dégâts, soins, ciblage) et boucle ATB |
-| `menu.js` | Petit menu de choix (titre, dialogues), menus de commande et sélection des cibles |
-| `ui.js` | Affichage DOM : scène, fenêtres, chiffres de dégâts, animations |
-| `dialog.js` | Fenêtre de dialogue avec effet machine à écrire, et questions à choix |
-| `script.js` | Déroulement de la partie : titre, chapitres, victoire, défaite |
+| `src/main.js` | Point d'entrée : branche les contrôles de la page et lance l'écran titre |
+| `src/config.js` | Constantes de gameplay (vitesse ATB, dégâts, XP par niveau) et toutes les durées |
+| `src/data/game-data.js` | Héros, sorts, objets, ennemis, chapitres, textes + objet `GameState` |
+| `src/party/heroes.js` | Création des héros, XP, montées de niveau, récompenses |
+| `src/battle/battle.js` | Moteur de combat : calculs purs (dégâts, soins, ciblage) et boucle ATB |
+| `src/battle/battle-menu.js` | Petit menu de choix (titre, dialogues), menus de commande et sélection des cibles |
+| `src/story/game-flow.js` | Déroulement de la partie : titre, chapitres, victoire, défaite |
+| `src/story/dialog.js` | Fenêtre de dialogue avec effet machine à écrire, et questions à choix |
+| `src/ui/view.js` | Affichage DOM : scène, fenêtres, chiffres de dégâts, animations |
+| `src/audio/sfx.js` | Bruitages 8-bit (Web Audio API) |
+| `src/input/input.js` | Clavier et manette traduits en actions (`up`, `confirm`, `cancel`…) |
+| `src/styles/design-system.css` | Design System : tokens CSS (couleurs, typographie, espacements) et styles de base |
+| `src/styles/style.css` | Mise en page, fenêtres, sprites, animations |
+| `public/images/` | Images, copiées telles quelles dans le build |
+| `vite.config.js` | Configuration de Vite (`base` de GitHub Pages) |
+| `.github/workflows/deploy.yml` | Build et publication sur GitHub Pages à chaque push sur `main` |
 
 ## 🛠️ Technologies utilisées
 
 * HTML (structure du jeu)
 * CSS (style, ambiance RPG, animations)
-* JavaScript (logique de combat, DOM, interactivité, narration)
+* JavaScript en modules ES (logique de combat, DOM, interactivité, narration)
+* [Vite](https://vite.dev/) (serveur de développement et build)
 
 ## 🚀 Lancer le jeu
 
-1. Clone ou télécharge ce dépôt
-2. Ouvre le fichier `index.html` dans ton navigateur
-3. Choisis « Nouvelle partie » et profite de l'expérience !
+Il faut [Node.js](https://nodejs.org/) (version LTS). Le jeu ne s'ouvre plus d'un double-clic sur `index.html` : les navigateurs bloquent les modules ES en `file://`.
 
 ```bash
 git clone https://github.com/Wesley971/ordre-dechu.git
+cd ordre-dechu
+npm install
+npm run dev
 ```
+
+Puis ouvre l'adresse affichée (`http://localhost:5173/ordre-dechu/`) et choisis « Nouvelle partie ».
+
+Pour tester la version de production : `npm run build`, puis `npm run preview`.
 
 Ou teste directement la démo ici :
 🔗 [https://wesley971.github.io/ordre-dechu/](https://wesley971.github.io/ordre-dechu/)
@@ -81,15 +95,15 @@ Le code a d'abord été refactorisé en 5 chantiers (extraction de fonctions, é
 | Règle | Exemple |
 |---|---|
 | **Identifiants en anglais**, textes affichés et commentaires en français | `SPELLS.fire` s'affiche « Feu », `ENEMIES.goblin` s'affiche « Gobelin » |
-| **Logique pure séparée du DOM** | `calcPhysical`, `calcMagic`, `calcHeal` (battle.js) ne touchent jamais à la page ; `ui.js` affiche |
+| **Logique pure séparée du DOM** | `calcPhysical`, `calcMagic`, `calcHeal` (`battle.js`) ne touchent jamais à la page ; `view.js` affiche |
 | **Un objet par module qui garde un état**, nommé en PascalCase | `GameState`, `Battle`, `Menu`, `Dialog`, `Input`, `Sfx` |
-| **Réglages dans `config.js`, contenu dans `data.js`** | `CONFIG.timing.death`, `CONFIG.damage.critChance`, `ENEMIES.dragon` |
+| **Réglages dans `config.js`, contenu dans `game-data.js`** | `CONFIG.timing.death`, `CONFIG.damage.critChance`, `ENEMIES.dragon` |
 | **Couleurs de l'interface via les tokens** (seuls les effets de sorts et les ombres ont leurs propres valeurs) | `var(--gold-bright)`, `var(--state-heal)` |
-| **Fichiers et images en kebab-case anglais** ; l'image d'un héros porte son id | `images/maelor.png`, `images/lyra.svg` |
+| **Fichiers et images en kebab-case anglais**, rangés par domaine sous `src/` ; l'image d'un héros porte son id | `src/battle/battle-menu.js`, `images/maelor.png` |
 
 ## 🎨 Design System
 
-Tout le jeu (écran titre, combat, dialogues) repose sur un seul Design System, défini dans `design-system.css` :
+Tout le jeu (écran titre, combat, dialogues) repose sur un seul Design System, défini dans `src/styles/design-system.css` :
 
 * **Polices** : [Cinzel Decorative](https://fonts.google.com/specimen/Cinzel+Decorative) pour le logo uniquement, [DotGothic16](https://fonts.google.com/specimen/DotGothic16) pour tout le reste
 * **Palette** : noirs profonds, ors vieillis et texte parchemin ; des couleurs d'état réservées au combat (PV, PM, soins, faiblesses, K.O.)
