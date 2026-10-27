@@ -130,6 +130,10 @@ Ce projet m'a permis de progresser concrètement en :
 * Musiques d'ambiance
 * Carte d'exploration avec rencontres aléatoires
 
+## 📜 Crédits
+
+L'origine de chaque image, police et son est listée dans [`CREDITS.md`](CREDITS.md). Les images des héros ont été générées avec Gemini (Google), réduites en pixel art par un script, puis retouchées pixel par pixel sur mes choix.
+
 ## 🤝 Contribuer
 
 Ce projet est un **exercice d'apprentissage personnel**, mais si tu veux contribuer, proposer des idées ou t'en inspirer, n'hésite pas !
