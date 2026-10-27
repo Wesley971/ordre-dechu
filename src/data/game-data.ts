@@ -34,6 +34,7 @@ export interface HeroDef {
   stats: Stats;
   growth: Stats;
   spells: Record<number, SpellId[]>;
+  embers?: [number, number][]; // points de départ des braises animées, en pixels de sprite (x, y)
 }
 
 export type ElementName = "fire" | "ice" | "thunder";
@@ -78,15 +79,17 @@ export const HEROES: HeroDef[] = [
     spells: { 1: ["fallenBlade"], 3: ["whirlwind"] },
   },
   {
-    id: "lyra", name: "Lyra", job: "Mage noire", image: "images/lyra.svg",
+    id: "lyra", name: "Lyra", job: "Mage noire", image: "images/corvin.png",
     command: "Magie noire",
     stats:  { maxHp: 95,  maxMp: 40, atk: 8,  def: 5,  mag: 18, res: 12, spd: 11 },
     growth: { maxHp: 12,  maxMp: 6,  atk: 1,  def: 1,  mag: 3,  res: 2,  spd: 1  },
     spells: { 1: ["fire", "ice"], 2: ["thunder"], 4: ["blaze"] },
   },
   {
-    id: "elwen", name: "Elwen", job: "Mage blanche", image: "images/elwen.svg",
+    id: "elwen", name: "Elwen", job: "Mage blanche", image: "images/elwen.png",
     command: "Magie blanche",
+    // bords enflammés du drapé
+    embers: [[12, 41], [10, 46], [14, 55], [37, 42], [38, 47], [36, 52]],
     stats:  { maxHp: 110, maxMp: 44, atk: 9,  def: 6,  mag: 15, res: 14, spd: 10 },
     growth: { maxHp: 15,  maxMp: 6,  atk: 1,  def: 1,  mag: 2,  res: 2,  spd: 1  },
     spells: { 1: ["cure"], 3: ["life"], 4: ["curePlus"] },

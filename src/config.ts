@@ -32,13 +32,13 @@ export const CONFIG = {
     message:       1000, // bandeau d'annonce (nom du sort, fuite...)
     introMessage:  900,  // « Des ennemis surgissent ! »
     escapeMessage: 500,  // « Le groupe prend la fuite ! »
-    step:          220,  // pas en avant d'un héros qui agit
+    step:          220,  // pas en avant d'un héros qui agit (CSS hero-lunge)
     effect:        750,  // pause pour lire les chiffres de dégâts
     flash:         600,  // éclair du début de combat (CSS encounter-flash)
     appear:        1200, // apparition des ennemis (CSS enemy-appear, délai compris)
     blink:         450,  // clignotement d'un ennemi qui agit (CSS enemy-blink)
     cast:          350,  // lueur d'incantation (CSS cast-glow)
-    hit:           400,  // tremblement d'un coup reçu (CSS shake)
+    hit:           400,  // tremblement d'un coup reçu (CSS shake, hero-recoil)
     spellFx:       700,  // effet de sort (CSS fx-*)
     popup:         1200, // chiffre de dégâts (CSS popup-bounce)
     death:         700,  // disparition d'un ennemi (CSS enemy-dissolve)
