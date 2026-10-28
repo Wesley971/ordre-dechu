@@ -249,7 +249,7 @@ export function renderMenu(menu: MenuController) {
 
   if (top.type === "list") {
     const entry = top.entries[top.cursor];
-    const title = top.kind === "spell" ? `${hero.command} <span>PM ${hero.mp}/${hero.maxMp}</span>` : "Objets";
+    const title = top.kind === "spell" ? `${hero.command} <span>PS ${hero.mp}/${hero.maxMp}</span>` : "Objets";
     listWindow.replaceChildren();
     listWindow.insertAdjacentHTML("beforeend", `<div class="window-title">${title}</div>`);
     listWindow.appendChild(menuList(top, menu.stack.length - 1, true));
@@ -350,7 +350,7 @@ function popupText(effect: Effect) {
   switch (effect.type) {
     case "miss": return "Raté";
     case "none": return "Sans effet";
-    case "mp":   return effect.amount + " PM";
+    case "mp":   return effect.amount + " PS";
     default:     return String(effect.amount);
   }
 }

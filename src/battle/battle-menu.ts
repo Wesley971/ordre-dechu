@@ -48,7 +48,7 @@ export function pickOption(items: HTMLElement[], { preselect = true }: { presele
 }
 
 // — Menus de combat —
-// Le menu est une pile de niveaux : commande → liste (magie / objets) → cible
+// Le menu est une pile de niveaux : commande → liste (souffle / objets) → cible
 
 export interface MenuEntry {
   label: string;
@@ -84,7 +84,7 @@ function spellEntries(hero: Hero): MenuEntry[] {
   return hero.spells.map(id => {
     const spell = SPELLS[id];
     return {
-      label: spell.name, detail: `${spell.mp} PM`, help: spell.desc,
+      label: spell.name, detail: `${spell.mp} PS`, help: spell.desc,
       disabled: hero.mp < spell.mp || targetCandidates(hero, spell.target).length === 0,
       select: () => Menu.chooseTarget(spell),
     };

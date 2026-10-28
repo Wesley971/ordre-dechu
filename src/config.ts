@@ -18,7 +18,7 @@ export const CONFIG = {
   run: {
     successChance: 0.6,
   },
-  revivePct:   0.25, // part des PV rendus par Vie et Queue de Phénix
+  revivePct:   0.25, // part des PV rendus par Renaître et Larme dorée
   criticalPct: 0.25, // sous cette part des PV, un héros est en danger (PV dorés, héros à genoux)
 
   // XP totale requise pour chaque niveau (index 0 = niveau 1)
@@ -29,7 +29,7 @@ export const CONFIG = {
   // Durées en millisecondes. Celles marquées (CSS) doivent suivre l'animation du même nom dans style.css
   timing: {
     typewriter:    22,   // délai entre deux lettres des dialogues
-    message:       1000, // bandeau d'annonce (nom du sort, fuite...)
+    message:       1000, // bandeau d'annonce (nom du souffle, fuite...)
     introMessage:  900,  // « Des ennemis surgissent ! »
     escapeMessage: 500,  // « Le groupe prend la fuite ! »
     step:          220,  // pas en avant d'un héros qui agit (CSS hero-lunge)
@@ -37,9 +37,9 @@ export const CONFIG = {
     flash:         600,  // éclair du début de combat (CSS encounter-flash)
     appear:        1200, // apparition des ennemis (CSS enemy-appear, délai compris)
     blink:         450,  // clignotement d'un ennemi qui agit (CSS enemy-blink)
-    cast:          350,  // lueur d'incantation (CSS cast-glow)
+    cast:          350,  // lueur du Souffle (CSS cast-glow)
     hit:           400,  // tremblement d'un coup reçu (CSS shake, hero-recoil)
-    spellFx:       700,  // effet de sort (CSS fx-*)
+    spellFx:       700,  // effet de souffle (CSS fx-*)
     popup:         1200, // chiffre de dégâts (CSS popup-bounce)
     death:         700,  // disparition d'un ennemi (CSS enemy-dissolve)
     flee:          700,  // sortie de scène du groupe (CSS .fleeing)

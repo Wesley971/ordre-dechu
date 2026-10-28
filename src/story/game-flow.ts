@@ -111,7 +111,7 @@ async function celebrateVictory() {
 }
 
 function formatRewards({ xp, gil, drops, levelUps }: Rewards) {
-  let loot = `Chaque héros debout gagne <strong>${xp} XP</strong>.<br>Le groupe ramasse <strong>${gil} Gils</strong> (total : ${GameState.gil}).`;
+  let loot = `Chaque héros debout gagne <strong>${xp} XP</strong>.<br>Le groupe ramasse <strong>${gil} Couronnes</strong> (total : ${GameState.gil}).`;
   if (drops.length) loot += `<br>Objets trouvés : <strong>${drops.join(", ")}</strong>`;
   const pages: Page[] = [loot];
 
