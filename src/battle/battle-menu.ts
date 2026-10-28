@@ -269,7 +269,7 @@ export const Menu: MenuController = {
         break;
       case "left":
       case "right":
-        this.switchSide(level, action === "left" ? "foe" : "ally"); // ennemis à gauche, groupe à droite
+        this.switchSide(level, action === "left" ? "ally" : "foe"); // groupe à gauche, ennemis à droite
         break;
       case "confirm":
         Sfx.play("confirm");

@@ -20,10 +20,10 @@ export function $(selector: string, root: ParentNode = document) {
 // Positions (en % de la zone) selon le nombre d'ennemis, et des héros en diagonale
 const FORMATIONS: Record<number, [number, number][]> = {
   1: [[50, 50]],
-  2: [[35, 30], [62, 70]],
-  3: [[28, 22], [66, 50], [28, 80]],
+  2: [[65, 30], [38, 70]],
+  3: [[72, 22], [34, 50], [72, 80]],
 };
-const HERO_SLOTS: [number, number][] = [[22, 28], [50, 52], [78, 76]];
+const HERO_SLOTS: [number, number][] = [[78, 28], [50, 52], [22, 76]];
 
 // Toile commune des sprites de héros, en pixels de sprite (affichée ×3 sur ordinateur, ×1 sur mobile)
 const HERO_CANVAS = { w: 47, h: 66 };
@@ -64,8 +64,8 @@ function createSprite(c: Combatant, [x, y]: [number, number]) {
   return sprite;
 }
 
-// Couché, le héros pivote autour de ses pieds : sa colonne opaque la plus à gauche devient son point le plus bas.
-// --ko-lift (en pixels de sprite) le remonte de ce qu'il faut pour que ce point touche la ligne de sol.
+// Couché, le héros pivote autour de ses pieds, tête vers les ennemis : sa colonne opaque la plus à droite devient
+// son point le plus bas. --ko-lift (en pixels de sprite) le remonte de ce qu'il faut pour que ce point touche la ligne de sol.
 function measureKoLift(sprite: HTMLElement, img: HTMLImageElement) {
   const measure = () => {
     const canvas = document.createElement("canvas");
@@ -75,10 +75,10 @@ function measureKoLift(sprite: HTMLElement, img: HTMLImageElement) {
     if (!ctx || !canvas.width) return;
     ctx.drawImage(img, 0, 0);
     const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    for (let x = 0; x < canvas.width; x++) {
+    for (let x = canvas.width - 1; x >= 0; x--) {
       for (let y = 0; y < canvas.height; y++) {
         if (data[(y * canvas.width + x) * 4 + 3]) {
-          sprite.style.setProperty("--ko-lift", String(canvas.width / 2 - x));
+          sprite.style.setProperty("--ko-lift", String(x + 1 - canvas.width / 2));
           return;
         }
       }
