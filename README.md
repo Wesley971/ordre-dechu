@@ -1,24 +1,24 @@
-# 🧙‍♂️ L'Ordre Déchu - Projet TypeScript
+# ⚔️ L'Ordre Déchu - Projet TypeScript
 
-Bienvenue dans **L'Ordre Déchu**, mon RPG développé en pur **HTML / CSS / TypeScript**, dans l'esprit des **Final Fantasy à l'ancienne** (jauges ATB, menus de commande, magie et objets), habillé de couleurs sombres et dorées.
+Bienvenue dans **L'Ordre Déchu**, mon RPG développé en pur **HTML / CSS / TypeScript**, dans l'esprit des **Final Fantasy à l'ancienne** (jauges ATB, menus de commande, Souffle et objets), habillé de couleurs sombres et dorées.
 Ce projet est né d'une passion pour les jeux vidéo et d'une volonté d'apprendre par la pratique, sans framework ni moteur de jeu.
 
-Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé des mémoires, accompagné de *Corvin* le veilleur et d'*Elwen* la mage blanche, dans une aventure sombre en cinq chapitres. Personne ne l'a choisi : il a choisi de venir.
+Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé des mémoires, accompagné de *Corvin* le veilleur et d'*Elwen* la Source, dans une aventure sombre en cinq chapitres. Personne ne l'a choisi : il a choisi de venir.
 
 ## 🎮 Fonctionnalités actuelles
 
-* **Groupe de 3 héros** aux rôles distincts : Maelor (chevalier déchu), Corvin (veilleur), Elwen (mage blanche)
+* **Groupe de 3 héros** aux rôles distincts : Maelor (chevalier déchu), Corvin (veilleur), Elwen (Source)
 * **Combat ATB** (Active Time Battle) : chaque combattant a une jauge qui se remplit selon sa vitesse ; les ennemis n'attendent pas
-* Mode **Attente** : le temps se fige quand tu fouilles dans les menus Magie / Objet (réglable dans `src/config.ts`)
-* Menu de commandes façon FF : **Attaque**, **Techniques / Magie**, **Objet**, **Défense**, **Fuite**
-* **Magie et PM** : Feu, Glace, Foudre, Brasier, Soin, Soin+, Vie, et les techniques de Maelor (Lame Déchue, Tourbillon)
+* Mode **Attente** : le temps se fige quand tu fouilles dans les menus Souffle / Objet (réglable dans `src/config.ts`)
+* Menu de commandes façon FF : **Attaque**, **Techniques / Souffle**, **Objet**, **Défense**, **Fuite**
+* **Souffle et PS** : Feu, Glace, Foudre, Brasier, Apaiser, Raviver, Renaître, et les techniques de Maelor (Lame Déchue, Tourbillon)
 * **Faiblesses élémentaires** : le Squelette craint le feu, l'Ogre la foudre, le Dragon la glace… et il **absorbe** le feu
-* Les soins **brûlent les créatures d'os** (vise un Squelette avec Soin ou une Potion)
-* **Objets** partagés : Potion, Éther, Queue de Phénix
+* Les soins **brûlent les créatures d'os** (vise un Squelette avec Apaiser ou un Baume)
+* **Objets** partagés : Baume, Encens, Larme dorée
 * Coups critiques, attaques ratées, **K.O.** et réanimation
 * **Boss** avec phase de fureur sous 50 % de PV
-* **Écran de victoire** : XP, Gils, objets trouvés, montées de niveau, nouveaux sorts appris
-* Chiffres de dégâts rebondissants, effets de sorts, héros qui s'avancent pour agir
+* **Écran de victoire** : XP, Couronnes, objets trouvés, montées de niveau, nouveaux souffles appris
+* Chiffres de dégâts rebondissants, effets de souffles, héros qui s'avancent pour agir
 * Dialogues avec **texte qui s'écrit lettre par lettre**
 * **Fragments de mémoire** : le blason de Maelor révèle, chapitre après chapitre, le passé de l'Ordre et son lien avec les dragons
 * **Choix final** : une fois le Dragon vaincu, l'épargner ou l'achever mène à deux fins différentes
@@ -46,7 +46,7 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 | `index.html` | Structure HTML du jeu, IDs utilisés par le code |
 | `src/main.ts` | Point d'entrée : branche les contrôles de la page et lance l'écran titre |
 | `src/config.ts` | Constantes de gameplay (vitesse ATB, dégâts, XP par niveau) et toutes les durées |
-| `src/data/game-data.ts` | Héros, sorts, objets, ennemis, chapitres, textes + objet `GameState` |
+| `src/data/game-data.ts` | Héros, souffles, objets, ennemis, chapitres, textes + objet `GameState` |
 | `src/party/heroes.ts` | Création des héros, XP, montées de niveau, récompenses |
 | `src/battle/battle.ts` | Moteur de combat : calculs purs (dégâts, soins, ciblage) et boucle ATB |
 | `src/battle/battle-menu.ts` | Petit menu de choix (titre, dialogues), menus de commande et sélection des cibles |
@@ -99,7 +99,7 @@ Le code a d'abord été refactorisé en 5 chantiers (extraction de fonctions, é
 | **Logique pure séparée du DOM** | `calcPhysical`, `calcMagic`, `calcHeal` (`battle.ts`) ne touchent jamais à la page ; `view.ts` affiche |
 | **Un objet par module qui garde un état**, nommé en PascalCase | `GameState`, `Battle`, `Menu`, `Dialog`, `Input`, `Sfx` |
 | **Réglages dans `config.ts`, contenu dans `game-data.ts`** | `CONFIG.timing.death`, `CONFIG.damage.critChance`, `ENEMIES.dragon` |
-| **Couleurs de l'interface via les tokens** (seuls les effets de sorts et les ombres ont leurs propres valeurs) | `var(--gold-bright)`, `var(--state-heal)` |
+| **Couleurs de l'interface via les tokens** (seuls les effets de souffles et les ombres ont leurs propres valeurs) | `var(--gold-bright)`, `var(--state-heal)` |
 | **Fichiers et images en kebab-case anglais**, rangés par domaine sous `src/` ; l'image d'un héros porte son id | `src/battle/battle-menu.ts`, `images/maelor.png` |
 
 ## 🎨 Design System
@@ -107,7 +107,7 @@ Le code a d'abord été refactorisé en 5 chantiers (extraction de fonctions, é
 Tout le jeu (écran titre, combat, dialogues) repose sur un seul Design System, défini dans `src/styles/design-system.css` :
 
 * **Polices** : [Cinzel Decorative](https://fonts.google.com/specimen/Cinzel+Decorative) pour le logo uniquement, [DotGothic16](https://fonts.google.com/specimen/DotGothic16) pour tout le reste
-* **Palette** : noirs profonds, ors vieillis et texte parchemin ; des couleurs d'état réservées au combat (PV, PM, soins, faiblesses, K.O.)
+* **Palette** : noirs profonds, ors vieillis et texte parchemin ; des couleurs d'état réservées au combat (PV, PS, soins, faiblesses, K.O.)
 * **Une seule fenêtre** : `.window` (fond sombre dégradé, liseré or, coins à 2 px) sert pour l'écran titre, la scène, les menus, les dialogues et le bouton son
 * **Un seul curseur** : la main dorée `images/hand.svg` désigne l'option ou la cible choisie, partout
 * **Tokens CSS** : couleurs, typographie, espacements, curseurs de souris exposés comme variables `--var`
@@ -124,7 +124,7 @@ Ce projet m'a permis de progresser concrètement en :
 
 ## ✨ À venir (Roadmap)
 
-* Marchand entre les chapitres pour dépenser les Gils (potions, équipement)
+* Marchand entre les chapitres pour dépenser les Couronnes (baumes, équipement)
 * Équipement (armes, armures) et statuts (poison, sommeil…)
 * Sauvegarde dans le navigateur
 * Musiques d'ambiance
