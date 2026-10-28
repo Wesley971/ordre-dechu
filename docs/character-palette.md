@@ -41,9 +41,9 @@ Règle d'univers : dans ce monde sombre, les couleurs vives sont rares et sont l
 | Or ancien | `#c9a84c` |
 | Or vif | `#f0c95a` |
 
-Usage : sang et yeux de Maelor, lumière d'Elwen, Larme dorée. Aucun ennemi ne porte d'or.
+Usage : sang et yeux de Maelor, lumière d'Elwen, Larme dorée. Aucun ennemi ne porte d'or, sauf les Tyrdrak (section 8).
 
-## 6. Couleurs vives (immortels seulement, aujourd'hui Elwen seule)
+## 6. Couleurs vives (immortels seulement, aujourd'hui Elwen seule ; exception des Tyrdrak en section 8)
 
 | Couleur | Code | Usage |
 |---|---|---|
@@ -64,6 +64,12 @@ Usage : sang et yeux de Maelor, lumière d'Elwen, Larme dorée. Aucun ennemi ne 
 - Une seule touche par ennemi, toujours sombre : braise sombre `#7a2a14` (yeux, braises). Elle tire vers le brun orangé pour ne pas se confondre avec le rouge vin de Maelor.
 - Feu du dragon : braise sombre et noir, pas de feu vif.
 - Les ennemis évitent les tons de peau des héros et le cendré clair de Maelor.
+
+## 8. Exception : les Tyrdrak (Vahn)
+
+- Les Tyrdrak portent l'or (reflets des écailles, peau sous les écailles) et des couleurs vives (yeux rose violet), signe de leur lien avec les immortels.
+- Aucun autre ennemi.
+- Fiche de Vahn : `docs/enemy-sheets.md`.
 
 ## Usage
 
