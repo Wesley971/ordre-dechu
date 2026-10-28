@@ -79,7 +79,7 @@ export const HEROES: HeroDef[] = [
     spells: { 1: ["fallenBlade"], 3: ["whirlwind"] },
   },
   {
-    id: "lyra", name: "Lyra", job: "Mage noire", image: "images/corvin.png",
+    id: "corvin", name: "Corvin", job: "Veilleur", image: "images/corvin.png",
     command: "Magie noire",
     stats:  { maxHp: 95,  maxMp: 40, atk: 8,  def: 5,  mag: 18, res: 12, spd: 11 },
     growth: { maxHp: 12,  maxMp: 6,  atk: 1,  def: 1,  mag: 3,  res: 2,  spd: 1  },
@@ -212,8 +212,8 @@ export const PROLOGUE: Page[] = [
   say("Maelor", "Je ne suis pas celui qu'on attendait. Personne ne m'a choisi. J'ai choisi de venir."),
 
   "Il ne marche pas seul.<br><br>" +
-  "<strong>Lyra</strong>, mage noire au regard de braise. Son maître n'a jamais pratiqué la magie noire. Un village effrayé l'a brûlé sur une rumeur, sans procès. Puis la foule s'est dispersée, et plus personne ne se souvient de rien.<br><br>" +
-  "Elle a gardé de lui un chapeau, et une colère qui n'a personne à frapper. Elle en veut à un monde qui juge vite, détruit vite, et oublie plus vite encore.",
+  "<strong>Corvin</strong>, veilleur au regard de braise. Son maître n'a jamais pratiqué la magie noire. Un village effrayé l'a brûlé sur une rumeur, sans procès. Puis la foule s'est dispersée, et plus personne ne se souvient de rien.<br><br>" +
+  "Il a gardé de son maître sa lanterne, et une colère qui n'a personne à frapper. Il en veut à un monde qui juge vite, détruit vite, et oublie plus vite encore.",
 
   "<strong>Elwen</strong>, mage blanche. Son temple enseignait que la guérison se mérite, et qu'on ne la donne pas aux condamnés. Elle en a soigné quand même, ceux qu'on avait abandonnés. On l'a chassée.<br><br>" +
   "Qui peut juger avec certitude, dans un monde qui a oublié jusqu'à l'origine de ses propres guerres ? Elwen croit que chaque vie peut être sauvée. Même celle qu'on a déjà jugée perdue.",
@@ -242,7 +242,7 @@ export const CHAPTERS: Chapter[] = [
     tint: "rgba(8, 18, 40, 0.30)",
     story: [
       "Aux abords du Val, les arbres se referment comme des doigts. Des rires aigus éclatent entre les troncs.<br><br>" +
-      say("Lyra", "Des gobelins. Ils ont senti ta bourse, Maelor."),
+      say("Corvin", "Des gobelins. Ils ont senti ta bourse, Maelor."),
     ],
     enemies: ["goblin", "goblin"],
   },
@@ -270,7 +270,7 @@ export const CHAPTERS: Chapter[] = [
     tint: "rgba(30, 20, 50, 0.40)",
     story: [
       "Un pont de pierre enjambe un gouffre sans fond. En son milieu, une silhouette massive barre le passage, une massue sur l'épaule.<br><br>" +
-      say("Lyra", "Un ogre. Rien qu'un bon coup de foudre ne puisse calmer."),
+      say("Corvin", "Un ogre. Rien qu'un bon coup de foudre ne puisse calmer."),
     ],
     enemies: ["goblin", "ogre", "skeleton"],
   },
@@ -292,7 +292,7 @@ export const CHAPTERS: Chapter[] = [
         "Sur le blason, le nom se précise : <strong>Ré·r·r Dra··n·s</strong>."),
 
       say("Maelor", "Ils ne domptaient pas les dragons. Ils marchaient avec eux.") + "<br>" +
-      say("Lyra", "Alors pourquoi tout le monde raconte l'inverse ?"),
+      say("Corvin", "Alors pourquoi tout le monde raconte l'inverse ?"),
     ],
   },
   {
@@ -312,7 +312,7 @@ export const CHAPTERS: Chapter[] = [
 
       "Le Dragon ouvre les yeux. Il ne voit que des humains armés dans son antre, comme il y a trente ans.<br><br>" +
       say("Maelor", "Il n'est pas fou. Il croit qu'on vient le tuer.") + "<br>" +
-      say("Elwen", "Son souffle est de feu. Garde tes flammes, Lyra. La glace, peut-être..."),
+      say("Elwen", "Son souffle est de feu. Garde tes flammes, Corvin. La glace, peut-être..."),
     ],
     enemies: ["dragon"],
   },
