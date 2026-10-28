@@ -1,7 +1,7 @@
 // view.ts - Affichage : scène de combat, fenêtres, menus, animations
 
 import { CONFIG } from "../config.ts";
-import { ATTACK, GameState } from "../data/game-data.ts";
+import { ATTACK, GameState, HEROES } from "../data/game-data.ts";
 import type { Ability, Chapter } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import { Sfx, type SoundName } from "../audio/sfx.ts";
@@ -23,7 +23,10 @@ const FORMATIONS: Record<number, [number, number][]> = {
   2: [[35, 30], [62, 70]],
   3: [[28, 22], [66, 50], [28, 80]],
 };
-const HERO_SLOTS: [number, number][] = [[26, 34], [48, 57], [70, 80]];
+const HERO_SLOTS: [number, number][] = [[22, 28], [50, 52], [78, 76]];
+
+// Toile commune des sprites de héros, en pixels de sprite (affichée ×3 sur ordinateur, ×1 sur mobile)
+const HERO_CANVAS = { w: 47, h: 66 };
 
 // Éléments d'un combattant, absents tant que la scène n'est pas construite
 function spriteEl(c: Combatant)   { return document.querySelector<HTMLElement>(`[data-sprite="${c.id}"]`); }
@@ -50,9 +53,48 @@ function createSprite(c: Combatant, [x, y]: [number, number]) {
   sprite.dataset.sprite = c.id;
   sprite.style.left = x + "%";
   sprite.style.top = y + "%";
-  sprite.innerHTML = `<div class="sprite-body"><img class="sprite-img" src="${c.image}" alt="${c.name}"></div>`;
+  sprite.innerHTML = `<div class="sprite-body"><img class="sprite-img" src="${c.image}" alt="${c.name}">${embersHtml(c)}</div>`;
   sprite.addEventListener("click", () => Menu.clickTarget(c));
+  if (c.side === "hero") {
+    // Un héros déjà K.O. quand la scène est construite est posé à terre, sans rejouer sa chute
+    if (!isAlive(c)) sprite.classList.add("ko", "fallen");
+    const img = sprite.querySelector<HTMLImageElement>(".sprite-img");
+    if (img) measureKoLift(sprite, img);
+  }
   return sprite;
+}
+
+// Couché, le héros pivote autour de ses pieds : sa colonne opaque la plus à gauche devient son point le plus bas.
+// --ko-lift (en pixels de sprite) le remonte de ce qu'il faut pour que ce point touche la ligne de sol.
+function measureKoLift(sprite: HTMLElement, img: HTMLImageElement) {
+  const measure = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx || !canvas.width) return;
+    ctx.drawImage(img, 0, 0);
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    for (let x = 0; x < canvas.width; x++) {
+      for (let y = 0; y < canvas.height; y++) {
+        if (data[(y * canvas.width + x) * 4 + 3]) {
+          sprite.style.setProperty("--ko-lift", String(canvas.width / 2 - x));
+          return;
+        }
+      }
+    }
+  };
+  if (img.complete) measure();
+  else img.addEventListener("load", measure, { once: true });
+}
+
+// Braises qui montent des bords enflammés d'un héros (Elwen), décalées dans le temps
+function embersHtml(c: Combatant) {
+  const embers = HEROES.find(def => def.id === c.id)?.embers || [];
+  return embers.map(([x, y], i) => {
+    const left = (x / HERO_CANVAS.w) * 100, top = (y / HERO_CANVAS.h) * 100;
+    return `<span class="ember" style="left: ${left}%; top: ${top}%; animation-delay: ${-i * 0.37}s"></span>`;
+  }).join("");
 }
 
 // Scène sans combat : le groupe seul, entre deux affrontements
@@ -117,6 +159,8 @@ export function updateBattleUI() {
       if (sprite) sprite.classList.toggle(flag, on);
       if (row) row.classList.toggle(flag, on);
     }
+    // relevé : son prochain K.O. rejouera la chute
+    if (sprite && alive) sprite.classList.remove("fallen");
     if (row) {
       $(".p-hp b", row).textContent = String(hero.hp);
       $(".p-hp small", row).textContent = "/" + hero.maxHp;

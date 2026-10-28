@@ -3,11 +3,11 @@
 Bienvenue dans **L'Ordre Déchu**, mon RPG développé en pur **HTML / CSS / TypeScript**, dans l'esprit des **Final Fantasy à l'ancienne** (jauges ATB, menus de commande, magie et objets), habillé de couleurs sombres et dorées.
 Ce projet est né d'une passion pour les jeux vidéo et d'une volonté d'apprendre par la pratique, sans framework ni moteur de jeu.
 
-Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé des mémoires, accompagné de *Lyra* la mage noire et d'*Elwen* la mage blanche, dans une aventure sombre en cinq chapitres. Personne ne l'a choisi : il a choisi de venir.
+Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé des mémoires, accompagné de *Corvin* le veilleur et d'*Elwen* la mage blanche, dans une aventure sombre en cinq chapitres. Personne ne l'a choisi : il a choisi de venir.
 
 ## 🎮 Fonctionnalités actuelles
 
-* **Groupe de 3 héros** aux rôles distincts : Maelor (chevalier déchu), Lyra (mage noire), Elwen (mage blanche)
+* **Groupe de 3 héros** aux rôles distincts : Maelor (chevalier déchu), Corvin (veilleur), Elwen (mage blanche)
 * **Combat ATB** (Active Time Battle) : chaque combattant a une jauge qui se remplit selon sa vitesse ; les ennemis n'attendent pas
 * Mode **Attente** : le temps se fige quand tu fouilles dans les menus Magie / Objet (réglable dans `src/config.ts`)
 * Menu de commandes façon FF : **Attaque**, **Techniques / Magie**, **Objet**, **Défense**, **Fuite**
@@ -129,6 +129,10 @@ Ce projet m'a permis de progresser concrètement en :
 * Sauvegarde dans le navigateur
 * Musiques d'ambiance
 * Carte d'exploration avec rencontres aléatoires
+
+## 📜 Crédits
+
+L'origine de chaque image, police et son est listée dans [`CREDITS.md`](CREDITS.md). Les images des héros ont été générées avec Gemini (Google), réduites en pixel art par un script, puis retouchées pixel par pixel sur mes choix.
 
 ## 🤝 Contribuer
 

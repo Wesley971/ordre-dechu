@@ -168,7 +168,7 @@ body.lock-scroll { overflow: hidden; }
 body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 
 #enemy-area { position: absolute; left: 0;  top: 0; bottom: 0; width: 60%; }
-#hero-area  { position: absolute; right: 0; top: 0; bottom: 0; width: 32%; }
+#hero-area  { position: absolute; right: 0; top: 0; bottom: 0; width: 40%; }
 
 #battle-banner {
   position: absolute;
@@ -191,7 +191,8 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   cursor: var(--cursor-pointer);
 }
 
-.sprite.hero       { --size: 78px; }
+/* Héros en pixel art : toile de 47 × 66 pixels de sprite, un pixel de sprite = --px pixels d'écran */
+.sprite.hero       { --px: 3; --size: calc(47px * var(--px)); }
 .sprite.enemy.boss { --size: 230px; }
 
 /* Ombre au sol */
@@ -238,17 +239,82 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 }
 
 /* Héros */
+.sprite.hero .sprite-img {
+  aspect-ratio: auto;
+  image-rendering: pixelated;
+  animation: none;
+}
+
+.ember { display: none; }
+
+/* Respiration, élan d'attaque, recul au coup reçu et braises : seulement sans « mouvement réduit » */
+@media (prefers-reduced-motion: no-preference) {
+  /* Respiration : un pixel de sprite de plus en hauteur, depuis les pieds, en deux temps */
+  .sprite.hero .sprite-img { animation: breathe 2.8s steps(1) infinite; }
+  /* Élan : recul de deux pixels de sprite, puis le pas en avant (.acting) ; durée de CONFIG.timing.step */
+  .sprite.hero.acting .sprite-img  { animation: hero-lunge 0.22s steps(2); }
+  /* Recul de deux pixels de sprite, à l'opposé des ennemis ; durée de CONFIG.timing.hit */
+  .sprite.hero.damaged .sprite-img { animation: hero-recoil 0.4s steps(2); }
+
+  .ember {
+    display: block;
+    position: absolute;
+    width: calc(1px * var(--px));
+    height: calc(1px * var(--px));
+    background: var(--gold-bright);
+    opacity: 0;
+    animation: ember-rise 2.2s steps(12) infinite;
+  }
+  .sprite.hero.ko .ember { display: none; }
+  /* Chute vers la pose couchée, qui accélère en tombant ; pas pour un héros déjà à terre quand la scène se construit */
+  .sprite.hero.ko:not(.fallen) .sprite-img { animation: hero-fall 0.4s ease-in; }
+}
+
+@keyframes hero-fall {
+  from { transform: none; }
+}
+
+/* L'étirement part du centre : on remonte d'un demi-pixel de sprite pour garder les pieds au sol
+   (le genou à terre et le K.O. pivotent eux aussi autour du centre) */
+@keyframes breathe {
+  50% { transform: translateY(calc(-0.5px * var(--px))) scaleY(calc(67 / 66)); }
+}
+
+@keyframes hero-lunge {
+  40% { transform: translateX(calc(2px * var(--px))); }
+}
+
+@keyframes hero-recoil {
+  25% { transform: translateX(calc(2px * var(--px))); }
+}
+
+@keyframes ember-rise {
+  10%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(calc(-12px * var(--px))); }
+}
+
 .sprite.hero.active .sprite-body  { translate: -22px 0; }
 .sprite.hero.acting .sprite-body  { translate: -48px 0; }
 .sprite.hero.fleeing .sprite-body { translate: 320px 0; transition: translate 0.6s ease-in; }
 
 .sprite.hero.critical .sprite-img { animation: kneel 1.4s ease-in-out infinite; }
+/* K.O. : le héros bascule autour de ses pieds, tête vers les ennemis, et reste à la même taille de pixel.
+   --ko-lift (mesuré par view.ts, en pixels de sprite) pose son flanc sur la ligne de sol ; sans mesure, demi-toile */
 .sprite.hero.ko .sprite-img {
   animation: none;
   filter: grayscale(1) brightness(0.55);
-  transform: rotate(-90deg) scale(0.8);
+  transform-origin: 50% 100%;
+  transform: translateY(calc(-1px * var(--px) * var(--ko-lift, 23.5))) rotate(-90deg);
 }
 .sprite.hero.victory .sprite-img { animation: victory-hop 0.45s ease-in-out 4; }
+
+/* « Mouvement réduit » : le héros prend directement la pose finale, sans animation.
+   Genou à terre : la pose de repos de kneel ; victoire : debout ; K.O. : couché au sol, la chute n'existant
+   que sans « mouvement réduit » */
+@media (prefers-reduced-motion: reduce) {
+  .sprite.hero.critical .sprite-img { animation: none; transform: translateY(6px) scaleY(0.92); }
+  .sprite.hero.victory .sprite-img  { animation: none; }
+}
 
 .sprite.hero.defending .sprite-body::after {
   content: "";
@@ -667,7 +733,7 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 
   .sprite.enemy      { --size: 76px; }
   .sprite.enemy.boss { --size: 150px; }
-  .sprite.hero       { --size: 56px; }
+  .sprite.hero       { --px: 1; }
   #hero-area         { width: 36%; }
 
   .party-row { gap: var(--space-2); font-size: 16px; }
