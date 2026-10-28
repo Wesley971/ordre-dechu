@@ -72,4 +72,5 @@ Les mentions « proposition » sont à juger sur l'image Gemini.
 - Touche braise sombre : la gorge, lueur sourde sous les écailles du cou.
 - Palette : écailles `#0d0a07` et `#2a2018`, or `#c9a84c`, yeux `#a8325e` et `#9b6fd0`, gorge et braises `#7a2a14`, cendre `#45403a`.
 - Ne doit pas ressembler à : Kalameet (Dark Souls), Drogon (Game of Thrones), Alduin (Skyrim), Aile de Mort (Warcraft) ; pas de reflets rouges, pics, plaques de métal, lave ni flammes vives.
+  - Le dragon CraftPix de 2020 reste rejeté (trop cartoon, décision du 27/10/2026, MAE-24).
 - Lisible à taille de boss : silhouette maigre, plaques dorées où manquent les écailles, yeux rose violet, lueur de la gorge.
