@@ -89,7 +89,7 @@ export const HEROES: HeroDef[] = [
     id: "elwen", name: "Elwen", job: "Source", image: "images/elwen.png",
     command: "Souffle",
     // bords enflammés du drapé
-    embers: [[12, 41], [10, 46], [14, 55], [37, 42], [38, 47], [36, 52]],
+    embers: [[34, 41], [36, 46], [32, 55], [9, 42], [8, 47], [10, 52]],
     stats:  { maxHp: 110, maxMp: 44, atk: 9,  def: 6,  mag: 15, res: 14, spd: 10 },
     growth: { maxHp: 15,  maxMp: 6,  atk: 1,  def: 1,  mag: 2,  res: 2,  spd: 1  },
     spells: { 1: ["cure"], 3: ["life"], 4: ["curePlus"] },

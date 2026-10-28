@@ -167,8 +167,8 @@ body.lock-scroll { overflow: hidden; }
 
 body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 
-#enemy-area { position: absolute; left: 0;  top: 0; bottom: 0; width: 60%; }
-#hero-area  { position: absolute; right: 0; top: 0; bottom: 0; width: 40%; }
+#hero-area  { position: absolute; left: 0;  top: 0; bottom: 0; width: 40%; }
+#enemy-area { position: absolute; right: 0; top: 0; bottom: 0; width: 60%; }
 
 #battle-banner {
   position: absolute;
@@ -227,7 +227,13 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 .sprite:nth-child(3) .sprite-img { animation-delay: -1.8s; }
 
 .sprite.targeted::before     { left: -30px; top: 50%; margin-top: -8px; }
+/* Sur un héros, la main se place à sa droite, tournée vers lui : à gauche, elle sortirait de la scène */
+.sprite.hero.targeted::before { left: auto; right: -30px; scale: -1 1; animation-name: hand-bob-left; }
 .sprite.targeted.all::before { animation: hand-blink 0.3s steps(1) infinite; }
+
+@keyframes hand-bob-left {
+  100% { translate: -3px 0; }
+}
 
 @keyframes float {
   50% { transform: translateY(-4px); }
@@ -281,11 +287,11 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 }
 
 @keyframes hero-lunge {
-  40% { transform: translateX(calc(2px * var(--px))); }
+  40% { transform: translateX(calc(-2px * var(--px))); }
 }
 
 @keyframes hero-recoil {
-  25% { transform: translateX(calc(2px * var(--px))); }
+  25% { transform: translateX(calc(-2px * var(--px))); }
 }
 
 @keyframes ember-rise {
@@ -293,9 +299,9 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   100% { opacity: 0; transform: translateY(calc(-12px * var(--px))); }
 }
 
-.sprite.hero.active .sprite-body  { translate: -22px 0; }
-.sprite.hero.acting .sprite-body  { translate: -48px 0; }
-.sprite.hero.fleeing .sprite-body { translate: 320px 0; transition: translate 0.6s ease-in; }
+.sprite.hero.active .sprite-body  { translate: 22px 0; }
+.sprite.hero.acting .sprite-body  { translate: 48px 0; }
+.sprite.hero.fleeing .sprite-body { translate: -320px 0; transition: translate 0.6s ease-in; }
 
 .sprite.hero.critical .sprite-img { animation: kneel 1.4s ease-in-out infinite; }
 /* K.O. : le héros bascule autour de ses pieds, tête vers les ennemis, et reste à la même taille de pixel.
@@ -304,7 +310,7 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   animation: none;
   filter: grayscale(1) brightness(0.55);
   transform-origin: 50% 100%;
-  transform: translateY(calc(-1px * var(--px) * var(--ko-lift, 23.5))) rotate(-90deg);
+  transform: translateY(calc(-1px * var(--px) * var(--ko-lift, 23.5))) rotate(90deg);
 }
 .sprite.hero.victory .sprite-img { animation: victory-hop 0.45s ease-in-out 4; }
 
@@ -319,7 +325,7 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 .sprite.hero.defending .sprite-body::after {
   content: "";
   position: absolute;
-  left: -10px;
+  right: -10px;
   bottom: 0;
   width: 22px;
   height: 26px;
@@ -347,7 +353,7 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 .sprite.enemy.defeated .sprite-img {
   animation: none;
   filter: grayscale(0.5) brightness(0.55);
-  transform: translateY(12%) rotate(-8deg);
+  transform: translateY(12%) rotate(8deg);
 }
 
 @keyframes enemy-appear {
@@ -432,6 +438,8 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   background: linear-gradient(135deg, transparent 44%, #fff 48%, #fff 52%, transparent 56%);
   animation: fx-slash 0.3s ease-out forwards;
 }
+/* Sur un héros, le coup vient des ennemis : la trace part de la droite */
+.sprite.hero .fx-slash { scale: -1 1; }
 
 @keyframes fx-burst {
   0%   { transform: scale(0.2); opacity: 0; }
@@ -463,12 +471,12 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   position: relative;
   flex: none;
   display: grid;
-  grid-template-columns: 36% 1fr;
+  grid-template-columns: 1fr 36%;
   gap: var(--space-3);
   height: 184px;
 }
 
-#left-window,
+#action-window,
 #party-window {
   position: relative;
   overflow: hidden;
@@ -727,7 +735,8 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
     gap: var(--space-2);
     height: auto;
   }
-  #left-window { min-height: 128px; }
+  /* Empilées sur une colonne : ennemis et commandes restent au-dessus du groupe */
+  #action-window { order: -1; min-height: 128px; }
   #list-window { overflow-y: auto; }
   .menu-grid   { grid-template-columns: 1fr; }
 
