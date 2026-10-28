@@ -10,7 +10,7 @@ Règle d'univers : dans ce monde sombre, les couleurs vives sont rares et sont l
 | Brun d'ombre | `#2a2018` |
 | Cendre | `#45403a` |
 
-## 2. Couleurs des héros mortels (jamais reprises par un ennemi)
+## 2. Couleurs des héros mortels (jamais reprises par un ennemi, sauf le bleu nuit des Hésiums en section 8)
 
 | Héros | Couleur | Code |
 |---|---|---|
@@ -65,11 +65,13 @@ Usage : sang et yeux de Maelor, lumière d'Elwen, Larme dorée. Aucun ennemi ne 
 - Feu du dragon : braise sombre et noir, pas de feu vif.
 - Les ennemis évitent les tons de peau des héros et le cendré clair de Maelor.
 
-## 8. Exception : les Tyrdrak (Vahn)
+## 8. Exceptions : les Tyrdrak (Vahn) et les Hésiums
 
 - Les Tyrdrak portent l'or (reflets des écailles, peau sous les écailles) et des couleurs vives (yeux rose violet), signe de leur lien avec les immortels.
+- Les Hésiums portent le bleu nuit de Corvin `#141c2e` dans leurs longs cheveux : exception assumée, ils deviennent ses alliés (MAE-65). Décision du 28/10/2026, d'après les bases Gemini (MAE-26).
+- La peau des Hésiums est bronzée (elle remplace le gris `#45403a`) ; sa valeur est fixée à la réduction (MAE-26) et reste à l'écart des peaux des héros.
 - Aucun autre ennemi.
-- Fiche de Vahn : `docs/enemy-sheets.md`.
+- Fiches : `docs/enemy-sheets.md`.
 
 ## Usage
 

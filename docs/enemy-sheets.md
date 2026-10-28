@@ -1,10 +1,10 @@
 # Fiches des ennemis
 
-Fiches validées par Wesley le 28/10/2026 (MAE-62).
+Fiches validées par Wesley le 28/10/2026 (MAE-62), précisées le même jour d'après les bases Gemini validées (MAE-26).
 
 Règles communes à toutes les fiches :
 - palette `docs/character-palette.md` ;
-- vue de profil tournée vers la gauche ;
+- vue : les humanoïdes sont de trois quarts, comme les héros ; Vahn reste de profil. Dans le jeu, tous regardent vers la gauche : le sens du regard se règle par le script de réduction (décision du 28/10/2026, bases Gemini) ;
 - licence CraftPix §3.1 (aucun sprite CraftPix montré à une IA).
 
 Les mentions « proposition » sont à juger sur l'image Gemini.
@@ -26,20 +26,22 @@ Les mentions « proposition » sont à juger sur l'image Gemini.
 - Identité : peuple pacifique, discret, très familial et bon ; respectueux de la nature et des gens, ne juge personne ; fort et puissant, ne se laisse pas faire, aide les autres. Les autres les appellent « squelettes » et les jugent.
 - Souffle : une mutation leur fait pousser des os sur la peau ; ces os captent le Souffle. Ils ajoutent des os récoltés (humains ou animaux) pour capter le Souffle qui y reste.
 - Os : taillés et sculptés finement, en hommage aux morts et à la nature. Rien de morbide.
-- Tête : masque d'os sculpté, élégant, fait à partir d'un crâne.
-- Corps : vivant, nerveux, musclé sous les os.
+- Tête : masque d'os sculpté, élégant et serein, fait à partir d'un crâne. Oreilles rondes, humaines.
+- Cheveux : longs, bleu nuit (pas de lavande, pas de blanc). Le bleu nuit est la couleur de Corvin : exception assumée, les Hésiums deviennent ses alliés (MAE-65).
+- Corps : vivant, nerveux, musclé sous les os. Peau bronzée naturelle.
 - Tenue (proposition) : fines sangles de cuir qui tiennent les os sculptés.
-- Arme : une faux, leur outil de récolte.
+- Arme : une seule faux, leur outil de récolte, tenue d'une main.
 - Touche braise sombre (proposition) : lueur là où les os récoltés touchent la peau.
-- Palette : os `#8f8a7c`, peau `#45403a`, cuir `#4a3a2c`, lame `#3d3f42`, lueur `#7a2a14`.
+- Palette : os `#8f8a7c`, peau bronzée (valeur fixée à la réduction, MAE-26 ; remplace le gris `#45403a`), cheveux bleu nuit `#141c2e`, cuir `#4a3a2c`, lame `#3d3f42`, lueur `#7a2a14`.
+- À la réduction : peau ramenée vers la palette (moins saturée), cheveux plus sombres, vers le bleu nuit.
 - Ne doit pas ressembler à : la Faucheuse (pas de robe ni capuche), squelettes classiques (corps vivant visible), Predator (pas de trophées de crânes).
-- Lisible : os sculptés clairs sur peau sombre, masque, faux.
+- Lisible : os sculptés clairs sur peau bronzée, masque, cheveux bleu nuit, faux.
 
 ## Les Gau-Tik, gardiens du pont (chapitre III, le mot « ogre » disparaît)
 
 - Identité : peuple humanoïde, plus grand que les humains, plus intelligent que les autres peuples, vit à l'écart, très résistant. Aucun lien avec le Souffle. Ils gardent le pont pour protéger un lieu laissé par les immortels. Vaincus, ils laissent passer le groupe.
 - Tête : visage voilé, seuls les yeux visibles.
-- Voile : transparent, secret de leur peuple : tissu que rien ne perce, que seuls eux savent tisser, et règle interdisant de montrer son visage à un étranger.
+- Voile : transparent, secret de leur peuple : tissu que rien ne perce, que seuls eux savent tisser, et règle interdisant de montrer son visage à un étranger. Long et fluide, il tombe du diadème sur le haut du corps ; sa lisibilité à petite taille se vérifie à la réduction (MAE-26).
 - Corps : grand, musclé, athlétique.
 - Arme : poings, avec les chaînes arrachées du pont enroulées autour des bras.
 - Touche braise sombre : vieille cicatrice de brûlure qui n'a jamais refroidi.
@@ -50,24 +52,25 @@ Les mentions « proposition » sont à juger sur l'image Gemini.
 ## Les Painkush, peuple de la Pierre Nue (chapitre IV, ex-minotaure)
 
 - Identité : peuple cornu, très avancé, maîtres forgerons et bâtisseurs. Chez eux dans la Pierre Nue, territoire aride, reculé et interdit, que les héros doivent traverser ; un Painkush seul leur barre la route. Pas de méchant, chacun a ses raisons. Sans faiblesse élémentaire, force brute.
-- Tête : crâne massif et cornu, mâchoire d'homme, sans mufle.
+- Tête : tête de taureau avec mufle, crâne massif et cornu (remplace « mâchoire d'homme, sans mufle », décision du 28/10/2026, bases Gemini).
 - Corps : colosse, cornes larges, épaules massives ; fourrure sombre avec poussière et éclats de pierre (proposition).
 - Armure : très rare, métal propre à leur territoire, aspect platine terni et sombre, dur comme le diamant, chargé de Souffle.
-- Arme : pilier taillé dans une autre pierre spéciale, que leur savoir-faire permet de modeler.
+- Arme : pilier de pierre sculpté, porté sur l'épaule, taillé dans une autre pierre spéciale, que leur savoir-faire permet de modeler.
 - Touche braise sombre : les naseaux, souffle chaud qui rougeoie quand il charge.
 - Palette : fourrure `#4a3a2c` et `#2a2018`, armure `#3d3f42`, pilier `#45403a`, cornes `#0d0a07`, naseaux `#7a2a14`.
-- Ne doit pas ressembler à : Taurens de Warcraft (pas de mufle, totems, plumes, bijoux tribaux), Minotaure mythologique (pas de hache double, pagne, labyrinthe), Démon Taureau de Dark Souls, nains forgerons (Tolkien, Dwemer de Skyrim).
+- Ne doit pas ressembler à : Taurens de Warcraft (pas de totems, plumes, bijoux tribaux ; le mufle est admis depuis le 28/10/2026), Minotaure mythologique (pas de hache double, pagne, labyrinthe), Démon Taureau de Dark Souls, nains forgerons (Tolkien, Dwemer de Skyrim).
 - Lisible : cornes larges, masse des épaules, armure, pilier.
 
 ## Vahn, des Tyrdrak (dernier chapitre, boss ; les humains disent « dragons »)
 
 - Identité : un Tyrdrak, race intelligente, autrefois alliée de l'Ordre (Rédror Drakunis). Il croit les humains hostiles depuis des événements oubliés. Il garde depuis trente ans, dans son antre, le blason d'un ami humain de l'Ordre (sur un lit d'ossements, pas sur le sprite). Fatigué, il a perdu la tête faute de se souvenir. Fin : Épargner ou Achever.
 - Silhouette : quatre pattes et ailes, massif mais amaigri, côtes et os du crâne saillants.
+- Tête : pas de pics, cornes courtes et usées (décision du 28/10/2026, bases Gemini).
 - Particularités :
   - souvenirs gravés : il grave des signes sur ses écailles pour ne pas oublier, corps couvert de griffures ;
   - écailles qui tombent par plaques, peau doucement dorée dessous (le sang ancien) ;
   - il crache de la cendre (son feu s'est éteint : nuage de cendre et de braises sombres).
-- Capacité : « Nuée de cendre » (ex-« Flammes ardentes »).
+- Capacité : « Nuée de cendre » (ex-« Flammes ardentes »). La cendre se fera en animation (MAE-30), pas sur le sprite.
 - Écailles : noires à reflets dorés. Yeux : rose violet (couleurs d'Elwen).
 - Touche braise sombre : la gorge, lueur sourde sous les écailles du cou.
 - Palette : écailles `#0d0a07` et `#2a2018`, or `#c9a84c`, yeux `#a8325e` et `#9b6fd0`, gorge et braises `#7a2a14`, cendre `#45403a`.
