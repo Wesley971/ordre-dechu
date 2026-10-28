@@ -60,7 +60,7 @@ function statsAtLevel(def: HeroDef, level: number): Stats {
   return stats;
 }
 
-// Sorts appris entre deux niveaux (fromLevel exclu, toLevel inclus)
+// Souffles appris entre deux niveaux (fromLevel exclu, toLevel inclus)
 function spellsLearnedBetween(def: HeroDef, fromLevel: number, toLevel: number) {
   const learned: SpellId[] = [];
   for (let lvl = fromLevel + 1; lvl <= toLevel; lvl++) {
@@ -95,7 +95,7 @@ function gainXp(hero: Hero, xp: number) {
   return { level: newLevel, learned: learned.map(id => SPELLS[id].name) };
 }
 
-// Récompenses de fin de combat : XP pour chaque héros debout, Gils et objets pour le groupe
+// Récompenses de fin de combat : XP pour chaque héros debout, Couronnes et objets pour le groupe
 export function grantRewards(enemies: Enemy[]) {
   const xp  = enemies.reduce((sum, e) => sum + e.xp, 0);
   const gil = enemies.reduce((sum, e) => sum + e.gil, 0);
@@ -119,7 +119,7 @@ export function grantRewards(enemies: Enemy[]) {
 }
 export type Rewards = ReturnType<typeof grantRewards>;
 
-// Source sacrée : PV/PM au maximum, les K.O. se relèvent
+// Puits des Anciens : PV/PS au maximum, les K.O. se relèvent
 export function restoreParty() {
   for (const hero of GameState.party) {
     hero.hp = hero.maxHp;

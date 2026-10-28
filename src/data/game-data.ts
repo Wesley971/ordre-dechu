@@ -1,4 +1,4 @@
-// game-data.ts - Données du jeu : héros, sorts, objets, ennemis, histoire, état de la partie
+// game-data.ts - Données du jeu : héros, souffles, objets, ennemis, histoire, état de la partie
 
 import { CONFIG } from "../config.ts";
 import { createHero, type Hero } from "../party/heroes.ts";
@@ -68,7 +68,7 @@ const say = (name: string, text: string) => `<span class="speaker">${name} :</sp
 const memory = (html: string): PageObject => ({ html: `<span class="memory">${html}</span>`, sfx: "memory" });
 
 // — Héros —
-// stats : valeurs au niveau 1 · growth : gain à chaque niveau · spells : sorts appris par niveau
+// stats : valeurs au niveau 1 · growth : gain à chaque niveau · spells : souffles appris par niveau
 
 export const HEROES: HeroDef[] = [
   {
@@ -80,14 +80,14 @@ export const HEROES: HeroDef[] = [
   },
   {
     id: "corvin", name: "Corvin", job: "Veilleur", image: "images/corvin.png",
-    command: "Magie noire",
+    command: "Souffle",
     stats:  { maxHp: 95,  maxMp: 40, atk: 8,  def: 5,  mag: 18, res: 12, spd: 11 },
     growth: { maxHp: 12,  maxMp: 6,  atk: 1,  def: 1,  mag: 3,  res: 2,  spd: 1  },
     spells: { 1: ["fire", "ice"], 2: ["thunder"], 4: ["blaze"] },
   },
   {
-    id: "elwen", name: "Elwen", job: "Mage blanche", image: "images/elwen.png",
-    command: "Magie blanche",
+    id: "elwen", name: "Elwen", job: "Source", image: "images/elwen.png",
+    command: "Souffle",
     // bords enflammés du drapé
     embers: [[12, 41], [10, 46], [14, 55], [37, 42], [38, 47], [36, 52]],
     stats:  { maxHp: 110, maxMp: 44, atk: 9,  def: 6,  mag: 15, res: 14, spd: 10 },
@@ -116,25 +116,25 @@ export const SPELLS = {
                  desc: "Éclair sur un ennemi." },
   blaze:       { name: "Brasier",     mp: 12, kind: "magic", power: 30, element: "fire",    target: "all-foes",
                  desc: "Flammes sur tous les ennemis." },
-  cure:        { name: "Soin",        mp: 5,  kind: "heal", power: 40, target: "ally",
+  cure:        { name: "Apaiser",     mp: 5,  kind: "heal", power: 40, target: "ally",
                  desc: "Rend des PV. Brûle les créatures d'os." },
-  curePlus:    { name: "Soin+",       mp: 14, kind: "heal", power: 30, target: "all-allies",
+  curePlus:    { name: "Raviver",     mp: 14, kind: "heal", power: 30, target: "all-allies",
                  desc: "Rend des PV à tout le groupe." },
-  life:        { name: "Vie",         mp: 12, kind: "revive", target: "ko-ally",
+  life:        { name: "Renaître",    mp: 12, kind: "revive", target: "ko-ally",
                  desc: "Ranime un allié K.O." },
 } satisfies Record<string, Spell>;
 export type SpellId = keyof typeof SPELLS;
 
 export const ITEMS = {
-  potion:  { name: "Potion",          kind: "heal",   amount: 100, target: "ally",    desc: "Rend 100 PV." },
-  ether:   { name: "Éther",           kind: "mp",     amount: 30,  target: "ally",    desc: "Rend 30 PM." },
-  phoenix: { name: "Queue de Phénix", kind: "revive",              target: "ko-ally", desc: "Ranime un allié K.O." },
+  potion:  { name: "Baume",           kind: "heal",   amount: 100, target: "ally",    desc: "Rend 100 PV." },
+  ether:   { name: "Encens",          kind: "mp",     amount: 30,  target: "ally",    desc: "Rend 30 PS." },
+  phoenix: { name: "Larme dorée",     kind: "revive",              target: "ko-ally", desc: "Ranime un allié K.O." },
 } satisfies Record<string, Item>;
 export type ItemId = keyof typeof ITEMS;
 
 export const ENEMY_SKILLS = {
-  crush:      { name: "Écrasement",     kind: "physical", power: 1.6, target: "foe" },
-  fireBreath: { name: "Souffle ardent", kind: "magic", power: 34, element: "fire", target: "all-foes" },
+  crush:      { name: "Écrasement",       kind: "physical", power: 1.6, target: "foe" },
+  fireBreath: { name: "Flammes ardentes", kind: "magic", power: 34, element: "fire", target: "all-foes" },
 } satisfies Record<string, Ability>;
 export type EnemySkillId = keyof typeof ENEMY_SKILLS;
 export type EnemyAction = "attack" | EnemySkillId;
@@ -215,7 +215,7 @@ export const PROLOGUE: Page[] = [
   "<strong>Corvin</strong>, veilleur au regard de braise. Son maître n'a jamais pratiqué la magie noire. Un village effrayé l'a brûlé sur une rumeur, sans procès. Puis la foule s'est dispersée, et plus personne ne se souvient de rien.<br><br>" +
   "Il a gardé de son maître sa lanterne, et une colère qui n'a personne à frapper. Il en veut à un monde qui juge vite, détruit vite, et oublie plus vite encore.",
 
-  "<strong>Elwen</strong>, mage blanche. Son temple enseignait que la guérison se mérite, et qu'on ne la donne pas aux condamnés. Elle en a soigné quand même, ceux qu'on avait abandonnés. On l'a chassée.<br><br>" +
+  "<strong>Elwen</strong>, que l'on dit Source. Son temple enseignait que la guérison se mérite, et qu'on ne la donne pas aux condamnés. Elle en a soigné quand même, ceux qu'on avait abandonnés. On l'a chassée.<br><br>" +
   "Qui peut juger avec certitude, dans un monde qui a oublié jusqu'à l'origine de ses propres guerres ? Elwen croit que chaque vie peut être sauvée. Même celle qu'on a déjà jugée perdue.",
 ];
 
@@ -224,7 +224,7 @@ interface ChapterBase {
   tint: string;
   story: Page[];
 }
-// Chapitre de repos : PV et PM restaurés, pas de combat
+// Chapitre de repos : PV et PS restaurés, pas de combat
 export interface RestChapter extends ChapterBase {
   rest: true;
 }
@@ -275,18 +275,18 @@ export const CHAPTERS: Chapter[] = [
     enemies: ["goblin", "ogre", "skeleton"],
   },
   {
-    title: "IV · La Source Sacrée",
+    title: "IV · Le Puits des Anciens",
     tint: "rgba(20, 60, 70, 0.30)",
     rest: true,
     story: [
-      { html: "Au cœur d'une clairière, une source brille d'une lueur pâle. Ses eaux referment les plaies et rendent l'éclat aux esprits las.<br><br>" +
-              "<em>Les PV et les PM du groupe sont entièrement restaurés.</em>", sfx: "heal" },
+      { html: "Au cœur d'une clairière se dresse un vieux puits de pierre. Au fond, une eau brille d'une lueur pâle. Ses eaux referment les plaies et rendent l'éclat aux esprits las.<br><br>" +
+              "<em>Les PV et les PS du groupe sont entièrement restaurés.</em>", sfx: "heal" },
 
-      "Sur les pierres du bassin, des empreintes de griffes côtoient des empreintes de mains, gravées ensemble dans la roche.<br><br>" +
+      "Sur les pierres de la margelle, des empreintes de griffes côtoient des empreintes de mains, gravées ensemble dans la roche.<br><br>" +
       "Le blason se réchauffe.",
 
       memory(
-        "Un dragon boit à la source. Un chevalier sans armure pose la main sur ses écailles.<br>" +
+        "Un dragon se penche sur le puits. Un chevalier sans armure pose la main sur ses écailles.<br>" +
         "Ils ne se parlent pas avec des mots. L'homme sent ce que sent la bête, la bête sait ce que pense l'homme. Comment ? Le souvenir ne le dit pas.<br>" +
         "« Nous ne les commandons pas. Nous marchons à côté d'eux, pour que les hommes et les dragons ne s'oublient jamais. »<br><br>" +
         "Sur le blason, le nom se précise : <strong>Ré·r·r Dra··n·s</strong>."),

@@ -92,7 +92,7 @@ function calcMagic(caster: Combatant, target: Combatant, ability: MagicAbility):
 
 function calcHeal(caster: Combatant, target: Combatant, ability: HealAbility): Effect {
   if (!isAlive(target)) return { type: "none" };
-  // Objet : quantité fixe · sort : puissance + magie du lanceur
+  // Objet : quantité fixe · souffle : puissance + Souffle du lanceur
   const amount = "amount" in ability ? ability.amount : Math.round(vary(ability.power + caster.mag * 2));
   // Les soins brûlent les créatures d'os (Squelettes)
   if (target.undead) return { type: "damage", amount, weak: true };
