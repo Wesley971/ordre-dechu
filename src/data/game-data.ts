@@ -134,7 +134,7 @@ export type ItemId = keyof typeof ITEMS;
 
 export const ENEMY_SKILLS = {
   crush:      { name: "Écrasement",       kind: "physical", power: 1.6, target: "foe" },
-  fireBreath: { name: "Flammes ardentes", kind: "magic", power: 34, element: "fire", target: "all-foes" },
+  ashCloud:   { name: "Nuée de cendre",   kind: "magic", power: 34, element: "fire", target: "all-foes" },
 } satisfies Record<string, Ability>;
 export type EnemySkillId = keyof typeof ENEMY_SKILLS;
 export type EnemyAction = "attack" | EnemySkillId;
@@ -147,6 +147,7 @@ export type EnemyAction = "attack" | EnemySkillId;
 export interface EnemyDef {
   name: string;
   image: string;
+  canvasWidth: number; // largeur de la toile du PNG, en pixels de sprite (affichée ×3 sur ordinateur, ×1 sur mobile)
   maxHp: number;
   atk: number;
   def: number;
@@ -166,30 +167,30 @@ export interface EnemyDef {
 }
 
 export const ENEMIES = {
-  goblin: {
-    name: "Gobelin", image: "images/goblin.png",
+  sankri: {
+    name: "Sankri", image: "images/sankri.png", canvasWidth: 77,
     maxHp: 70, atk: 14, def: 4, mag: 0, res: 4, spd: 12,
     xp: 18, gil: 25, drop: { item: "potion", chance: 0.4 },
   },
-  skeleton: {
-    name: "Squelette", image: "images/skeleton.png",
+  hesium: {
+    name: "Hésium", image: "images/hesium.png", canvasWidth: 57,
     maxHp: 110, atk: 17, def: 8, mag: 0, res: 6, spd: 8,
     undead: true, elements: { fire: "weak" },
     xp: 26, gil: 40, drop: { item: "ether", chance: 0.25 },
   },
-  ogre: {
-    name: "Ogre", image: "images/ogre.png",
+  gautik: {
+    name: "Gau-Tik", image: "images/gautik.png", canvasWidth: 43,
     maxHp: 260, atk: 24, def: 10, mag: 0, res: 4, spd: 6,
     elements: { thunder: "weak" },
     skills: [{ skill: "crush", chance: 0.3 }],
     xp: 55, gil: 90, drop: { item: "potion", chance: 0.6 },
   },
-  dragon: {
-    name: "Dragon", image: "images/dragon.png", boss: true, spareable: true,
+  vahn: {
+    name: "Vahn", image: "images/vahn.png", canvasWidth: 142, boss: true, spareable: true,
     maxHp: 1800, atk: 30, def: 14, mag: 26, res: 12, spd: 10,
     elements: { ice: "weak", fire: "absorb" },
-    pattern: ["attack", "attack", "fireBreath"],
-    rage: { threshold: 0.5, pattern: ["fireBreath", "attack"], message: "Le Dragon entre en fureur !" },
+    pattern: ["attack", "attack", "ashCloud"],
+    rage: { threshold: 0.5, pattern: ["ashCloud", "attack"], message: "Vahn entre en fureur !" },
     xp: 300, gil: 1000, drop: { item: "phoenix", chance: 1 },
   },
 } satisfies Record<string, EnemyDef>;
@@ -244,7 +245,7 @@ export const CHAPTERS: Chapter[] = [
       "Aux abords du Val, les arbres se referment comme des doigts. Des rires aigus éclatent entre les troncs.<br><br>" +
       say("Corvin", "Des gobelins. Ils ont senti ta bourse, Maelor."),
     ],
-    enemies: ["goblin", "goblin"],
+    enemies: ["sankri", "sankri"],
   },
   {
     title: "II · Le Cimetière des Parjures",
@@ -263,7 +264,7 @@ export const CHAPTERS: Chapter[] = [
       "Des Squelettes. Rien à voir avec les morts qu'ils dépouillent : c'est une race à part, qui récolte l'os humain comme d'autres coupent du bois, parce qu'il se taille bien et tient longtemps.<br><br>" +
       say("Elwen", "Ces os craignent le feu. Et la lumière d'un soin les brûle plus sûrement qu'une lame."),
     ],
-    enemies: ["skeleton", "goblin", "skeleton"],
+    enemies: ["hesium", "sankri", "hesium"],
   },
   {
     title: "III · Le Pont de Pierre-Noire",
@@ -272,7 +273,7 @@ export const CHAPTERS: Chapter[] = [
       "Un pont de pierre enjambe un gouffre sans fond. En son milieu, une silhouette massive barre le passage, une massue sur l'épaule.<br><br>" +
       say("Corvin", "Un ogre. Rien qu'un bon coup de foudre ne puisse calmer."),
     ],
-    enemies: ["goblin", "ogre", "skeleton"],
+    enemies: ["sankri", "gautik", "hesium"],
   },
   {
     title: "IV · Le Puits des Anciens",
@@ -314,7 +315,7 @@ export const CHAPTERS: Chapter[] = [
       say("Maelor", "Il n'est pas fou. Il croit qu'on vient le tuer.") + "<br>" +
       say("Elwen", "Son souffle est de feu. Garde tes flammes, Corvin. La glace, peut-être..."),
     ],
-    enemies: ["dragon"],
+    enemies: ["vahn"],
   },
 ];
 

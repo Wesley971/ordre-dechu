@@ -24,15 +24,32 @@ Conditions d'utilisation de Google ([policies.google.com/terms](https://policies
 - Il est interdit de faire passer un contenu généré par IA pour un travail fait à la main : d'où cette mention.
 - Il est interdit d'utiliser ce contenu pour entraîner une IA.
 
-### Fond, ennemis et aperçu
+### Ennemis
+
+| Image | Personnage | Origine |
+|---|---|---|
+| `public/images/sankri.png` | Sankri | Référence `sankri-base-ia-v1.jpg` |
+| `public/images/hesium.png` | Hésium | Référence `hesium-base-ia-v1.jpg` |
+| `public/images/gautik.png` | Gau-Tik | Référence `gautik-base-ia-v1.jpg` |
+| `public/images/vahn.png` | Vahn | Référence `vahn-base-ia-v1.jpg` |
+
+**Images des ennemis générées avec Gemini (Google) puis réduites.** Les ennemis ont été générés avec Gemini à partir de leurs fiches (`docs/enemy-sheets.md`), puis réduits en pixel art par un script, comme les héros.
+
+- Les références sont gardées hors du dépôt, dans le labo du projet ; elles ont été validées le 28/10/2026.
+- Le script les a réduites en pixel art : fond transparent, palette limitée, contour d'un pixel, tournées vers la gauche. Seules la peau et les cheveux des Hésiums ont été ramenés vers la palette des personnages.
+- Aucune retouche pixel par pixel : les sprites ont été validés tels quels le 02/11/2026.
+- Aucun sprite CraftPix n'a été montré à l'IA.
+
+Les conditions d'utilisation de Google sont celles indiquées pour les héros.
+
+### Fond et aperçu
 
 | Image | Origine |
 |---|---|
 | `public/images/background.png` | Générée avec ChatGPT (OpenAI) |
-| `public/images/goblin.png`, `skeleton.png`, `ogre.png`, `dragon.png` | Générées avec ChatGPT (OpenAI) |
 | `public/images/preview.png` | Générée avec ChatGPT (OpenAI) |
 
-D'après l'audit du 11/10/2026, ces images ont été générées environ un an plus tôt. Les ennemis et le dragon seront remplacés (MAE-26).
+D'après l'audit du 11/10/2026, ces images ont été générées environ un an plus tôt.
 
 ## À compléter
 

@@ -60,6 +60,7 @@ Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm r
 ## Assets
 - Tout asset (image, sprite, police, son, musique) doit avoir une licence autorisant l'usage commercial. Musique en CC0 ou CC-BY ; aucune licence NC.
 - Chaque asset est crédité dans `CREDITS.md`.
+- Licence CraftPix §3.1 : aucun sprite CraftPix ne passe dans un outil d'IA, même comme référence, pour s'en inspirer ou pour une recoloration. Aucun sprite CraftPix n'entre dans le jeu (décision du 28/10/2026, MAE-26).
 
 ## Labo
 - Le prototypage se fait hors du dépôt, dans `ProjetDEV/Projets/ordre-dechu-lab`.

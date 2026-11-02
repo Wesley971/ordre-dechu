@@ -32,7 +32,7 @@ Les mentions « proposition » sont à juger sur l'image Gemini.
 - Tenue (proposition) : fines sangles de cuir qui tiennent les os sculptés.
 - Arme : une seule faux, leur outil de récolte, tenue d'une main.
 - Touche braise sombre (proposition) : lueur là où les os récoltés touchent la peau.
-- Palette : os `#8f8a7c`, peau bronzée (valeur fixée à la réduction, MAE-26 ; remplace le gris `#45403a`), cheveux bleu nuit `#141c2e`, cuir `#4a3a2c`, lame `#3d3f42`, lueur `#7a2a14`.
+- Palette : os `#8f8a7c`, peau bronzée `#503922` à `#836641` (valeurs du sprite validé, voir la palette ; remplace le gris `#45403a`), cheveux bleu nuit `#141c2e`, cuir `#4a3a2c`, lame `#3d3f42`, lueur `#7a2a14`.
 - À la réduction : peau ramenée vers la palette (moins saturée), cheveux plus sombres, vers le bleu nuit.
 - Ne doit pas ressembler à : la Faucheuse (pas de robe ni capuche), squelettes classiques (corps vivant visible), Predator (pas de trophées de crânes).
 - Lisible : os sculptés clairs sur peau bronzée, masque, cheveux bleu nuit, faux.
