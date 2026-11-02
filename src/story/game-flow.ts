@@ -68,6 +68,7 @@ async function playChapters() {
     if (result === "defeat") return gameOver();
     const spareable = Battle.enemies.find(enemy => enemy.spareable);
     if (result === "escape") await Dialog.show({ pages: ["Le groupe s'enfonce dans les brumes... sans le moindre butin."] });
+    else if (result === "truce") await makeTruce(chapter.truce?.story ?? []);
     else if (spareable) await decideDragonFate(spareable);
     else await celebrateVictory();
 
@@ -81,12 +82,7 @@ async function playChapters() {
 
 // Le Dragon est à terre : Épargner (vraie fin) ou Achever (fausse fin, « Victoire ! » en façade)
 async function decideDragonFate(dragon: Enemy) {
-  // Le combat est fini : les héros K.O. se relèvent (à 1 PV) pour la scène finale
-  for (const hero of GameState.party.filter(hero => !isAlive(hero))) {
-    hero.hp = 1;
-    hero.state = "charging";
-  }
-  updateBattleUI();
+  standUpParty();
 
   const choice = await Dialog.choose({
     text: DRAGON_FATE.question,
@@ -106,12 +102,29 @@ async function decideDragonFate(dragon: Enemy) {
   }
 }
 
-async function celebrateVictory() {
+// Trêve (chapitre II) : chacun se relève, la scène se joue, puis les récompenses comme une victoire
+async function makeTruce(story: Page[]) {
+  standUpParty();
+  for (const enemy of Battle.enemies.filter(enemy => !isAlive(enemy))) await animateSpare(enemy);
+  await Dialog.show({ pages: story });
+  await celebrateVictory("Alliance");
+}
+
+// Le combat est fini : les héros K.O. se relèvent (à 1 PV) pour la scène qui suit
+function standUpParty() {
+  for (const hero of GameState.party.filter(hero => !isAlive(hero))) {
+    hero.hp = 1;
+    hero.state = "charging";
+  }
+  updateBattleUI();
+}
+
+async function celebrateVictory(title = "Victoire !") {
   Sfx.play("victory");
   victoryPose(GameState.party);
   const rewards = grantRewards(Battle.enemies);
   updateBattleUI();
-  await Dialog.show({ title: "Victoire !", pages: formatRewards(rewards) });
+  await Dialog.show({ title, pages: formatRewards(rewards) });
 }
 
 function formatRewards({ xp, gil, drops, levelUps }: Rewards) {

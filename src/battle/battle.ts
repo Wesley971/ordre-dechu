@@ -49,7 +49,7 @@ export interface QueuedAction {
   itemId?: ItemId | null;
 }
 
-export type BattleResult = "victory" | "defeat" | "escape";
+export type BattleResult = "victory" | "defeat" | "escape" | "truce";
 
 export const wait       = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 const randomItem = <T>(list: T[]) => list[Math.floor(Math.random() * list.length)];
@@ -94,8 +94,6 @@ function calcHeal(caster: Combatant, target: Combatant, ability: HealAbility): E
   if (!isAlive(target)) return { type: "none" };
   // Objet : quantité fixe · souffle : puissance + Souffle du lanceur
   const amount = "amount" in ability ? ability.amount : Math.round(vary(ability.power + caster.mag * 2));
-  // Les soins brûlent les créatures d'os (Hésiums)
-  if (target.undead) return { type: "damage", amount, weak: true };
   return { type: "heal", amount };
 }
 
@@ -204,6 +202,7 @@ export interface BattleState {
   readyQueue: Hero[];           // héros dont la jauge est pleine, en attente d'un ordre
   actionQueue: QueuedAction[];  // actions choisies, exécutées une par une
   busy: boolean;                // une action est en cours d'animation
+  actionsDone: number;          // actions jouées depuis le début du combat (trêve)
   over: boolean;
   lastTime: number;
   resolve: (result: BattleResult) => void;
@@ -214,6 +213,7 @@ export const Battle: BattleState = {
   readyQueue: [],
   actionQueue: [],
   busy: false,
+  actionsDone: 0,
   over: false,
   lastTime: 0,
   resolve: () => {}, // remplacé par runBattle
@@ -227,7 +227,7 @@ function allCombatants(): Combatant[] {
 export async function runBattle(chapter: BattleChapter) {
   Object.assign(Battle, {
     heroes: GameState.party, enemies: createEnemies(chapter.enemies), chapter,
-    readyQueue: [], actionQueue: [], busy: true, over: false,
+    readyQueue: [], actionQueue: [], busy: true, actionsDone: 0, over: false,
   });
   const ended = new Promise<BattleResult>(resolve => Battle.resolve = resolve);
 
@@ -332,6 +332,7 @@ async function runNextAction() {
     GameState.inventory[action.itemId]++;
   }
 
+  Battle.actionsDone++;
   checkBattleEnd();
   Battle.busy = false;
 }
@@ -367,10 +368,12 @@ async function handleKnockouts(targets: Combatant[]) {
     }
   }
 
-  // Un ennemi « spareable » (le Dragon) reste à terre : c'est le joueur qui décidera de son sort
+  // Un ennemi « spareable » (le Dragon) reste à terre : c'est le joueur qui décidera de son sort.
+  // Pendant un combat à trêve, aucun ennemi ne meurt : il reste à genoux et la trêve se déclenche.
+  const staysDown = (enemy: Enemy) => enemy.spareable || Battle.chapter?.truce !== undefined;
   const fallenEnemies = fallen.filter(c => c.side === "enemy");
-  fallenEnemies.filter(c => c.spareable).forEach(showDefeated);
-  const deadEnemies = fallenEnemies.filter(c => !c.spareable);
+  fallenEnemies.filter(staysDown).forEach(showDefeated);
+  const deadEnemies = fallenEnemies.filter(c => !staysDown(c));
   if (deadEnemies.length) await killEnemies(deadEnemies);
   updateBattleUI();
 }
@@ -398,15 +401,27 @@ async function attemptRun() {
   }
 }
 
+// La défaite passe avant la trêve : une trêve ne masque jamais un game over
 function checkBattleEnd() {
   if (Battle.over) return;
-  if (!Battle.enemies.some(isAlive))     endBattle("victory");
-  else if (!Battle.heroes.some(isAlive)) endBattle("defeat");
+  if (!Battle.heroes.some(isAlive))       endBattle("defeat");
+  else if (isTruceReached())              endBattle("truce");
+  else if (!Battle.enemies.some(isAlive)) endBattle("victory");
+}
+
+function isTruceReached() {
+  const truce = Battle.chapter?.truce;
+  if (!truce) return false;
+  return Battle.actionsDone >= truce.afterActions || Battle.enemies.some(enemy => !isAlive(enemy));
 }
 
 function endBattle(result: BattleResult) {
   Battle.over = true;
   Battle.readyQueue = [];
+  // Les objets réservés par des actions qui n'auront pas lieu reviennent dans l'inventaire
+  for (const action of Battle.actionQueue) {
+    if (action.itemId) GameState.inventory[action.itemId]++;
+  }
   Battle.actionQueue = [];
   for (const hero of Battle.heroes) {
     hero.defending = false;

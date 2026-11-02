@@ -12,8 +12,7 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 * Mode **Attente** : le temps se fige quand tu fouilles dans les menus Souffle / Objet (réglable dans `src/config.ts`)
 * Menu de commandes façon FF : **Attaque**, **Techniques / Souffle**, **Objet**, **Défense**, **Fuite**
 * **Souffle et PS** : Feu, Glace, Foudre, Brasier, Apaiser, Raviver, Renaître, et les techniques de Maelor (Lame Déchue, Tourbillon)
-* **Faiblesses élémentaires** : l'Hésium craint le feu, le Gau-Tik la foudre, Vahn la glace… et il **absorbe** le feu
-* Les soins **brûlent les créatures d'os** (vise un Hésium avec Apaiser ou un Baume)
+* **Faiblesses élémentaires** : le Gau-Tik craint la foudre, Vahn la glace… et il **absorbe** le feu
 * **Objets** partagés : Baume, Encens, Larme dorée
 * Coups critiques, attaques ratées, **K.O.** et réanimation
 * **Boss** avec phase de fureur sous 50 % de PV
