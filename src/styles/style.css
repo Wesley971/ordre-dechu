@@ -192,9 +192,17 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 }
 
 /* Héros en pixel art : toile de 47 × 66 pixels de sprite, un pixel de sprite = --px pixels d'écran */
-.sprite.hero       { --px: 3; --size: calc(47px * var(--px)); }
+.sprite.hero       { --px: 3; --canvas-h: 66; --size: calc(47px * var(--px)); }
 /* Ennemis en pixel art : toile propre à chacun (--canvas-w, posé par view.ts d'après ENEMIES), même échelle que les héros */
 .sprite.enemy      { --px: 3; --size: calc(var(--canvas-w) * 1px * var(--px)); }
+
+/* Position verticale bornée (MAE-67) : --slot-y (posé par view.ts) est gardé tant que le sprite tient entier dans la scène ;
+   sinon il est ramené contre le bord, ombre au sol comprise (8 px). Dans une scène très basse, deux ennemis peuvent se chevaucher. */
+.sprite.hero,
+.sprite.enemy {
+  --half-h: calc(var(--canvas-h) * var(--px) * 0.5px);
+  top: clamp(var(--half-h), var(--slot-y), calc(100% - var(--half-h) - 8px));
+}
 
 /* Ombre au sol */
 .sprite::after {

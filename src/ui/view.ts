@@ -52,9 +52,13 @@ function createSprite(c: Combatant, [x, y]: [number, number]) {
   sprite.className = `sprite ${c.side}${c.boss ? " boss" : ""}`;
   sprite.dataset.sprite = c.id;
   sprite.style.left = x + "%";
-  sprite.style.top = y + "%";
-  // Ennemi en pixel art : sa largeur à l'écran vient de sa toile (voir .sprite.enemy dans style.css)
-  if (c.side === "enemy") sprite.style.setProperty("--canvas-w", String(c.canvasWidth));
+  // Hauteur voulue ; style.css la borne pour que le sprite reste entier dans la scène (voir .sprite.hero, .sprite.enemy)
+  sprite.style.setProperty("--slot-y", y + "%");
+  // Ennemi en pixel art : sa taille à l'écran vient de sa toile (voir .sprite.enemy dans style.css)
+  if (c.side === "enemy") {
+    sprite.style.setProperty("--canvas-w", String(c.canvasWidth));
+    sprite.style.setProperty("--canvas-h", String(c.canvasHeight));
+  }
   sprite.innerHTML = `<div class="sprite-body"><img class="sprite-img" src="${c.image}" alt="${c.name}">${embersHtml(c)}</div>`;
   sprite.addEventListener("click", () => Menu.clickTarget(c));
   if (c.side === "hero") {
