@@ -1,7 +1,7 @@
 # L'Ordre Déchu · Bible de l'univers
 
 ## Thème
-Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le maître de Corvin brûlé sur une rumeur, Elwen chassée, les Hésiums appelés « squelettes », Vahn qu'on dit fou, les immortels qu'on croit morts. Pas de grand méchant : chaque peuple a ses raisons.
+Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le maître de Corvin brûlé par un village pris de terreur, Elwen chassée, les Hésiums appelés « squelettes », Vahn qu'on dit fou, les immortels qu'on croit morts. Pas de grand méchant : chaque peuple a ses raisons.
 
 ## Le Souffle
 - L'énergie présente dans tout (arbres, os, métal, êtres vivants). Certains savent la percevoir et la maîtriser (Veilleurs). Ce n'est pas de la magie : la sorcellerie et la magie noire n'existent pas, ce sont de fausses accusations.
@@ -24,7 +24,7 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 - Le plus proche du Souffle, donc le premier effacé par l'oubli : le monde a oublié qu'il existe, et ses membres ne savent plus ce qu'ils sont.
 
 ## L'Ordre (Rédror Drakunis)
-- Ordre de chevaliers, en partie composé du peuple à longue vie : ses liens les plus forts avec les Tyrdrak venaient de ce peuple. Mission : « que les hommes et les dragons ne s'oublient jamais ». Les mues des Tyrdrak servaient à forger armes et armures.
+- Ordre de chevaliers, en partie composé du peuple à longue vie : ses liens les plus forts avec les Tyrdrak venaient de ce peuple. Mission : « que les hommes et les Tyrdrak ne s'oublient jamais ». Les mues des Tyrdrak servaient à forger armes et armures.
 - Emblème : un dragon d'argent sur fond noir avant la chute ; la rose noire après, en deuil (blason de Maelor).
 - Tombé il y a trente ans : accusé de sorcellerie (fausse accusation), exécuté sans procès, nom effacé. Le déclencheur de la rupture avec les Tyrdrak reste volontairement flou.
 - Les chevaliers disaient « Tyrdrak » ; « dragon » est le mot des humains.
@@ -41,13 +41,15 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 - Painkush : forgerons de la Pierre Nue, métal chargé de Souffle.
 
 ## Les héros
-- Maelor : du peuple à longue vie, sang doré. Ses cheveux cendré clair sont le signe de son don unique ; seuls les Gau-Tik et les immortels le savent. Son affinité avec les Tyrdrak vient de cet héritage, mais il croit que c'est un hasard. Son grand-père était chevalier de l'Ordre, a survécu à la chute et a transmis le blason au père de Maelor (qui n'était pas de l'Ordre). Ses trente ans et les trente ans de la chute : simple coïncidence.
+- Maelor : du peuple à longue vie, sang doré. Ses cheveux cendré clair sont le signe de son don unique ; seuls les Gau-Tik et les immortels le savent. Son affinité avec les Tyrdrak vient de cet héritage, mais il croit que c'est un hasard. Son grand-père était chevalier de l'Ordre, a survécu à la chute et a transmis le blason au père de Maelor (qui n'était pas de l'Ordre). L'oubli a pris le grand-père comme les autres : le blason ne lui disait plus rien, et le père n'a jamais su qu'en faire. Ses trente ans et les trente ans de la chute : simple coïncidence.
 - Corvin : Veilleur, « au regard de nuit ». Il sent le Souffle faiblir et cherche pourquoi ; Maelor est sa piste la plus forte. Sa marque en forme de feuille et son appartenance possible au peuple à longue vie restent ouvertes.
+- Le maître de Corvin : il mêlait le soufre au Souffle ; une impulsion a provoqué une explosion ; le Souffle libéré a troublé les regards du village voisin (des hallucinations, comme chez les Hésiums) ; le maître, sorti des décombres couvert de soufre, leur est apparu comme un monstre, et ils l'ont brûlé ; puis l'oubli. Aucune magie noire.
 - Elwen : immortelle, la Source. Elle vivait cachée parmi les humains, dans un temple qui l'a chassée pour avoir soigné des condamnés. Elle cherchait un survivant du peuple à longue vie, et a trouvé Maelor. Elle connaît le cycle et l'accepte, mais plie parfois la règle de non-intervention, par compassion : c'est sa faille. Elle sait tout, mais ne peut pas tout dire.
 
 ## Le voyage
 - Une rumeur au village dit qu'une bête folle ravage le Val. Maelor y va pour comprendre ; le blason confirme le chemin.
 - Chapitres : I La Lisière ; II le lieu d'enterrement des Hésiums (un Tyrdrak de l'Ordre y est enterré ; seulement des Hésiums dans le combat) ; III le pont des Gau-Tik ; IV le Cœur d'Aure-Hin (nouveau, v1) ; V La Pierre Nue ; VI Le Puits des Anciens (un vieux puits au milieu de la roche, îlot de vie dans l'aride) ; VII l'antre de Vahn.
+- Pierre-Noire : ce n'est pas de la pierre, mais un matériau très ancien qu'on prend pour de la pierre noire. En jeu, seulement suggéré, jamais expliqué (pas de mot « technologie »). Son origine n'est pas décidée.
 - Au Cœur d'Aure-Hin, dans l'ordre : une révélation (la nature d'Elwen, le sang de Maelor, une partie du cycle) ; une épreuve (un écho de Maelor né du Souffle) ; un choix (prendre ou non le pouvoir du Souffle). Prendre rend le groupe plus fort au combat, mais ferme la vraie fin.
 
 ## Les fins
