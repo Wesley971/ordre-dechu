@@ -59,6 +59,8 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 - Fin rédemption : prendre le pouvoir, le rendre face à Vahn (sans prix), puis l'épargner. Plus douce-amère que la vraie fin.
 - Troisième fin : prendre le pouvoir et le garder. Maelor fort, mais seul. Vahn refuse la paix : le joueur ne peut plus que l'achever.
 - Fausse fin : achever Vahn.
+- Chemins (MAE-71, MAE-72) : pouvoir refusé, la question est « Épargner » · « Achever ». Pouvoir pris, elle devient « Rendre le pouvoir » · « Garder le pouvoir ». Après « Rendre le pouvoir », « Épargner » · « Achever » revient : Épargner mène à la fin rédemption, Achever à la fausse fin. « Garder le pouvoir » ne laisse que « Achever » (troisième fin).
+- Le nom de Vahn n'est révélé qu'à la fin, quand la mémoire revient. Avant, le récit et le combat disent « le Dragon » (nom affiché, messages d'entrée et de fureur).
 
 ## Textes du jeu à réécrire
 - Prologue : présenter le Souffle en une phrase ; Corvin « au regard de nuit ».

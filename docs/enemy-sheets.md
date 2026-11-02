@@ -63,7 +63,7 @@ Les mentions « proposition » sont à juger sur l'image Gemini.
 
 ## Vahn, des Tyrdrak (dernier chapitre, boss ; les humains disent « dragons »)
 
-- Identité : un Tyrdrak, race intelligente, autrefois alliée de l'Ordre (Rédror Drakunis). Il croit les humains hostiles depuis des événements oubliés. Il garde depuis trente ans, dans son antre, le blason d'un ami humain de l'Ordre (sur un lit d'ossements, pas sur le sprite). Fatigué, il a perdu la tête faute de se souvenir. Fin : Épargner ou Achever.
+- Identité : un Tyrdrak, race intelligente, autrefois alliée de l'Ordre (Rédror Drakunis). Il croit les humains hostiles depuis des événements oubliés. Il garde depuis trente ans, dans son antre, le blason d'un ami humain de l'Ordre (sur un lit d'ossements, pas sur le sprite). Fatigué, il a perdu la tête faute de se souvenir. Fin : selon le choix du pouvoir du Cœur et le sort du Dragon, quatre fins (`docs/lore.md`, « Les fins »). En combat, il s'appelle « Le Dragon ».
 - Silhouette : quatre pattes et ailes, massif mais amaigri, côtes et os du crâne saillants.
 - Tête : pas de pics, cornes courtes et usées (décision du 28/10/2026, bases Gemini).
 - Particularités :
