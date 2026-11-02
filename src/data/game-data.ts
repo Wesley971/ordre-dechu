@@ -142,7 +142,7 @@ export type EnemyAction = "attack" | EnemySkillId;
 // — Ennemis —
 // elements : "weak" | "resist" | "absorb" · skills : capacités tirées au hasard
 // pattern  : suite d'actions jouées en boucle · rage : nouveau pattern sous un seuil de PV
-// spareable : vaincu, il reste à terre et le joueur choisit de l'épargner ou de l'achever (DRAGON_FATE)
+// spareable : vaincu, il reste à terre et le joueur décide de son sort (DRAGON_FATE)
 
 export interface EnemyDef {
   name: string;
@@ -191,11 +191,11 @@ export const ENEMIES = {
     xp: 70, gil: 110, drop: { item: "ether", chance: 0.5 },
   },
   vahn: {
-    name: "Vahn", image: "images/vahn.png", canvasWidth: 142, canvasHeight: 88, boss: true, spareable: true,
+    name: "Le Dragon", image: "images/vahn.png", canvasWidth: 142, canvasHeight: 88, boss: true, spareable: true,
     maxHp: 1800, atk: 30, def: 14, mag: 26, res: 12, spd: 10,
     elements: { ice: "weak", fire: "absorb" },
     pattern: ["attack", "attack", "ashCloud"],
-    rage: { threshold: 0.5, pattern: ["ashCloud", "attack"], message: "Vahn entre en fureur !" },
+    rage: { threshold: 0.5, pattern: ["ashCloud", "attack"], message: "Le Dragon entre en fureur !" },
     xp: 300, gil: 1000, drop: { item: "phoenix", chance: 1 },
   },
 } satisfies Record<string, EnemyDef>;
@@ -248,6 +248,8 @@ export interface BattleChapter extends ChapterBase {
   truce?: { afterActions: number; story: Page[] };
   // Reddition : les ennemis vaincus mettent un genou à terre au lieu de mourir ; surrender se joue avant « Victoire ! »
   surrender?: Page[];
+  // Choix du pouvoir du Cœur (POWER_CHOICE), posé après la victoire et la reddition, avant les récompenses
+  powerChoice?: true;
 }
 export type Chapter = RestChapter | BattleChapter;
 
@@ -385,58 +387,159 @@ export const CHAPTERS: Chapter[] = [
   },
 ];
 
+// — Le pouvoir du Cœur d'Aure-Hin —
+// Choix posé après la victoire d'un chapitre marqué powerChoice (MAE-73 : chapitre IV) ; textes de MAE-71
+
+// refused : refusé · taken : pris (bonus de combat) · returned : rendu face au Dragon · kept : gardé face au Dragon
+export type PowerState = "refused" | "taken" | "returned" | "kept";
+export type PowerChoiceId = "take" | "refuse";
+
+export const POWER_CHOICE: { question: string } & Record<PowerChoiceId, { label: string; scene: Page[] }> = {
+  question: "Maelor tend la main vers la lumière.",
+  take: {
+    label: "Prendre le pouvoir",
+    scene: [
+      "Maelor referme la main. La lumière entre en lui d'un coup, brûlante, et ne repart pas. Il ne s'est jamais senti aussi fort. Autour de lui, la vallée pâlit un peu.<br><br>" +
+      say("Corvin", "Tu as l'air... différent.") + "<br><br>" +
+      "Elwen ne dit rien. Elle détourne les yeux.<br><br>" +
+      "<em>Le groupe est plus fort au combat.</em>",
+    ],
+  },
+  refuse: {
+    label: "Refuser",
+    scene: [
+      "Maelor laisse retomber sa main. La lumière hésite, puis retourne au Cœur, qui bat un peu plus fort.<br><br>" +
+      say("Maelor", "Je ne suis pas venu prendre. Je suis venu comprendre.") + "<br><br>" +
+      "Elwen sourit, pour la première fois depuis longtemps.",
+    ],
+  },
+};
+
 // — Fin : le sort du Dragon —
-// question : affichée avec les deux options · scene : juste après le choix · ending : épilogue
+// Pouvoir refusé (ou jamais proposé) : question, puis Épargner · Achever.
+// Pouvoir pris : powerQuestion, puis Rendre le pouvoir (returned, puis Épargner · Achever) ou Garder (kept, Achever seul).
+// returned et kept s'affichent comme le texte de la question qui les suit.
 
-export type FateId = "spare" | "kill";
-interface Fate {
-  label: string;
-  scene: Page[];
-  ending: Page[];
-}
+export type FateId = "spare" | "kill" | "return" | "keep";
 
-export const DRAGON_FATE: { question: string } & Record<FateId, Fate> = {
+export const DRAGON_FATE: {
+  labels: Record<FateId, string>;
+  question: string;
+  powerQuestion: string;
+  returned: string;
+  kept: string;
+} = {
+  labels: { spare: "Épargner", kill: "Achever", return: "Rendre le pouvoir", keep: "Garder le pouvoir" },
+
   question:
     "Le Dragon s'effondre sur les ossements. Il ne se relève pas. Son souffle n'est plus qu'une braise.<br><br>" +
     "Il regarde Maelor, sans haine. Maelor lève son arme.",
 
-  // Vraie fin : le lien est restauré, le nom se complète
-  spare: {
-    label: "Épargner",
+  powerQuestion:
+    "Le Dragon s'effondre sur les ossements. Son souffle n'est plus qu'une braise. Il regarde Maelor, puis recule devant l'or qui brûle en lui : il reconnaît le Souffle du Cœur, arraché au monde.<br><br>" +
+    say("Elwen", "Tu peux encore le rendre, Maelor."),
+
+  returned:
+    "Maelor ouvre les mains. L'or quitte son corps et se répand sur les ossements, sur les blasons brisés, sur les écailles du Dragon. Il ne demande rien en échange. Il se sent plus léger, et plus faible.<br><br>" +
+    "Le Dragon cesse de reculer. Il regarde Maelor, sans haine.",
+
+  // Vahn refuse la paix : seule l'option « Achever » reste
+  kept:
+    "Maelor serre le poing. L'or brûle plus fort. Le Dragon se redresse sur ses pattes tremblantes et rugit : il ne voit plus un ami de l'Ordre, il voit un voleur de Souffle.<br><br>" +
+    say("Elwen", "Il ne veut plus de paix. Pas avec ça en toi."),
+};
+
+// — Les quatre fins —
+// scene : juste après Épargner ou Achever · epilogue : écran « Épilogue », après le dernier chapitre.
+// Le nom de Vahn n'apparaît qu'ici, quand la mémoire revient (le combat dit « Le Dragon »).
+
+export type EndingId = "trueEnd" | "redemption" | "thirdEnd" | "falseEnd";
+
+export const ENDINGS: Record<EndingId, { scene: Page[]; epilogue: Page[] }> = {
+  // Vraie fin : pouvoir refusé, Dragon épargné. La mémoire revient aux deux, le nom se complète.
+  trueEnd: {
     scene: [
-      "Maelor baisse son arme. Il pose la main sur le museau brûlant du Dragon, comme le chevalier du souvenir.<br><br>" +
+      "Maelor baisse son arme. Il pose la main sur le museau tiède du Dragon, comme le chevalier du souvenir.<br><br>" +
       "La bête ne mord pas. Elle ferme les yeux.",
 
       memory(
-        "Tout revient d'un coup, cette fois sans trou. Les passages gardés à deux, les noms transmis de l'un à l'autre, la promesse de ne jamais s'oublier.<br>" +
+        "Le blason s'embrase, et le Dragon tremble avec lui. Les souvenirs reviennent aux deux en même temps, sans trou : les passages gardés à deux, les noms transmis de l'un à l'autre, la promesse de ne jamais s'oublier. Sous ses écailles griffées, les signes qu'il gravait reprennent un sens.<br>" +
         "Ce que l'Ordre était venu faire, Maelor vient de le refaire.<br><br>" +
         "Le nom, enfin entier : <strong>Rédror Drakunis</strong>."),
 
-      "Le Dragon se relève. Du bout du museau, il pousse vers Maelor le blason qu'il gardait depuis trente ans.<br><br>" +
-      say("Maelor", "On ne l'oubliera plus. Toi non plus.") + "<br>" +
+      "Dans la tête de Maelor, un mot se forme, qui n'est pas le sien. Un nom que le Dragon avait perdu depuis trente ans : Vahn.<br><br>" +
+      say("Maelor", "Vahn. Nous n'oublierons plus l'Ordre. Ni toi.") + "<br>" +
       say("Elwen", "Chaque vie peut être sauvée. Même celle-là."),
-    ],
-    ending: [
-      "Le Dragon quitte son antre pour la première fois depuis trente ans. Au-dessus du Val Ténébreux, les villageois lèvent les yeux vers ses ailes et, pour une fois, ne s'enfuient pas.<br><br>" +
-      "Il vole au-dessus du groupe, comme un allié veille sur les siens.",
 
-      "Maelor porte désormais deux blasons : le sien, et celui du chevalier que le Dragon lui a confié. Le second n'est plus un souvenir. C'est une promesse à tenir.<br><br>" +
-      "Il était venu chercher un sens. Il repart avec une tâche : que les hommes et les dragons ne s'oublient plus.",
+      "Du bout du museau, Vahn pousse vers Maelor le blason qu'il gardait depuis trente ans.",
+    ],
+    epilogue: [
+      "Vahn quitte son antre pour la première fois depuis trente ans. Ses écailles ne tombent plus : sa mue s'achève enfin. Au-dessus du Val Ténébreux, les villageois lèvent les yeux vers ses ailes et, pour une fois, ne s'enfuient pas.",
+
+      "Dans le Val, les couleurs reviennent, une à une. Corvin le sent avant les autres : le Souffle ne se retire plus. Il revient, lentement, comme une longue inspiration après une longue expiration.<br><br>" +
+      say("Elwen", "Le monde respire. Il oublie, puis il se souvient. Cette fois, il avait besoin de quelqu'un pour l'aider à se souvenir."),
+
+      "Maelor porte désormais deux blasons : le sien, et celui du chevalier que Vahn lui a confié. Il était venu chercher un sens. Il repart avec une tâche : garder la mémoire, pour que les hommes et les Tyrdrak ne s'oublient plus.",
 
       "Le monde parle encore de l'Ordre Déchu. Maelor, lui, connaît son vrai nom, et ce qu'il était venu faire.<br><br>" +
       "<strong>— FIN —</strong>",
     ],
   },
 
-  // Fausse fin : « Victoire ! » en façade, le nom reste incomplet, rien n'est réparé
-  kill: {
-    label: "Achever",
+  // Fin rédemption : pouvoir pris puis rendu, Dragon épargné. La mémoire ne revient qu'en partie à Maelor.
+  redemption: {
+    scene: [
+      "Maelor baisse son arme. Il pose la main sur le museau tiède du Dragon, comme le chevalier du souvenir.<br><br>" +
+      "La bête hésite longtemps. Puis elle ferme les yeux.",
+
+      memory(
+        "Le blason se réchauffe, faiblement. Les souvenirs reviennent au Dragon : les passages gardés à deux, la promesse de ne jamais s'oublier. À Maelor, ils ne reviennent qu'en partie, comme à travers une vitre : l'or qu'il a pris, puis rendu, a laissé une trace.<br><br>" +
+        "Le nom, enfin entier : <strong>Rédror Drakunis</strong>."),
+
+      "Un nom se forme dans la tête de Maelor : Vahn.<br><br>" +
+      say("Maelor", "Pardonne-moi, Vahn. J'ai failli devenir ce que tu crains.") + "<br>" +
+      say("Elwen", "Tu l'as rendu. C'est ce qui compte."),
+    ],
+    epilogue: [
+      "Vahn quitte son antre. Il vole au-dessus du Val, plus bas qu'il ne le voudrait : sa mue ne s'achève pas tout à fait.",
+
+      "Le Souffle revient, plus lentement qu'il n'aurait dû. Corvin le sent, et ne dit rien.<br><br>" +
+      say("Elwen", "Le Cœur se remettra. Il lui faudra du temps."),
+
+      "Maelor garde la mémoire, comme l'Ordre avant lui. Mais certaines nuits, il se souvient de l'or dans ses veines, et de combien il était facile de le garder.<br><br>" +
+      "<strong>— FIN —</strong>",
+    ],
+  },
+
+  // Troisième fin : pouvoir gardé, Dragon achevé. Maelor est fort, mais seul.
+  thirdEnd: {
+    scene: [
+      "Maelor achève le Dragon d'un seul coup. C'est facile. Trop facile.<br><br>" +
+      "Contre sa poitrine, le blason ne se réchauffe pas. Il est froid depuis que l'or est en lui.",
+
+      say("Maelor", "Personne ne pourra plus jamais me faire tomber.") + "<br><br>" +
+      "Corvin et Elwen ne répondent pas.",
+    ],
+    epilogue: [
+      "Parmi les cendres brille le blason intact. Maelor ne se baisse pas pour le ramasser.",
+
+      "Au village, on sonne les cloches : la bête folle est morte, et c'est Maelor qui l'a tuée. On l'acclame. On le craint un peu.",
+
+      "Corvin part le premier, sans un mot. Elwen reste un peu plus longtemps, puis s'en va à son tour. Le Souffle continue de faiblir ; l'or, en Maelor, ne faiblit pas.",
+
+      "Maelor est plus fort que personne avant lui. Il est seul.<br><br>" +
+      "<strong>— FIN —</strong>",
+    ],
+  },
+
+  // Fausse fin : Dragon achevé, pouvoir refusé ou rendu. « Victoire ! » en façade, le nom reste incomplet.
+  falseEnd: {
     scene: [
       "Le Dragon s'éteint sans un cri.<br><br>" +
       "Contre la poitrine de Maelor, le blason devient froid. Les souvenirs se taisent, inachevés.<br><br>" +
       say("Maelor", "On a gagné... Alors pourquoi ai-je l'impression d'avoir perdu quelque chose ?"),
     ],
-    ending: [
+    epilogue: [
       "Parmi les cendres de la bête, Maelor ramasse le blason intact. Ce n'est plus qu'un morceau de métal. Il ne dit rien.",
 
       "Au village, on sonne les cloches : la bête folle est morte. Pour la première fois depuis trente ans, le ciel du Val Ténébreux est vide.<br><br>" +
@@ -447,6 +550,13 @@ export const DRAGON_FATE: { question: string } & Record<FateId, Fate> = {
     ],
   },
 };
+
+// La fin découle des deux choix ; un Dragon jamais décidé (null) compte comme achevé, comme avant MAE-72
+export function endingOf(power: PowerState | null, dragonSpared: boolean | null): EndingId {
+  if (power === "kept") return "thirdEnd";
+  if (!dragonSpared) return "falseEnd";
+  return power === "returned" ? "redemption" : "trueEnd";
+}
 
 export const GAME_OVER: Page[] = [
   "Le Val Ténébreux referme ses brumes sur le groupe.<br><br>" +
@@ -461,6 +571,7 @@ interface Checkpoint {
   inventory: Record<ItemId, number>;
   gil: number;
   chapterIndex: number;
+  power: PowerState | null;
   dragonSpared: boolean | null;
 }
 
@@ -477,6 +588,7 @@ export const GameState: GameStateStore = {
   inventory: { potion: 0, ether: 0, phoenix: 0 },
   gil: 0,
   chapterIndex: 0,
+  power: null, // pouvoir du Cœur : null tant qu'il n'est pas proposé (PowerState)
   dragonSpared: null, // choix final : true (Épargner), false (Achever), null tant qu'il n'est pas fait
   checkpoint: null, // copie de l'état au début du chapitre, pour « Réessayer »
   get currentChapter() { return CHAPTERS[this.chapterIndex]; },
@@ -486,13 +598,14 @@ export const GameState: GameStateStore = {
     this.inventory = { ...CONFIG.startingItems };
     this.gil = 0;
     this.chapterIndex = 0;
+    this.power = null;
     this.dragonSpared = null;
     this.checkpoint = null;
   },
 
   saveCheckpoint() {
-    const { party, inventory, gil, chapterIndex, dragonSpared } = this;
-    this.checkpoint = JSON.stringify({ party, inventory, gil, chapterIndex, dragonSpared });
+    const { party, inventory, gil, chapterIndex, power, dragonSpared } = this;
+    this.checkpoint = JSON.stringify({ party, inventory, gil, chapterIndex, power, dragonSpared });
   },
 
   // Une copie absente, illisible ou d'une forme inattendue fait repartir la partie de zéro
@@ -516,6 +629,11 @@ const COMBAT_STATES = Object.values({
   charging: "charging", ready: "ready", queued: "queued", ko: "ko",
 } satisfies { [K in CombatState]: K });
 const isCombatState = (value: unknown): value is CombatState => COMBAT_STATES.some(state => state === value);
+
+const POWER_STATES = Object.values({
+  refused: "refused", taken: "taken", returned: "returned", kept: "kept",
+} satisfies { [K in PowerState]: K });
+const isPowerState = (value: unknown): value is PowerState => POWER_STATES.some(state => state === value);
 
 function parseHero(value: unknown): Hero | null {
   if (!isRecord(value)) return null;
@@ -551,7 +669,7 @@ function parseCheckpoint(json: string | null): Checkpoint | null {
   try { data = JSON.parse(json); } catch { return null; }
   if (!isRecord(data)) return null;
 
-  const { party, inventory, gil, chapterIndex, dragonSpared } = data;
+  const { party, inventory, gil, chapterIndex, power, dragonSpared } = data;
   if (!Array.isArray(party)) return null;
   const heroes = party.map(parseHero);
   if (heroes.length !== HEROES.length || !heroes.every(hero => hero !== null)) return null;
@@ -559,7 +677,8 @@ function parseCheckpoint(json: string | null): Checkpoint | null {
   const items = parseInventory(inventory);
   if (!items || !isNumber(gil)) return null;
   if (!isNumber(chapterIndex) || !Number.isInteger(chapterIndex) || chapterIndex < 0 || chapterIndex >= CHAPTERS.length) return null;
+  if (power !== null && !isPowerState(power)) return null;
   if (dragonSpared !== null && typeof dragonSpared !== "boolean") return null;
 
-  return { party: heroes, inventory: items, gil, chapterIndex, dragonSpared };
+  return { party: heroes, inventory: items, gil, chapterIndex, power, dragonSpared };
 }
