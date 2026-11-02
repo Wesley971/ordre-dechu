@@ -35,6 +35,14 @@ RPG au tour par tour (combat ATB) en TypeScript strict, modules ES, build Vite, 
 | `npm run preview` | Servir `dist/` comme sur GitHub Pages |
 | `npm run typecheck` | Vérifier les types (`tsc --noEmit`), aussi lancé par le déploiement avant le build |
 
+Mode test (MAE-68), en local seulement (`npm run dev` ou `npm run preview`), inerte sur le site en ligne :
+```
+http://localhost:5173/ordre-dechu/?chapitre=4&vitesse=4
+```
+- `chapitre=N` (1 à 6, numéro du titre) : « Nouvelle partie » démarre au chapitre N, sans prologue. Chaque héros a l'XP de tous les combats précédents, ses PV et PS pleins, et les objets de départ ; le groupe a les Couronnes de ces combats.
+- `vitesse=X` (1 à 10) : durées, jauges ATB et animations CSS X fois plus rapides ; chaque page de dialogue attend toujours la validation.
+- Les deux paramètres se combinent ou s'utilisent seuls. Le titre de l'onglet commence alors par « [Test] ». Une valeur invalide est ignorée, avec un avertissement dans la console.
+
 Pas encore de lint ni de tests automatisés (MAE-23).
 Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm run preview`.
 
@@ -44,7 +52,7 @@ Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm r
 
 ## Convention de noms
 - Fichiers en minuscules avec tirets (kebab-case), en anglais, sans accents ni espaces.
-- Code regroupé par domaine sous `src/` : `battle/`, `story/`, `party/`, `data/`, `ui/`, `audio/`, `input/`, `styles/`.
+- Code regroupé par domaine sous `src/` : `battle/`, `story/`, `party/`, `data/`, `ui/`, `audio/`, `input/`, `styles/`, `dev/` (outils de test en local).
 - Images dans `public/images/`, référencées en `images/...` dans le code et en `/images/...` dans le CSS.
 - Identifiants en anglais ; textes affichés et commentaires en français.
 

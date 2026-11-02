@@ -77,7 +77,7 @@ function levelForXp(xp: number) {
 }
 
 // Ajoute de l'XP ; renvoie { level, learned } si le héros monte de niveau, sinon null
-function gainXp(hero: Hero, xp: number) {
+export function gainXp(hero: Hero, xp: number) {
   hero.xp += xp;
   const newLevel = levelForXp(hero.xp);
   if (newLevel <= hero.level) return null;

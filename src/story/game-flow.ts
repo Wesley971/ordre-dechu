@@ -7,6 +7,7 @@ import { Battle, runBattle, isAlive, type Enemy } from "../battle/battle.ts";
 import { pickOption } from "../battle/battle-menu.ts";
 import { Sfx } from "../audio/sfx.ts";
 import { Dialog } from "./dialog.ts";
+import { TestMode, prepareTestStart } from "../dev/test-mode.ts";
 import {
   $, showScreen, setSceneTint, renderIdleScene, updateBattleUI, victoryPose,
   animateSpare, animateFinishingBlow,
@@ -29,11 +30,14 @@ export async function backToTitle({ startLabel, canRetry = false }: { startLabel
 
 async function newGame() {
   GameState.reset();
-  setSceneTint(CHAPTERS[0]);
+  // Mode test (local) : départ direct au chapitre choisi, sans prologue
+  const testStart = TestMode.startChapter;
+  if (testStart !== null) prepareTestStart(testStart);
+  setSceneTint(GameState.currentChapter);
   renderIdleScene(GameState.party);
   showScreen("game");
 
-  await Dialog.show({ title: "Prologue", pages: PROLOGUE });
+  if (testStart === null) await Dialog.show({ title: "Prologue", pages: PROLOGUE });
   await playChapters();
 }
 
