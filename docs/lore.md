@@ -7,7 +7,7 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 - L'énergie présente dans tout (arbres, os, métal, êtres vivants). Certains savent la percevoir et la maîtriser (Veilleurs). Ce n'est pas de la magie : la sorcellerie et la magie noire n'existent pas, ce sont de fausses accusations.
 - Le Souffle porte la mémoire. Quand il faiblit, la mémoire s'efface.
 - L'oubli du monde vient du Souffle lui-même : une question d'équilibre, en cycles. La perte de mémoire et d'autres effets dans le monde sont des effets secondaires.
-- Le Souffle « respire » (inspiration, expiration) ; le jeu se passe à la fin d'une longue expiration (monde sombre, couleurs rares, guerres sans origine) ; l'oubli serait le prix du renouveau ; les Gau-Tik, sans Souffle, n'oublieraient pas d'un cycle à l'autre.
+- Le Souffle « respire » (inspiration, expiration) ; le jeu se passe à la fin d'une longue expiration (monde sombre, couleurs rares, guerres sans origine) ; l'oubli est le prix du renouveau ; les Gau-Tik, sans Souffle, n'oublient pas d'un cycle à l'autre.
 - Le joueur ne comprend vraiment le cycle que dans la vraie fin.
 
 ## Le Cœur d'Aure-Hin
