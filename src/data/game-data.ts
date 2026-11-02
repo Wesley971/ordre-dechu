@@ -117,7 +117,7 @@ export const SPELLS = {
   blaze:       { name: "Brasier",     mp: 12, kind: "magic", power: 30, element: "fire",    target: "all-foes",
                  desc: "Flammes sur tous les ennemis." },
   cure:        { name: "Apaiser",     mp: 5,  kind: "heal", power: 40, target: "ally",
-                 desc: "Rend des PV. Brûle les créatures d'os." },
+                 desc: "Rend des PV à un allié." },
   curePlus:    { name: "Raviver",     mp: 14, kind: "heal", power: 30, target: "all-allies",
                  desc: "Rend des PV à tout le groupe." },
   life:        { name: "Renaître",    mp: 12, kind: "revive", target: "ko-ally",
@@ -158,7 +158,6 @@ export interface EnemyDef {
   xp: number;
   gil: number;
   drop?: { item: ItemId; chance: number };
-  undead?: boolean;
   elements?: Partial<Record<ElementName, Affinity>>;
   skills?: { skill: EnemySkillId; chance: number }[];
   pattern?: EnemyAction[];
@@ -176,7 +175,6 @@ export const ENEMIES = {
   hesium: {
     name: "Hésium", image: "images/hesium.png", canvasWidth: 57, canvasHeight: 68,
     maxHp: 110, atk: 17, def: 8, mag: 0, res: 6, spd: 8,
-    undead: true, elements: { fire: "weak" },
     xp: 26, gil: 40, drop: { item: "ether", chance: 0.25 },
   },
   gautik: {
@@ -242,6 +240,9 @@ export interface BattleChapter extends ChapterBase {
   boss?: boolean;
   canRun?: boolean;
   introMessage?: string; // message d'entrée propre au combat, à la place du message par défaut
+  // Trêve : le combat s'arrête après afterActions actions (héros et ennemis), ou dès qu'un ennemi tombe ;
+  // aucun ennemi ne meurt, et story se joue avant les récompenses
+  truce?: { afterActions: number; story: Page[] };
 }
 export type Chapter = RestChapter | BattleChapter;
 
@@ -256,23 +257,49 @@ export const CHAPTERS: Chapter[] = [
     enemies: ["sankri", "sankri"],
   },
   {
-    title: "II · Le Cimetière des Parjures",
+    title: "II · Le Champ des Échos",
     tint: "rgba(20, 40, 50, 0.45)",
+    canRun: false, // fuir sauterait la trêve et l'alliance
     story: [
-      "Au-delà des bois s'étend un cimetière sans croix. C'est ici qu'on a jeté les corps de l'Ordre, dans une fosse sans nom.<br><br>" +
+      "Au-delà des bois s'étend un champ de terre retournée, semé de pierres levées. Pas une croix, pas un nom : sur chaque tombe, des os taillés avec soin.<br><br>" +
+      say("Corvin", "Au village, on dit que les squelettes déterrent les morts pour les manger.") + "<br>" +
+      say("Elwen", "On dit beaucoup de choses, au village.") + "<br><br>" +
       "Contre la poitrine de Maelor, le blason se met à brûler.",
 
       memory(
         "Des chevaliers à genoux dans la boue, les mains liées. On arrache leur bannière : un dragon d'argent sur fond noir.<br>" +
         "Une voix crie « sorcellerie ». D'autres reprennent le mot sans savoir d'où il vient.<br>" +
-        "Un chevalier lève les yeux vers le ciel vide : « Ils ne viendront pas. Plus maintenant. »<br><br>" +
+        "Derrière eux, un Tyrdrak gît, immobile, une aile encore ouverte au-dessus des chevaliers.<br>" +
+        "Un chevalier lève les yeux vers le ciel vide : « Les autres Tyrdrak ne viendront pas. Plus maintenant. »<br><br>" +
         "Le nom qu'on efface ce jour-là tremble sur le blason : <strong>R····r D······s</strong>."),
 
-      "Un raclement tire Maelor du souvenir. Entre les tombes, des silhouettes creusent.<br><br>" +
-      "Des Squelettes. Rien à voir avec les morts qu'ils dépouillent : c'est une race à part, qui récolte l'os humain comme d'autres coupent du bois, parce qu'il se taille bien et tient longtemps.<br><br>" +
-      say("Elwen", "Ces os craignent le feu. Et la lumière d'un soin les brûle plus sûrement qu'une lame."),
+      "Maelor rouvre les yeux. La boue du souvenir, c'est cette terre. Au milieu du champ, un tertre plus haut que les autres.<br><br>" +
+      "Quand Maelor et Elwen s'en approchent, le sol s'éclaire. Des échos de lumière dorée montent de la terre, d'une tombe à l'autre.",
+
+      "Entre les pierres levées, des silhouettes se dressent : des os sculptés sur la peau, des masques taillés dans des crânes, une faux à la main. " +
+      "La lumière les frappe : ils portent les mains à leur masque, comme sous un coup. Puis ils se tournent vers les étrangers qui l'ont réveillée.<br><br>" +
+      say("Hésium", "Éloignez-vous de nos morts !"),
     ],
-    enemies: ["hesium", "sankri", "hesium"],
+    enemies: ["hesium", "hesium"],
+    introMessage: "Les Hésiums défendent leurs morts !",
+    truce: {
+      afterActions: 6,
+      story: [
+        "Corvin baisse sa lanterne et s'avance entre les deux camps, les mains ouvertes.<br><br>" +
+        say("Corvin", "Arrêtez ! Je le sens aussi : le Souffle de vos morts se réveille. Nous ne le prenons pas. C'est lui qui nous reconnaît."),
+
+        "Les faux s'abaissent. Le plus âgé des Hésiums pose la main sur le tertre, puis regarde longtemps Maelor.<br><br>" +
+        say("Hésium", "Ses os n'avaient plus parlé depuis trente ans. Les os gardent un peu de la mémoire de ceux qu'ils portaient. Celui-ci se souvient de quelque chose, en toi."),
+
+        say("Maelor", "Qui repose ici ?") + "<br>" +
+        say("Hésium", "Un Tyrdrak. Il est tombé avec des hommes que personne n'est venu pleurer. Nous les avons gardés ensemble.") + "<br><br>" +
+        "Elwen détourne les yeux, sans un mot.",
+
+        "Ce soir-là, le groupe partage le feu des Hésiums, et personne ne juge personne.<br><br>" +
+        say("Corvin", "On les appelle squelettes. Ils ont mieux gardé nos morts que nous.") + "<br><br>" +
+        "<em>Les Hésiums sont désormais vos alliés.</em>",
+      ],
+    },
   },
   {
     title: "III · Le Pont de Pierre-Noire",

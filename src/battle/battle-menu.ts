@@ -106,7 +106,7 @@ function itemEntries(hero: Hero): MenuEntry[] {
   return entries.length ? entries : [{ label: "Aucun objet", disabled: true }];
 }
 
-// Une cible unique peut changer de camp (soigner un mort-vivant, frapper un allié...)
+// Une cible unique peut changer de camp (soigner un ennemi, frapper un allié...)
 const canSwitchSide = (ability: Ability) => ability.target === "foe" || ability.target === "ally";
 
 export interface MenuController {

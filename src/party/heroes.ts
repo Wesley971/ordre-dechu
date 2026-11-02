@@ -23,7 +23,6 @@ export interface Hero extends Stats {
   mp: number;
   // Propres aux ennemis : un héros ne les a jamais, ce qui permet de les lire sur n'importe quel combattant
   boss?: never;
-  undead?: never;
   elements?: never;
   rage?: never;
   spareable?: never;
