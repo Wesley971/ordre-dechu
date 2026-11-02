@@ -185,6 +185,12 @@ export const ENEMIES = {
     skills: [{ skill: "crush", chance: 0.3 }],
     xp: 55, gil: 90, drop: { item: "potion", chance: 0.6 },
   },
+  painkush: {
+    name: "Painkush", image: "images/painkush.png", canvasWidth: 75,
+    maxHp: 320, atk: 26, def: 12, mag: 0, res: 5, spd: 7,
+    skills: [{ skill: "crush", chance: 0.35 }],
+    xp: 70, gil: 110, drop: { item: "ether", chance: 0.5 },
+  },
   vahn: {
     name: "Vahn", image: "images/vahn.png", canvasWidth: 142, boss: true, spareable: true,
     maxHp: 1800, atk: 30, def: 14, mag: 26, res: 12, spd: 10,
@@ -234,6 +240,7 @@ export interface BattleChapter extends ChapterBase {
   enemies: EnemyId[];
   boss?: boolean;
   canRun?: boolean;
+  introMessage?: string; // message d'entrée propre au combat, à la place du message par défaut
 }
 export type Chapter = RestChapter | BattleChapter;
 
@@ -276,7 +283,22 @@ export const CHAPTERS: Chapter[] = [
     enemies: ["sankri", "gautik", "hesium"],
   },
   {
-    title: "IV · Le Puits des Anciens",
+    title: "IV · La Pierre Nue",
+    tint: "rgba(60, 40, 20, 0.35)",
+    story: [
+      "Au-delà du pont, la forêt cède d'un coup. Plus un arbre, plus une herbe : une plaine de roche grise, polie par le vent. Au loin, des murs taillés d'un seul bloc barrent l'horizon, trop droits pour être l'œuvre du hasard.<br><br>" +
+      say("Corvin", "La Pierre Nue. Les Painkush n'y laissent entrer personne. On dit qu'ils forgent un métal que rien ne raye."),
+
+      "Au milieu du passage se tient une silhouette massive et cornue, un pilier de pierre sculpté posé sur l'épaule. Elle ne charge pas. Elle attend. Ses naseaux rougeoient.<br><br>" +
+      say("Elwen", "Ce n'est pas une bête. Il garde sa terre, comme nous garderions la nôtre.") + "<br>" +
+      say("Maelor", "Nous ne voulons rien lui prendre. Mais notre route passe de l'autre côté.") + "<br>" +
+      say("Corvin", "Ni feu ni foudre n'y feront rien. Il faudra tenir."),
+    ],
+    enemies: ["painkush"],
+    introMessage: "Un Painkush barre la route !",
+  },
+  {
+    title: "V · Le Puits des Anciens",
     tint: "rgba(20, 60, 70, 0.30)",
     rest: true,
     story: [
@@ -297,7 +319,7 @@ export const CHAPTERS: Chapter[] = [
     ],
   },
   {
-    title: "V · L'Antre du Dragon",
+    title: "VI · L'Antre du Dragon",
     tint: "rgba(70, 12, 5, 0.45)",
     boss: true,
     canRun: false,

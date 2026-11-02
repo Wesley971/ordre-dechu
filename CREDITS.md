@@ -31,6 +31,7 @@ Conditions d'utilisation de Google ([policies.google.com/terms](https://policies
 | `public/images/sankri.png` | Sankri | Référence `sankri-base-ia-v1.jpg` |
 | `public/images/hesium.png` | Hésium | Référence `hesium-base-ia-v1.jpg` |
 | `public/images/gautik.png` | Gau-Tik | Référence `gautik-base-ia-v1.jpg` |
+| `public/images/painkush.png` | Painkush | Référence `painkush-base-ia-v1.jpg` |
 | `public/images/vahn.png` | Vahn | Référence `vahn-base-ia-v1.jpg` |
 
 **Images des ennemis générées avec Gemini (Google) puis réduites.** Les ennemis ont été générés avec Gemini à partir de leurs fiches (`docs/enemy-sheets.md`), puis réduits en pixel art par un script, comme les héros.
