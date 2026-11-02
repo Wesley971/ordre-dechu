@@ -43,6 +43,17 @@ Conditions d'utilisation de Google ([policies.google.com/terms](https://policies
 
 Les conditions d'utilisation de Google sont celles indiquées pour les héros.
 
+### Écho de Maelor
+
+| Image | Personnage | Origine |
+|---|---|---|
+| `public/images/maelor-echo.png` | Écho de Maelor | Dérivé de `public/images/maelor.png` |
+
+**Écho de Maelor dérivé du sprite de Maelor, sans IA.** Le sprite de Maelor du jeu a été mis en miroir et teinté d'or pâle par un script, à la même taille (MAE-70).
+
+- Aucune nouvelle image n'a été générée : l'écho reprend l'origine du sprite de Maelor (voir Héros).
+- Le script et la planche de validation sont gardés hors du dépôt, dans le labo du projet ; l'intensité de l'or a été choisie par Wesley le 02/11/2026.
+
 ### Fond et aperçu
 
 | Image | Origine |

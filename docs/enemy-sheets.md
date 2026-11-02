@@ -77,3 +77,16 @@ Les mentions « proposition » sont à juger sur l'image Gemini.
 - Ne doit pas ressembler à : Kalameet (Dark Souls), Drogon (Game of Thrones), Alduin (Skyrim), Aile de Mort (Warcraft) ; pas de reflets rouges, pics, plaques de métal, lave ni flammes vives.
   - Le dragon CraftPix de 2020 reste rejeté (trop cartoon, décision du 27/10/2026, MAE-24).
 - Lisible à taille de boss : silhouette maigre, plaques dorées où manquent les écailles, yeux rose violet, lueur de la gorge.
+
+## L'écho de Maelor (chapitre du Cœur d'Aure-Hin, épreuve)
+
+Fiche du 02/11/2026 (MAE-70).
+
+- Identité : né du Souffle concentré au Cœur d'Aure-Hin, il a la forme de Maelor. Il montre ce que Maelor deviendrait s'il gardait le pouvoir du Cœur. Ni un peuple ni une bête : une épreuve. Le combat prépare le choix qui suit (prendre ou non le pouvoir du Souffle).
+- Silhouette : celle de Maelor, en miroir (même armure, même épée, même posture) ; il fait face au groupe.
+- Couleurs : Maelor teinté d'or pâle, comme les échos dorés du Champ des Échos ; cheveux cendrés gardés, le signe de Maelor ; yeux or vif `#f0c95a`.
+- Arme : l'épée de Maelor.
+- Fabrication : pas de base Gemini. Le sprite de Maelor du jeu est recoloré par script dans le labo (`tools/echo-maelor.mjs`), en miroir, à la même taille (47 × 66). Intensité « or 1, léger » choisie par Wesley le 02/11/2026 (part d'or 0,45, éclaircissement 0,18).
+- Palette : rampe d'or brun d'ombre `#2a2018`, or ancien `#c9a84c`, parchemin `#f1e4c3` ; contour `#140f12` et cheveux gardés tels quels ; valeurs complètes en section 8 de `docs/character-palette.md`.
+- Ne doit pas ressembler à : Dark Link (Zelda : silhouette noire aux yeux rouges), l'ombre noire du Prince de Perse, les Ombres de Persona.
+- Lisible : reconnaissable comme Maelor au premier regard, et visiblement « pas lui » : doré, en miroir.
