@@ -7,7 +7,7 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 - L'énergie présente dans tout (arbres, os, métal, êtres vivants). Certains savent la percevoir et la maîtriser (Veilleurs). Ce n'est pas de la magie : la sorcellerie et la magie noire n'existent pas, ce sont de fausses accusations.
 - Le Souffle porte la mémoire. Quand il faiblit, la mémoire s'efface.
 - L'oubli du monde vient du Souffle lui-même : une question d'équilibre, en cycles. La perte de mémoire et d'autres effets dans le monde sont des effets secondaires.
-- Proposition de travail, non confirmée par Wesley : le Souffle « respire » (inspiration, expiration) ; le jeu se passe à la fin d'une longue expiration (monde sombre, couleurs rares, guerres sans origine) ; l'oubli serait le prix du renouveau ; les Gau-Tik, sans Souffle, n'oublieraient pas d'un cycle à l'autre.
+- Le Souffle « respire » (inspiration, expiration) ; le jeu se passe à la fin d'une longue expiration (monde sombre, couleurs rares, guerres sans origine) ; l'oubli serait le prix du renouveau ; les Gau-Tik, sans Souffle, n'oublieraient pas d'un cycle à l'autre.
 - Le joueur ne comprend vraiment le cycle que dans la vraie fin.
 
 ## Le Cœur d'Aure-Hin
@@ -47,13 +47,13 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 
 ## Le voyage
 - Une rumeur au village dit qu'une bête folle ravage le Val. Maelor y va pour comprendre ; le blason confirme le chemin.
-- Chapitres : I La Lisière ; II le lieu d'enterrement des Hésiums (un Tyrdrak de l'Ordre y est enterré) ; III le pont des Gau-Tik ; IV le Cœur d'Aure-Hin (nouveau, v1) ; V La Pierre Nue ; VI Le Puits des Anciens (un vieux puits au milieu de la roche, îlot de vie dans l'aride) ; VII l'antre de Vahn.
+- Chapitres : I La Lisière ; II le lieu d'enterrement des Hésiums (un Tyrdrak de l'Ordre y est enterré ; seulement des Hésiums dans le combat) ; III le pont des Gau-Tik ; IV le Cœur d'Aure-Hin (nouveau, v1) ; V La Pierre Nue ; VI Le Puits des Anciens (un vieux puits au milieu de la roche, îlot de vie dans l'aride) ; VII l'antre de Vahn.
 - Au Cœur d'Aure-Hin, dans l'ordre : une révélation (la nature d'Elwen, le sang de Maelor, une partie du cycle) ; une épreuve (un écho de Maelor né du Souffle) ; un choix (prendre ou non le pouvoir du Souffle). Prendre rend le groupe plus fort au combat, mais ferme la vraie fin.
 
 ## Les fins
 - Vraie fin : refuser le pouvoir, puis épargner Vahn. La mémoire revient à Vahn et à Maelor ensemble ; le Souffle revient peu à peu, le lien entre hommes et Tyrdrak est renoué, Maelor devient gardien de la mémoire.
 - Fin rédemption : prendre le pouvoir, le rendre face à Vahn (sans prix), puis l'épargner. Plus douce-amère que la vraie fin.
-- Troisième fin : prendre le pouvoir et le garder. Maelor fort, mais seul.
+- Troisième fin : prendre le pouvoir et le garder. Maelor fort, mais seul. Vahn refuse la paix : le joueur ne peut plus que l'achever.
 - Fausse fin : achever Vahn.
 
 ## Textes du jeu à réécrire
@@ -69,5 +69,3 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 ## Questions ouvertes
 - Le lien entre Elwen et Vahn (mystère voulu).
 - La géographie (Aure-Hin au centre du monde, place du Val) : à décider avec une carte.
-- Le cycle du Souffle (proposition de travail ci-dessus) : à confirmer par Wesley.
-- Troisième fin : le joueur qui garde le pouvoir peut-il encore choisir entre épargner et achever ?
