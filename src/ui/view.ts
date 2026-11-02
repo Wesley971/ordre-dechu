@@ -310,7 +310,8 @@ export async function playBattleIntro(state: BattleState) {
   document.querySelectorAll<HTMLElement>(".sprite.enemy").forEach(el => pulse(el, "appear", CONFIG.timing.appear));
   await pulse($("#flash"), "on", CONFIG.timing.flash);
   const boss = state.enemies.find(e => e.boss);
-  await showMessage(boss ? `${boss.name} se dresse devant le groupe !` : "Des ennemis surgissent !", CONFIG.timing.introMessage);
+  const message = state.chapter?.introMessage ?? (boss ? `${boss.name} se dresse devant le groupe !` : "Des ennemis surgissent !");
+  await showMessage(message, CONFIG.timing.introMessage);
 }
 
 export async function animateActorStart(actor: Combatant, ability: Ability) {
