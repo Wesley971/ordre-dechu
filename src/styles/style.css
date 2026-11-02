@@ -193,7 +193,8 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 
 /* Héros en pixel art : toile de 47 × 66 pixels de sprite, un pixel de sprite = --px pixels d'écran */
 .sprite.hero       { --px: 3; --size: calc(47px * var(--px)); }
-.sprite.enemy.boss { --size: 230px; }
+/* Ennemis en pixel art : toile propre à chacun (--canvas-w, posé par view.ts d'après ENEMIES), même échelle que les héros */
+.sprite.enemy      { --px: 3; --size: calc(var(--canvas-w) * 1px * var(--px)); }
 
 /* Ombre au sol */
 .sprite::after {
@@ -244,8 +245,9 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   75% { transform: translateX(5px); }
 }
 
-/* Héros */
-.sprite.hero .sprite-img {
+/* Héros et ennemis en pixel art : pixels nets, sans flottement */
+.sprite.hero .sprite-img,
+.sprite.enemy .sprite-img {
   aspect-ratio: auto;
   image-rendering: pixelated;
   animation: none;
@@ -348,7 +350,7 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 .sprite.dying .sprite-body  { animation: enemy-dissolve 0.7s ease-in forwards; }
 .sprite.dead                { visibility: hidden; pointer-events: none; }
 
-/* Vaincu mais pas mort (Dragon) : il reste à terre en attendant le choix du joueur */
+/* Vaincu mais pas mort (Vahn) : il reste à terre en attendant le choix du joueur */
 .sprite.enemy .sprite-img        { transition: transform 0.6s ease, filter 0.6s ease; }
 .sprite.enemy.defeated .sprite-img {
   animation: none;
@@ -740,9 +742,8 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   #list-window { overflow-y: auto; }
   .menu-grid   { grid-template-columns: 1fr; }
 
-  .sprite.enemy      { --size: 76px; }
-  .sprite.enemy.boss { --size: 150px; }
-  .sprite.hero       { --px: 1; }
+  .sprite.hero,
+  .sprite.enemy      { --px: 1; }
   #hero-area         { width: 36%; }
 
   .party-row { gap: var(--space-2); font-size: 16px; }
