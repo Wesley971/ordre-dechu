@@ -9,10 +9,12 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 - L'oubli du monde vient du Souffle lui-même : une question d'équilibre, en cycles. La perte de mémoire et d'autres effets dans le monde sont des effets secondaires.
 - Le Souffle « respire » (inspiration, expiration) ; le jeu se passe à la fin d'une longue expiration (monde sombre, couleurs rares, guerres sans origine) ; l'oubli est le prix du renouveau ; les Gau-Tik, sans Souffle, n'oublient pas d'un cycle à l'autre.
 - Le joueur ne comprend vraiment le cycle que dans la vraie fin.
+- Les échos du Souffle sont dorés : les échos de lumière du Champ des Échos (lieu d'enterrement des Hésiums), les larmes dorées des immortels, l'écho de Maelor.
 
 ## Le Cœur d'Aure-Hin
 - Le centre du monde, un lieu qui concentre naturellement le Souffle, et qui pourrait changer le monde s'il était mal utilisé.
 - Gardé par les Gau-Tik, seul peuple sans Souffle.
+- L'écho de Maelor, né du Souffle du Cœur, montre ce que Maelor deviendrait s'il gardait le pouvoir du Cœur d'Aure-Hin. Le combat contre lui prépare le choix qui suit.
 
 ## Les immortels
 - Nés du Souffle. Gardiens de l'équilibre : ils connaissent toute l'histoire, y compris le cycle, mais ne sont pas censés intervenir (inspiration : les Istari de Tolkien, sans dieux).
