@@ -69,7 +69,7 @@ Usage : sang et yeux de Maelor, lumière d'Elwen, Larme dorée. Aucun ennemi ne 
 
 - Les Tyrdrak portent l'or (reflets des écailles, peau sous les écailles) et des couleurs vives (yeux rose violet), signe de leur lien avec les immortels.
 - Les Hésiums portent le bleu nuit de Corvin `#141c2e` dans leurs longs cheveux : exception assumée, ils deviennent ses alliés (MAE-65). Décision du 28/10/2026, d'après les bases Gemini (MAE-26).
-- La peau des Hésiums est bronzée (elle remplace le gris `#45403a`) ; sa valeur est fixée à la réduction (MAE-26) et reste à l'écart des peaux des héros.
+- La peau des Hésiums est bronzée (elle remplace le gris `#45403a`) et reste à l'écart des peaux des héros. Valeurs du sprite validé le 02/11/2026 (MAE-26), de l'ombre à la lumière : `#503922`, `#5d4429`, `#6b5030`, `#785d39`, `#836641`. Le ton le plus clair est le plus proche d'un héros (Maelor, ΔE 10,4).
 - Aucun autre ennemi.
 - Fiches : `docs/enemy-sheets.md`.
 
