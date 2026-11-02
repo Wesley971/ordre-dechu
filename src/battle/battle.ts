@@ -407,6 +407,10 @@ function checkBattleEnd() {
 function endBattle(result: BattleResult) {
   Battle.over = true;
   Battle.readyQueue = [];
+  // Les objets réservés par des actions qui n'auront pas lieu reviennent dans l'inventaire
+  for (const action of Battle.actionQueue) {
+    if (action.itemId) GameState.inventory[action.itemId]++;
+  }
   Battle.actionQueue = [];
   for (const hero of Battle.heroes) {
     hero.defending = false;
