@@ -70,7 +70,11 @@ async function playChapters() {
     if (result === "escape") await Dialog.show({ pages: ["Le groupe s'enfonce dans les brumes... sans le moindre butin."] });
     else if (result === "truce") await makeTruce(chapter.truce?.story ?? []);
     else if (spareable) await decideDragonFate(spareable);
-    else await celebrateVictory();
+    else {
+      // Reddition (chapitre III) : les vaincus, à genoux, laissent passer le groupe
+      if (chapter.surrender) await Dialog.show({ pages: chapter.surrender });
+      await celebrateVictory();
+    }
 
     GameState.chapterIndex++;
   }
