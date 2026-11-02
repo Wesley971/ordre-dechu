@@ -208,17 +208,20 @@ export type EnemyId = keyof typeof ENEMIES;
 
 export const PROLOGUE: Page[] = [
   "Dans ces terres, on se bat depuis si longtemps que plus personne ne sait pourquoi. L'origine des guerres s'est effacée des mémoires, puis des livres. Il ne reste que les guerres.<br><br>" +
+  "Tout ce qui vit porte le Souffle, une énergie qui relie les arbres, les os et les êtres, et que seuls quelques-uns savent sentir.<br><br>" +
   "Il y a trente ans, un ordre de chevaliers fut accusé de sorcellerie et exécuté sans procès. Son nom disparut avec lui. Le monde ne l'appelle plus que <strong>l'Ordre Déchu</strong>.",
 
-  "Maelor porte au cou un blason aux armes de cet ordre, transmis dans sa famille depuis deux générations. Pour son grand-père comme pour son père, ce n'était qu'un souvenir de métal terni.<br><br>" +
-  "Chez Maelor, le blason s'est éveillé. Il est né avec une affinité pour les dragons, un don rare distribué au hasard des naissances, comme d'autres naissent gauchers. Près de certains lieux, le blason se réchauffe et lui montre des souvenirs qui ne sont pas les siens.",
+  "Maelor porte au cou un blason aux armes de cet ordre. Son grand-père était l'un de ses chevaliers, l'un des rares à survivre à la chute. Mais l'oubli l'a pris comme les autres, et le blason ne lui disait plus rien ; il l'a transmis au père de Maelor, qui n'a jamais su qu'en faire.<br><br>" +
+  "Chez Maelor, le blason s'est éveillé. Il est né avec des cheveux couleur de cendre et une affinité pour les dragons, un don qu'il croit tenu du hasard, comme d'autres naissent gauchers. Près de certains lieux, le blason se réchauffe et lui montre des souvenirs qui ne sont pas les siens.",
 
   "Personne n'a appelé Maelor dans le Val Ténébreux. Il n'y cherche ni trésor ni vengeance. Il cherche un sens : pourquoi l'Ordre est tombé, pourquoi on se bat encore, pourquoi le monde oublie tout sans que personne s'en soucie.<br><br>" +
   "Sa colère n'a pas de visage. Elle vise l'indifférence.<br><br>" +
   say("Maelor", "Je ne suis pas celui qu'on attendait. Personne ne m'a choisi. J'ai choisi de venir."),
 
   "Il ne marche pas seul.<br><br>" +
-  "<strong>Corvin</strong>, veilleur au regard de braise. Son maître n'a jamais pratiqué la magie noire. Un village effrayé l'a brûlé sur une rumeur, sans procès. Puis la foule s'est dispersée, et plus personne ne se souvient de rien.<br><br>" +
+  "<strong>Corvin</strong>, veilleur au regard de nuit. Il sent le Souffle faiblir sans savoir pourquoi ; le blason de Maelor est sa meilleure piste.",
+
+  "Son maître mêlait le soufre au Souffle. Un soir, une impulsion a tout fait exploser, et le Souffle libéré a gagné le village voisin, troublant les regards. Quand le maître est sorti des décombres, couvert de soufre, les villageois n'ont pas vu un homme : ils ont vu un monstre. Fous de terreur, ils l'ont brûlé, sans procès. Puis le Souffle s'est dissipé, et plus personne ne se souvient de rien.<br><br>" +
   "Il a gardé de son maître sa lanterne, et une colère qui n'a personne à frapper. Il en veut à un monde qui juge vite, détruit vite, et oublie plus vite encore.",
 
   "<strong>Elwen</strong>, que l'on dit Source. Son temple enseignait que la guérison se mérite, et qu'on ne la donne pas aux condamnés. Elle en a soigné quand même, ceux qu'on avait abandonnés. On l'a chassée.<br><br>" +
@@ -243,6 +246,8 @@ export interface BattleChapter extends ChapterBase {
   // Trêve : le combat s'arrête après afterActions actions (héros et ennemis), ou dès qu'un ennemi tombe ;
   // aucun ennemi ne meurt, et story se joue avant les récompenses
   truce?: { afterActions: number; story: Page[] };
+  // Reddition : les ennemis vaincus mettent un genou à terre au lieu de mourir ; surrender se joue avant « Victoire ! »
+  surrender?: Page[];
 }
 export type Chapter = RestChapter | BattleChapter;
 
@@ -251,8 +256,10 @@ export const CHAPTERS: Chapter[] = [
     title: "I · La Lisière",
     tint: "rgba(8, 18, 40, 0.30)",
     story: [
-      "Aux abords du Val, les arbres se referment comme des doigts. Des rires aigus éclatent entre les troncs.<br><br>" +
-      say("Corvin", "Des gobelins. Ils ont senti ta bourse, Maelor."),
+      "Aux abords du Val, les arbres se referment comme des doigts. Puis certains bougent. Des silhouettes massives se détachent des troncs : une peau d'écorce, des veines de braise sous la mousse, une lance noircie au feu.<br><br>" +
+      say("Corvin", "Des Sankri. Ils ne prennent que le Souffle des arbres mourants, et ils défendent les vivants. Pour eux, tout ce qui entre dans la Lisière est une menace.") + "<br>" +
+      say("Maelor", "Nous ne faisons que passer.") + "<br>" +
+      say("Elwen", "Ils ne le savent pas."),
     ],
     enemies: ["sankri", "sankri"],
   },
@@ -305,10 +312,19 @@ export const CHAPTERS: Chapter[] = [
     title: "III · Le Pont de Pierre-Noire",
     tint: "rgba(30, 20, 50, 0.40)",
     story: [
-      "Un pont de pierre enjambe un gouffre sans fond. En son milieu, une silhouette massive barre le passage, une massue sur l'épaule.<br><br>" +
-      say("Corvin", "Un ogre. Rien qu'un bon coup de foudre ne puisse calmer."),
+      "Un pont de pierre noire enjambe un gouffre sans fond. La pierre est lisse et tiède, sans un joint : aucun outil n'y a laissé de trace. Ses chaînes ont été arrachées. Au milieu, deux silhouettes immenses barrent le passage, les chaînes enroulées autour des bras, le visage caché derrière un voile que le vent ne soulève pas.<br><br>" +
+      say("Corvin", "Des Gau-Tik. Je ne sens rien en eux, pas la moindre trace de Souffle.") + "<br>" +
+      say("Elwen", "Ils gardent ce qui se trouve de l'autre côté. Ils ne nous laisseront pas passer sans se battre.") + "<br>" +
+      say("Corvin", "Alors frappons fort. La foudre fait trembler jusqu'à la pierre."),
     ],
-    enemies: ["sankri", "gautik", "hesium"],
+    enemies: ["gautik", "gautik"],
+    introMessage: "Les Gau-Tik barrent le pont !",
+    surrender: [
+      "Les Gau-Tik mettent un genou à terre. Le plus grand relève la tête, et son regard s'arrête sur les cheveux de Maelor. Longtemps.<br><br>" +
+      "Puis il se lève et s'écarte, et l'autre fait de même. Le passage est libre.<br><br>" +
+      say("Maelor", "Pourquoi nous laissent-ils passer ?") + "<br>" +
+      say("Elwen", "Parce qu'ils ont vu ce qu'ils attendaient."),
+    ],
   },
   {
     title: "IV · La Pierre Nue",
@@ -330,16 +346,16 @@ export const CHAPTERS: Chapter[] = [
     tint: "rgba(20, 60, 70, 0.30)",
     rest: true,
     story: [
-      { html: "Au cœur d'une clairière se dresse un vieux puits de pierre. Au fond, une eau brille d'une lueur pâle. Ses eaux referment les plaies et rendent l'éclat aux esprits las.<br><br>" +
+      { html: "Au milieu de la roche nue, là où plus rien ne pousse, se dresse un vieux puits de pierre. Autour de la margelle, un peu d'herbe et un arbre tordu : un îlot de vie dans ce désert de pierre. Au fond, une eau brille d'une lueur pâle. Ses eaux referment les plaies et rendent l'éclat aux esprits las.<br><br>" +
               "<em>Les PV et les PS du groupe sont entièrement restaurés.</em>", sfx: "heal" },
 
       "Sur les pierres de la margelle, des empreintes de griffes côtoient des empreintes de mains, gravées ensemble dans la roche.<br><br>" +
       "Le blason se réchauffe.",
 
       memory(
-        "Un dragon se penche sur le puits. Un chevalier sans armure pose la main sur ses écailles.<br>" +
-        "Ils ne se parlent pas avec des mots. L'homme sent ce que sent la bête, la bête sait ce que pense l'homme. Comment ? Le souvenir ne le dit pas.<br>" +
-        "« Nous ne les commandons pas. Nous marchons à côté d'eux, pour que les hommes et les dragons ne s'oublient jamais. »<br><br>" +
+        "Un Tyrdrak se penche sur le puits. Un chevalier sans armure pose la main sur ses écailles.<br>" +
+        "Ils ne se parlent pas avec des mots. L'homme sent ce que sent le Tyrdrak, le Tyrdrak sait ce que pense l'homme. Comment ? Le souvenir ne le dit pas.<br>" +
+        "« Nous ne les commandons pas. Nous marchons à côté d'eux, pour que les hommes et les Tyrdrak ne s'oublient jamais. »<br><br>" +
         "Sur le blason, le nom se précise : <strong>Ré·r·r Dra··n·s</strong>."),
 
       say("Maelor", "Ils ne domptaient pas les dragons. Ils marchaient avec eux.") + "<br>" +
@@ -352,18 +368,18 @@ export const CHAPTERS: Chapter[] = [
     boss: true,
     canRun: false,
     story: [
-      "La grotte exhale une chaleur de forge. Sur un lit d'ossements et de blasons brisés repose la bête qui, dit-on, a dévoré l'Ordre. Au village, on la dit folle.<br><br>" +
+      "La grotte est tiède. Sous la cendre, des braises mourantes rougeoient encore, comme un feu qu'on n'a plus la force d'entretenir. Sur un lit d'ossements et de blasons brisés repose la bête qui, dit-on, a dévoré l'Ordre. Au village, on la dit folle.<br><br>" +
       "À l'écart des débris, un seul blason est intact. Usé, poli, comme si on l'avait tenu chaque jour pendant trente ans. Le blason de Maelor s'embrase.",
 
       memory(
-        "Le même dragon, plus jeune. Un chevalier dort contre son flanc, ce blason intact sur la poitrine. Ils sont amis.<br>" +
+        "Le même Tyrdrak, plus jeune. Un chevalier dort contre son flanc, ce blason intact sur la poitrine. Ils sont amis.<br>" +
         "Puis des torches, des cris, une flèche. Le chevalier ne se relève pas. Personne ne sait plus qui a tiré le premier.<br>" +
-        "Depuis, le dragon croit tous les hommes hostiles, et les hommes le croient fou. Il a gardé le blason de son ami. Il attend quelqu'un qui se souvienne.<br><br>" +
-        "Le nom, presque entier : <strong>Rédr·r Draku·is</strong>."),
+        "Depuis, le Tyrdrak croit tous les hommes hostiles, et les hommes le croient fou. Il a gardé le blason de son ami. Il attend quelqu'un qui l'aide à se souvenir.<br><br>" +
+        "Le nom, presque entier : <strong>Rédr·r Drakun·s</strong>."),
 
-      "Le Dragon ouvre les yeux. Il ne voit que des humains armés dans son antre, comme il y a trente ans.<br><br>" +
+      "Le Dragon ouvre les yeux. Ses écailles tombent par plaques ; sur celles qui restent, des signes gravés à la griffe, encore et encore, comme pour ne pas oublier. Il ne voit que des humains armés dans son antre, comme il y a trente ans.<br><br>" +
       say("Maelor", "Il n'est pas fou. Il croit qu'on vient le tuer.") + "<br>" +
-      say("Elwen", "Son souffle est de feu. Garde tes flammes, Corvin. La glace, peut-être..."),
+      say("Elwen", "Son feu s'est éteint, il ne crache plus que de la cendre. Garde tes flammes, Corvin : elles le nourrissent. La glace, peut-être..."),
     ],
     enemies: ["vahn"],
   },

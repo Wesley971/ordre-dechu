@@ -369,8 +369,9 @@ async function handleKnockouts(targets: Combatant[]) {
   }
 
   // Un ennemi « spareable » (le Dragon) reste à terre : c'est le joueur qui décidera de son sort.
-  // Pendant un combat à trêve, aucun ennemi ne meurt : il reste à genoux et la trêve se déclenche.
-  const staysDown = (enemy: Enemy) => enemy.spareable || Battle.chapter?.truce !== undefined;
+  // Pendant un combat à trêve ou à reddition, aucun ennemi ne meurt : il reste à genoux.
+  const staysDown = (enemy: Enemy) =>
+    enemy.spareable || Battle.chapter?.truce !== undefined || Battle.chapter?.surrender !== undefined;
   const fallenEnemies = fallen.filter(c => c.side === "enemy");
   fallenEnemies.filter(staysDown).forEach(showDefeated);
   const deadEnemies = fallenEnemies.filter(c => !staysDown(c));

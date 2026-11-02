@@ -39,7 +39,7 @@ Les mentions « proposition » sont à juger sur l'image Gemini.
 
 ## Les Gau-Tik, gardiens du pont (chapitre III, le mot « ogre » disparaît)
 
-- Identité : peuple humanoïde, plus grand que les humains, plus intelligent que les autres peuples, vit à l'écart, très résistant. Aucun lien avec le Souffle. Ils gardent le pont pour protéger un lieu laissé par les immortels. Vaincus, ils laissent passer le groupe.
+- Identité : peuple humanoïde, plus grand que les humains, plus intelligent que les autres peuples, vit à l'écart, très résistant. Aucun lien avec le Souffle. Ils gardent le pont pour protéger le Cœur d'Aure-Hin (`docs/lore.md`). Ils reconnaissent le signe des cheveux de Maelor. Vaincus, ils laissent passer le groupe.
 - Tête : visage voilé, seuls les yeux visibles.
 - Voile : transparent, secret de leur peuple : tissu que rien ne perce, que seuls eux savent tisser, et règle interdisant de montrer son visage à un étranger. Long et fluide, il tombe du diadème sur le haut du corps ; sa lisibilité à petite taille se vérifie à la réduction (MAE-26).
 - Corps : grand, musclé, athlétique.
