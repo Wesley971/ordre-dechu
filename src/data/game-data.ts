@@ -147,7 +147,8 @@ export type EnemyAction = "attack" | EnemySkillId;
 export interface EnemyDef {
   name: string;
   image: string;
-  canvasWidth: number; // largeur de la toile du PNG, en pixels de sprite (affichée ×3 sur ordinateur, ×1 sur mobile)
+  canvasWidth: number;  // largeur de la toile du PNG, en pixels de sprite (affichée ×3 sur ordinateur, ×1 sur mobile)
+  canvasHeight: number; // hauteur de la toile du PNG, en pixels de sprite (sert à garder le sprite entier dans la scène)
   maxHp: number;
   atk: number;
   def: number;
@@ -168,31 +169,31 @@ export interface EnemyDef {
 
 export const ENEMIES = {
   sankri: {
-    name: "Sankri", image: "images/sankri.png", canvasWidth: 77,
+    name: "Sankri", image: "images/sankri.png", canvasWidth: 77, canvasHeight: 74,
     maxHp: 70, atk: 14, def: 4, mag: 0, res: 4, spd: 12,
     xp: 18, gil: 25, drop: { item: "potion", chance: 0.4 },
   },
   hesium: {
-    name: "Hésium", image: "images/hesium.png", canvasWidth: 57,
+    name: "Hésium", image: "images/hesium.png", canvasWidth: 57, canvasHeight: 68,
     maxHp: 110, atk: 17, def: 8, mag: 0, res: 6, spd: 8,
     undead: true, elements: { fire: "weak" },
     xp: 26, gil: 40, drop: { item: "ether", chance: 0.25 },
   },
   gautik: {
-    name: "Gau-Tik", image: "images/gautik.png", canvasWidth: 43,
+    name: "Gau-Tik", image: "images/gautik.png", canvasWidth: 43, canvasHeight: 78,
     maxHp: 260, atk: 24, def: 10, mag: 0, res: 4, spd: 6,
     elements: { thunder: "weak" },
     skills: [{ skill: "crush", chance: 0.3 }],
     xp: 55, gil: 90, drop: { item: "potion", chance: 0.6 },
   },
   painkush: {
-    name: "Painkush", image: "images/painkush.png", canvasWidth: 75,
+    name: "Painkush", image: "images/painkush.png", canvasWidth: 75, canvasHeight: 80,
     maxHp: 320, atk: 26, def: 12, mag: 0, res: 5, spd: 7,
     skills: [{ skill: "crush", chance: 0.35 }],
     xp: 70, gil: 110, drop: { item: "ether", chance: 0.5 },
   },
   vahn: {
-    name: "Vahn", image: "images/vahn.png", canvasWidth: 142, boss: true, spareable: true,
+    name: "Vahn", image: "images/vahn.png", canvasWidth: 142, canvasHeight: 88, boss: true, spareable: true,
     maxHp: 1800, atk: 30, def: 14, mag: 26, res: 12, spd: 10,
     elements: { ice: "weak", fire: "absorb" },
     pattern: ["attack", "attack", "ashCloud"],
