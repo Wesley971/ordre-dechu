@@ -3,7 +3,7 @@
 Bienvenue dans **L'Ordre Déchu**, mon RPG développé en pur **HTML / CSS / TypeScript**, dans l'esprit des **Final Fantasy à l'ancienne** (jauges ATB, menus de commande, Souffle et objets), habillé de couleurs sombres et dorées.
 Ce projet est né d'une passion pour les jeux vidéo et d'une volonté d'apprendre par la pratique, sans framework ni moteur de jeu.
 
-Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé des mémoires, accompagné de *Corvin* le veilleur et d'*Elwen* la Source, dans une aventure sombre en cinq chapitres. Personne ne l'a choisi : il a choisi de venir.
+Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé des mémoires, accompagné de *Corvin* le veilleur et d'*Elwen* la Source, dans une aventure sombre en six chapitres. Personne ne l'a choisi : il a choisi de venir.
 
 ## 🎮 Fonctionnalités actuelles
 
@@ -12,8 +12,8 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 * Mode **Attente** : le temps se fige quand tu fouilles dans les menus Souffle / Objet (réglable dans `src/config.ts`)
 * Menu de commandes façon FF : **Attaque**, **Techniques / Souffle**, **Objet**, **Défense**, **Fuite**
 * **Souffle et PS** : Feu, Glace, Foudre, Brasier, Apaiser, Raviver, Renaître, et les techniques de Maelor (Lame Déchue, Tourbillon)
-* **Faiblesses élémentaires** : le Squelette craint le feu, l'Ogre la foudre, le Dragon la glace… et il **absorbe** le feu
-* Les soins **brûlent les créatures d'os** (vise un Squelette avec Apaiser ou un Baume)
+* **Faiblesses élémentaires** : l'Hésium craint le feu, le Gau-Tik la foudre, Vahn la glace… et il **absorbe** le feu
+* Les soins **brûlent les créatures d'os** (vise un Hésium avec Apaiser ou un Baume)
 * **Objets** partagés : Baume, Encens, Larme dorée
 * Coups critiques, attaques ratées, **K.O.** et réanimation
 * **Boss** avec phase de fureur sous 50 % de PV
@@ -95,10 +95,10 @@ Le code a d'abord été refactorisé en 5 chantiers (extraction de fonctions, é
 
 | Règle | Exemple |
 |---|---|
-| **Identifiants en anglais**, textes affichés et commentaires en français | `SPELLS.fire` s'affiche « Feu », `ENEMIES.goblin` s'affiche « Gobelin » |
+| **Identifiants en anglais**, textes affichés et commentaires en français | `SPELLS.fire` s'affiche « Feu », `ENEMIES.gautik` s'affiche « Gau-Tik » |
 | **Logique pure séparée du DOM** | `calcPhysical`, `calcMagic`, `calcHeal` (`battle.ts`) ne touchent jamais à la page ; `view.ts` affiche |
 | **Un objet par module qui garde un état**, nommé en PascalCase | `GameState`, `Battle`, `Menu`, `Dialog`, `Input`, `Sfx` |
-| **Réglages dans `config.ts`, contenu dans `game-data.ts`** | `CONFIG.timing.death`, `CONFIG.damage.critChance`, `ENEMIES.dragon` |
+| **Réglages dans `config.ts`, contenu dans `game-data.ts`** | `CONFIG.timing.death`, `CONFIG.damage.critChance`, `ENEMIES.vahn` |
 | **Couleurs de l'interface via les tokens** (seuls les effets de souffles et les ombres ont leurs propres valeurs) | `var(--gold-bright)`, `var(--state-heal)` |
 | **Fichiers et images en kebab-case anglais**, rangés par domaine sous `src/` ; l'image d'un héros porte son id | `src/battle/battle-menu.ts`, `images/maelor.png` |
 
