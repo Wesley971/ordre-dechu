@@ -389,7 +389,7 @@ export const CHAPTERS: Chapter[] = [
     title: "V · La Pierre Nue",
     tint: "rgba(60, 40, 20, 0.35)",
     story: [
-      "Au-delà du pont, la forêt cède d'un coup. Plus un arbre, plus une herbe : une plaine de roche grise, polie par le vent. Au loin, des murs taillés d'un seul bloc barrent l'horizon, trop droits pour être l'œuvre du hasard.<br><br>" +
+      "Le groupe quitte la vallée par l'autre versant. Derrière eux, la lumière du Cœur bat encore, de plus en plus lointaine. Puis les parois de pierre noire s'abaissent et s'ouvrent sur une plaine de roche grise, polie par le vent. Pas un arbre, pas une herbe. Au loin, des murs taillés d'un seul bloc barrent l'horizon, trop droits pour être l'œuvre du hasard.<br><br>" +
       say("Corvin", "La Pierre Nue. Les Painkush n'y laissent entrer personne. On dit qu'ils forgent un métal que rien ne raye."),
 
       "Au milieu du passage se tient une silhouette massive et cornue, un pilier de pierre sculpté posé sur l'épaule. Elle ne charge pas. Elle attend. Ses naseaux rougeoient.<br><br>" +
