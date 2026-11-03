@@ -18,6 +18,9 @@ export const CONFIG = {
   run: {
     successChance: 0.6,
   },
+  power: {
+    bonus: 1.25, // dégâts et soins des héros tant que le pouvoir du Cœur est pris (MAE-72)
+  },
   revivePct:   0.25, // part des PV rendus par Renaître et Larme dorée
   criticalPct: 0.25, // sous cette part des PV, un héros est en danger (PV dorés, héros à genoux)
 

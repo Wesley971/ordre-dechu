@@ -1,7 +1,7 @@
 // game-flow.ts - Déroulement de la partie : titre, histoire, combats, fin
 
-import { CHAPTERS, PROLOGUE, DRAGON_FATE, GAME_OVER, GameState } from "../data/game-data.ts";
-import type { FateId, Page } from "../data/game-data.ts";
+import { CHAPTERS, PROLOGUE, POWER_CHOICE, DRAGON_FATE, ENDINGS, GAME_OVER, GameState, endingOf } from "../data/game-data.ts";
+import type { FateId, Page, PowerChoiceId } from "../data/game-data.ts";
 import { grantRewards, restoreParty, type Rewards } from "../party/heroes.ts";
 import { Battle, runBattle, isAlive, type Enemy } from "../battle/battle.ts";
 import { pickOption } from "../battle/battle-menu.ts";
@@ -30,9 +30,10 @@ export async function backToTitle({ startLabel, canRetry = false }: { startLabel
 
 async function newGame() {
   GameState.reset();
-  // Mode test (local) : départ direct au chapitre choisi, sans prologue
+  // Mode test (local) : départ direct au chapitre choisi, sans prologue, et pouvoir du Cœur déjà choisi
   const testStart = TestMode.startChapter;
   if (testStart !== null) prepareTestStart(testStart);
+  if (TestMode.power !== null) GameState.power = TestMode.power;
   setSceneTint(GameState.currentChapter);
   renderIdleScene(GameState.party);
   showScreen("game");
@@ -73,37 +74,59 @@ async function playChapters() {
     else {
       // Reddition (chapitre III) : les vaincus, à genoux, laissent passer le groupe
       if (chapter.surrender) await Dialog.show({ pages: chapter.surrender });
+      if (chapter.powerChoice) await choosePower();
       await celebrateVictory();
     }
 
     GameState.chapterIndex++;
   }
 
-  const fate = GameState.dragonSpared ? DRAGON_FATE.spare : DRAGON_FATE.kill;
-  await Dialog.show({ title: "Épilogue", pages: fate.ending });
+  const ending = ENDINGS[endingOf(GameState.power, GameState.dragonSpared)];
+  await Dialog.show({ title: "Épilogue", pages: ending.epilogue });
   backToTitle({ startLabel: "Rejouer" });
 }
 
-// Le Dragon est à terre : Épargner (vraie fin) ou Achever (fausse fin, « Victoire ! » en façade)
+// Cœur d'Aure-Hin : prendre le pouvoir (bonus de combat, la vraie fin se ferme) ou le refuser
+async function choosePower() {
+  standUpParty();
+  const choice = await Dialog.choose({
+    text: POWER_CHOICE.question,
+    options: (["take", "refuse"] satisfies PowerChoiceId[]).map(id => ({ id, label: POWER_CHOICE[id].label })),
+  });
+  GameState.power = choice === "take" ? "taken" : "refused";
+  await Dialog.show({ pages: POWER_CHOICE[choice].scene });
+}
+
+// Le Dragon est à terre. Pouvoir pris : le rendre (puis Épargner · Achever) ou le garder (Achever seul).
+// Sinon : Épargner · Achever. La fin qui suit se déduit des deux choix (endingOf).
 async function decideDragonFate(dragon: Enemy) {
   standUpParty();
 
-  const choice = await Dialog.choose({
-    text: DRAGON_FATE.question,
-    options: (["spare", "kill"] satisfies FateId[]).map(id => ({ id, label: DRAGON_FATE[id].label })),
-  });
+  let text = DRAGON_FATE.question;
+  if (GameState.power === "taken") {
+    const kept = await chooseFate(DRAGON_FATE.powerQuestion, ["return", "keep"]) === "keep";
+    GameState.power = kept ? "kept" : "returned";
+    if (!kept) Sfx.play("memory"); // l'or quitte Maelor (animation : MAE-30)
+    text = kept ? DRAGON_FATE.kept : DRAGON_FATE.returned;
+  }
+  const choice = await chooseFate(text, GameState.power === "kept" ? ["kill"] : ["spare", "kill"]);
   GameState.dragonSpared = choice === "spare";
+  const ending = ENDINGS[endingOf(GameState.power, GameState.dragonSpared)];
 
   if (GameState.dragonSpared) {
     await animateSpare(dragon);
-    await Dialog.show({ pages: DRAGON_FATE.spare.scene });
+    await Dialog.show({ pages: ending.scene });
   } else {
     const maelor = GameState.party.find(hero => hero.id === "maelor");
     if (!maelor) throw new Error("Maelor est absent du groupe");
     await animateFinishingBlow(maelor, dragon);
-    await Dialog.show({ pages: DRAGON_FATE.kill.scene });
+    await Dialog.show({ pages: ending.scene });
     await celebrateVictory();
   }
+}
+
+function chooseFate(text: string, ids: FateId[]) {
+  return Dialog.choose({ text, options: ids.map(id => ({ id, label: DRAGON_FATE.labels[id] })) });
 }
 
 // Trêve (chapitre II) : chacun se relève, la scène se joue, puis les récompenses comme une victoire

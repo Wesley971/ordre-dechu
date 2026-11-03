@@ -9,6 +9,7 @@ import type {
 import type { Hero } from "../party/heroes.ts";
 import { Sfx } from "../audio/sfx.ts";
 import { Menu } from "./battle-menu.ts";
+import { TestMode } from "../dev/test-mode.ts";
 import {
   renderBattle, updateBattleUI, updateAtbUI, showMessage, playBattleIntro,
   animateActorStart, animateActorEnd, showEffect, showDefend, showDefeated, killEnemies, animateEscape,
@@ -71,12 +72,15 @@ function elementMultiplier(target: Combatant, element: ElementName | undefined) 
   return 1;
 }
 
+// Pouvoir du Cœur pris : les héros frappent et soignent plus fort (objets exclus, quantité fixe)
+const powerBonus = (actor: Combatant) => actor.side === "hero" && GameState.power === "taken" ? CONFIG.power.bonus : 1;
+
 function calcPhysical(attacker: Combatant, target: Combatant, ability: PhysicalAbility): Effect {
   const { missChance, critChance, critMultiplier, defendMultiplier } = CONFIG.damage;
   if (Math.random() < missChance) return { type: "miss" };
 
   const crit = Math.random() < critChance;
-  let damage = vary(attacker.atk * 2 * ability.power) - (ability.pierce ? 0 : target.def);
+  let damage = (vary(attacker.atk * 2 * ability.power) - (ability.pierce ? 0 : target.def)) * powerBonus(attacker);
   if (crit) damage *= critMultiplier;
   if (target.defending) damage *= defendMultiplier;
   return { type: "damage", amount: Math.max(1, Math.round(damage)), crit };
@@ -86,14 +90,14 @@ function calcMagic(caster: Combatant, target: Combatant, ability: MagicAbility):
   const multiplier = elementMultiplier(target, ability.element);
   const base = Math.max(1, vary(ability.power + caster.mag * 2) - target.res);
   const amount = Math.round(base * Math.abs(multiplier));
-  if (multiplier < 0) return { type: "heal", amount, absorbed: true };
-  return { type: "damage", amount, weak: multiplier > 1 };
+  if (multiplier < 0) return { type: "heal", amount, absorbed: true }; // pas de bonus : il soignerait l'ennemi
+  return { type: "damage", amount: Math.round(amount * powerBonus(caster)), weak: multiplier > 1 };
 }
 
 function calcHeal(caster: Combatant, target: Combatant, ability: HealAbility): Effect {
   if (!isAlive(target)) return { type: "none" };
   // Objet : quantité fixe · souffle : puissance + Souffle du lanceur
-  const amount = "amount" in ability ? ability.amount : Math.round(vary(ability.power + caster.mag * 2));
+  const amount = "amount" in ability ? ability.amount : Math.round(vary(ability.power + caster.mag * 2) * powerBonus(caster));
   return { type: "heal", amount };
 }
 
@@ -239,6 +243,12 @@ export async function runBattle(chapter: BattleChapter) {
 
   renderBattle(Battle);
   await playBattleIntro(Battle);
+  // Mode test (local, ?combat=gagne) : les ennemis tombent d'office, la suite (choix, scènes) se joue normalement
+  if (TestMode.winBattles) {
+    for (const enemy of Battle.enemies) enemy.hp = 0;
+    await handleKnockouts(Battle.enemies);
+    checkBattleEnd();
+  }
   Menu.attach();
   Battle.busy = false;
   Battle.lastTime = performance.now();
