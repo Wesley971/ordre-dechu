@@ -55,6 +55,12 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 - Pierre-Noire : ce n'est pas de la pierre, mais un matériau très ancien qu'on prend pour de la pierre noire. En jeu, seulement suggéré, jamais expliqué (pas de mot « technologie »). Son origine n'est pas décidée.
 - Au Cœur d'Aure-Hin, dans l'ordre : une révélation (la nature d'Elwen, le sang de Maelor, une partie du cycle) ; une épreuve (un écho de Maelor né du Souffle) ; un choix (prendre ou non le pouvoir du Souffle). Prendre rend le groupe plus fort au combat, mais ferme la vraie fin.
 
+## Les décors
+- Direction visuelle définitive (décision de Wesley du 03/11/2026) : chaque décor est une peinture dans le style de `public/images/background.png` (dessin un peu réaliste, nuit féerique), générée par Wesley avec Gemini, une image par lieu.
+- Chaque peinture est montée en relief 2,5D, avec brume, lucioles et feuillages animés. Pas de vraie 3D.
+- Les personnages restent en pixel art. Ce mélange, décor peint et personnages en pixel art, est l'identité visuelle du jeu.
+- Prototype de référence : `combat-lisiere.html`, dans le labo `ordre-dechu-lab`.
+
 ## Les fins
 - Vraie fin : refuser le pouvoir, puis épargner Vahn. La mémoire revient à Vahn et à Maelor ensemble ; le Souffle revient peu à peu, le lien entre hommes et Tyrdrak est renoué, Maelor devient gardien de la mémoire.
 - Fin rédemption : prendre le pouvoir, le rendre face à Vahn (sans prix), puis l'épargner. Plus douce-amère que la vraie fin.
