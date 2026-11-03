@@ -162,7 +162,7 @@ function formatRewards({ xp, gil, drops, levelUps }: Rewards) {
   const loot: string[] = [];
   if (xp > 0) loot.push(`Chaque héros debout gagne <strong>${xp} XP</strong>.`);
   if (gil > 0) loot.push(`Le groupe ramasse <strong>${gil} Couronnes</strong> (total : ${GameState.gil}).`);
-  if (drops.length) loot.push(`Objets trouvés : <strong>${drops.join(", ")}</strong>`);
+  if (drops.length) loot.push(`Ajouté à la besace : <strong>${drops.join(", ")}</strong>`);
   const pages: Page[] = loot.length ? [loot.join("<br>")] : [];
 
   if (levelUps.length) {

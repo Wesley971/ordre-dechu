@@ -55,7 +55,7 @@ export interface MenuEntry {
   detail?: string;
   help?: string;
   disabled?: boolean;
-  select?: () => void; // absent pour « Aucun objet »
+  select?: () => void; // absent pour « Besace vide »
 }
 
 export interface CommandLevel { type: "command"; cursor: number; entries: MenuEntry[] }
@@ -105,7 +105,7 @@ function itemEntries(hero: Hero): MenuEntry[] {
         select: () => Menu.chooseTarget(item, id),
       };
     });
-  return entries.length ? entries : [{ label: "Aucun objet", disabled: true }];
+  return entries.length ? entries : [{ label: "Besace vide", disabled: true }];
 }
 
 // Une cible unique peut changer de camp (soigner un ennemi, frapper un allié...)

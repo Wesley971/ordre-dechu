@@ -283,7 +283,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: "II · Le Champ des Échos",
     tint: "rgba(20, 40, 50, 0.45)",
-    canRun: false, // fuir sauterait la trêve et l'alliance
+    canRun: false, // se replier sauterait la trêve et l'alliance
     story: [
       "Au-delà des bois s'étend un champ de terre retournée, semé de pierres levées. Pas une croix, pas un nom : sur chaque tombe, des os taillés avec soin.<br><br>" +
       say("Corvin", "Au village, on dit que les squelettes déterrent les morts pour les manger.") + "<br>" +
@@ -346,7 +346,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: "IV · Le Cœur d'Aure-Hin",
     tint: "rgba(70, 55, 10, 0.30)",
-    canRun: false, // fuir sauterait le choix du pouvoir
+    canRun: false, // se replier sauterait le choix du pouvoir
     story: [
       "De l'autre côté du pont, le chemin descend entre deux parois de pierre noire, lisses comme le pont. Puis la roche s'ouvre sur une vallée ronde. L'air y vibre. Au milieu, une lumière dorée bat lentement, comme un cœur.<br><br>" +
       say("Corvin", "Je n'ai jamais senti autant de Souffle au même endroit. Comme si le monde entier respirait ici."),
