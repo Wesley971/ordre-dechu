@@ -94,7 +94,7 @@ Le code a d'abord été refactorisé en 5 chantiers (extraction de fonctions, é
 
 | Règle | Exemple |
 |---|---|
-| **Identifiants en anglais**, textes affichés et commentaires en français | `SPELLS.fire` s'affiche « Feu », `ENEMIES.gautik` s'affiche « Gau-Tik » |
+| **Identifiants en anglais**, textes affichés et commentaires en français | `SPELLS.fire` s'affiche « Mèche », `ENEMIES.gautik` s'affiche « Gau-Tik » |
 | **Logique pure séparée du DOM** | `calcPhysical`, `calcMagic`, `calcHeal` (`battle.ts`) ne touchent jamais à la page ; `view.ts` affiche |
 | **Un objet par module qui garde un état**, nommé en PascalCase | `GameState`, `Battle`, `Menu`, `Dialog`, `Input`, `Sfx` |
 | **Réglages dans `config.ts`, contenu dans `game-data.ts`** | `CONFIG.timing.death`, `CONFIG.damage.critChance`, `ENEMIES.vahn` |
@@ -123,11 +123,11 @@ Ce projet m'a permis de progresser concrètement en :
 
 ## ✨ À venir (Roadmap)
 
-* Marchand entre les chapitres pour dépenser les Couronnes (baumes, équipement)
+* Marchand entre les chapitres pour dépenser les Couronnes (Sève, équipement)
 * Équipement (armes, armures) et statuts (poison, sommeil…)
 * Sauvegarde dans le navigateur
 * Musiques d'ambiance
-* Carte d'exploration avec rencontres aléatoires
+* Carte d'exploration avec combats placés et rencontres optionnelles
 
 ## 📜 Crédits
 
