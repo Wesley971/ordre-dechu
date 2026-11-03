@@ -2,6 +2,7 @@
 
 import { Input } from "./input/input.ts";
 import { Sfx } from "./audio/sfx.ts";
+import { Music } from "./audio/music.ts";
 import { Menu } from "./battle/battle-menu.ts";
 import { backToTitle } from "./story/game-flow.ts";
 import { setupTestMode } from "./dev/test-mode.ts";
@@ -18,8 +19,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const soundButton = $("#sound-btn");
   const syncSound = () => soundButton.classList.toggle("off", !Sfx.enabled);
-  soundButton.addEventListener("click", () => { Sfx.toggle(); syncSound(); });
+  soundButton.addEventListener("click", () => { Sfx.toggle(); Music.syncSound(); syncSound(); });
   syncSound();
+
+  // La musique ne peut démarrer qu'après une première interaction (règle des navigateurs)
+  const unlockMusic = () => Music.unlock();
+  for (const type of ["pointerdown", "keydown"]) document.addEventListener(type, unlockMusic, { capture: true, once: true });
 
   backToTitle({ startLabel: "Nouvelle partie" });
 });
