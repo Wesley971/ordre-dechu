@@ -107,11 +107,11 @@ export const RUN: RunAbility         = { name: "Repli",   kind: "run", target: "
 
 export const SPELLS = {
   // Noms de la langue de l'Ordre (Maelor), des mots de métier des Veilleurs (Corvin), de la langue des immortels
-  // (Elwen) : docs/lore.md, section « Langues »
+  // (Elwen) : docs/lexique.md
   fallenBlade: { name: "Vordrak",      mp: 6,  kind: "physical", power: 2, pierce: true, target: "foe",
                  desc: "« Côte à côte » : frappe double qui ignore la défense." },
-  whirlwind:   { name: "Skorad",       mp: 10, kind: "physical", power: 1.2, target: "all-foes",
-                 desc: "« Le cercle gardé » : balaie tous les ennemis." },
+  whirlwind:   { name: "Édrag",        mp: 10, kind: "physical", power: 1.2, target: "all-foes",
+                 desc: "« La garde » : balaie tous les ennemis." },
   fire:        { name: "Mèche",        mp: 4,  kind: "magic", power: 28, element: "fire",    target: "foe",
                  desc: "Flammes sur un ennemi." },
   ice:         { name: "Nuit blanche", mp: 4,  kind: "magic", power: 28, element: "ice",     target: "foe",
@@ -120,12 +120,12 @@ export const SPELLS = {
                  desc: "Éclair sur un ennemi." },
   blaze:       { name: "Soufre",       mp: 12, kind: "magic", power: 30, element: "fire",    target: "all-foes",
                  desc: "Flammes sur tous les ennemis." },
-  cure:        { name: "Liaure",       mp: 5,  kind: "heal", power: 40, target: "ally",
-                 desc: "« Douce lumière » : rend des PV à un allié." },
-  curePlus:    { name: "Aurewen",      mp: 14, kind: "heal", power: 30, target: "all-allies",
-                 desc: "« Source dorée » : rend des PV à tout le groupe." },
-  life:        { name: "Selwen",       mp: 12, kind: "revive", target: "ko-ally",
-                 desc: "« Grâce de la Source » : ranime un allié éteint." },
+  cure:        { name: "Nios",         mp: 5,  kind: "heal", power: 40, target: "ally",
+                 desc: "« Soin » : rend des PV à un allié." },
+  curePlus:    { name: "Aurésor",      mp: 14, kind: "heal", power: 30, target: "all-allies",
+                 desc: "« Rosée d'or » : rend des PV à tout le groupe." },
+  life:        { name: "Liéver",       mp: 12, kind: "revive", target: "ko-ally",
+                 desc: "« Réveil » : ranime un allié éteint." },
 } satisfies Record<string, Spell>;
 export type SpellId = keyof typeof SPELLS;
 
@@ -140,7 +140,7 @@ export const ENEMY_SKILLS = {
   chains:     { name: "Chaînes",          kind: "physical", power: 1.6, target: "foe" }, // Gau-Tik
   pillar:     { name: "Pilier",           kind: "physical", power: 1.6, target: "foe" }, // Painkush, même effet
   ashCloud:   { name: "Nuée de cendre",   kind: "magic", power: 34, element: "fire", target: "all-foes" },
-  echoBlade:  { name: "Vordrak",          kind: "physical", power: 2, pierce: true, target: "foe" }, // la technique de Maelor, en miroir
+  echoBlade:  { name: "Kardrov",          kind: "physical", power: 2, pierce: true, target: "foe" }, // Vordrak à l'envers : la technique de Maelor, en miroir
 } satisfies Record<string, Ability>;
 export type EnemySkillId = keyof typeof ENEMY_SKILLS;
 export type EnemyAction = "attack" | EnemySkillId;
