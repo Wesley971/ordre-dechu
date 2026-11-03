@@ -90,5 +90,5 @@ Fiche du 02/11/2026 (MAE-70).
 - Palette : rampe d'or brun d'ombre `#2a2018`, or ancien `#c9a84c`, parchemin `#f1e4c3` ; contour `#140f12` et cheveux gardés tels quels ; valeurs complètes en section 8 de `docs/character-palette.md`.
 - Ne doit pas ressembler à : Dark Link (Zelda : silhouette noire aux yeux rouges), l'ombre noire du Prince de Perse, les Ombres de Persona.
 - Lisible : reconnaissable comme Maelor au premier regard, et visiblement « pas lui » : doré, en miroir.
-- Combat (MAE-73) : 420 PV, Atq 26, Déf 14, Souffle 0, Rés 8, Vit 12 ; capacité « Lame Déchue », la technique de Maelor en miroir. Il ne meurt pas : vaincu, il se défait en lumière.
+- Combat (MAE-73) : 420 PV, Atq 26, Déf 14, Souffle 0, Rés 8, Vit 12 ; capacité « Lame Déchue », la technique de Maelor en miroir. Vaincu, il disparaît comme un ennemi ordinaire : il se défait en lumière (animation dorée prévue dans MAE-30), puis les pages 8 et 9 et le choix du pouvoir suivent.
 - Récompense (décision de Wesley du 03/11/2026) : aucune XP, aucune Couronne, une Larme dorée (larme d'immortel, dorée comme les échos du Souffle). Le groupe arrive ainsi devant le Dragon au même niveau qu'avant le chapitre IV (268 XP, niveau 4).
