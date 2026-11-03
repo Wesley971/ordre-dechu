@@ -62,6 +62,19 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 - Chemins (MAE-71, MAE-72) : pouvoir refusé, la question est « Épargner » · « Achever ». Pouvoir pris, elle devient « Rendre le pouvoir » · « Garder le pouvoir ». Après « Rendre le pouvoir », « Épargner » · « Achever » revient : Épargner mène à la fin rédemption, Achever à la fausse fin. « Garder le pouvoir » ne laisse que « Achever » (troisième fin).
 - Le nom de Vahn n'est révélé qu'à la fin, quand la mémoire revient. Avant, le récit et le combat disent « le Dragon » (nom affiché, messages d'entrée et de fureur).
 
+## Langues
+Décisions de Wesley du 03/11/2026 (MAE-74). Les noms des capacités en viennent.
+
+- Langue de l'Ordre : dure et gravée (r, d, k, fins en -or et -is).
+  - rédror = l'Ordre ; drak = Tyrdrak ; -unis = des ; vor = côte à côte ; kar = lame ; hal = aile ; skor = cercle ; édri = oubli.
+  - Rédror Drakunis = « l'Ordre des Tyrdrak ».
+- Langue des immortels : douce et lumineuse (l, v, n, voyelles longues).
+  - aure = lumière dorée ; hin = cœur ; lia = douceur ; wen = source ; el = vie ; nael = retour ; sel = grâce, pardon.
+  - Elwen = « Source de vie ».
+- Les Veilleurs nomment leurs techniques avec des mots de métier français (veille, lanterne, feu de nuit).
+- Maelor : ses gestes de combat viennent de son grand-père. L'oubli avait pris sa mémoire, pas son corps, et il les lui a appris sans en connaître le sens. Les vrais noms reviennent avec le blason.
+- Noms des capacités : Maelor, Vordrak (« côte à côte ») et Skorad (« le cercle gardé ») ; Corvin, Mèche, Nuit blanche, Tocsin, Soufre ; Elwen, Liaure (« douce lumière »), Aurewen (« source dorée »), Selwen (« grâce de la Source »).
+
 ## Textes du jeu à réécrire
 - Prologue : présenter le Souffle en une phrase ; Corvin « au regard de nuit ».
 - Chapitre I : les Sankri défendent la forêt (plus de rires, de bourse, de « gobelins »).
