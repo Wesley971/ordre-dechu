@@ -70,6 +70,12 @@ body.lock-scroll { overflow: hidden; }
   50% { opacity: 0; }
 }
 
+/* « Mouvement réduit » : la main reste fixe (MAE-58 ; mains des héros et cible « tous » : section Sprites) */
+@media (prefers-reduced-motion: reduce) {
+  .menu-item.selected::before,
+  .targeted::before { animation: none; }
+}
+
 /* ─── ÉCRAN TITRE ──────────────────────────────────────────────────── */
 
 #intro-screen {
@@ -253,6 +259,14 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   75% { transform: translateX(5px); }
 }
 
+/* « Mouvement réduit » : le héros passe d'un coup à sa place (pas en avant), la main de ciblage reste fixe,
+   y compris sur un héros et sur la cible « tous » (MAE-58) */
+@media (prefers-reduced-motion: reduce) {
+  .sprite-body { transition: none; }
+  .sprite.hero.targeted::before,
+  .sprite.targeted.all::before { animation: none; }
+}
+
 /* Héros et ennemis en pixel art : pixels nets, sans flottement */
 .sprite.hero .sprite-img,
 .sprite.enemy .sprite-img {
@@ -330,6 +344,7 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 @media (prefers-reduced-motion: reduce) {
   .sprite.hero.critical .sprite-img { animation: none; transform: translateY(6px) scaleY(0.92); }
   .sprite.hero.victory .sprite-img  { animation: none; }
+  .sprite.hero.fleeing .sprite-body { transition: none; } /* repli : hors de scène d'un coup (MAE-58) */
 }
 
 .sprite.hero.defending .sprite-body::after {
@@ -382,6 +397,15 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   100% { filter: sepia(1) saturate(6) hue-rotate(250deg) brightness(0.6); opacity: 0; clip-path: inset(100% 0 0 0); }
 }
 
+/* « Mouvement réduit » (MAE-58) : l'ennemi est là d'emblée ; quand il agit, il s'éclaire sans clignoter ;
+   vaincu, il prend une teinte fixe le temps de la mort, puis disparaît ; le Dragon vaincu est à terre d'un coup */
+@media (prefers-reduced-motion: reduce) {
+  .sprite.appear .sprite-body { animation: none; }
+  .sprite.blink .sprite-body  { animation: none; filter: brightness(2); }
+  .sprite.dying .sprite-body  { animation: none; filter: sepia(1) saturate(6) hue-rotate(250deg) brightness(0.9); opacity: 0.6; }
+  .sprite.enemy .sprite-img   { transition: none; }
+}
+
 /* Coups reçus et Souffle */
 .sprite.damaged .sprite-body { animation: shake 0.4s ease; }
 .sprite.damaged .sprite-img  { filter: brightness(1.8) sepia(0.6) hue-rotate(-30deg); }
@@ -389,6 +413,12 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 
 @keyframes cast-glow {
   50% { filter: drop-shadow(0 0 10px var(--text-light)) drop-shadow(0 0 20px var(--gold-bright)); }
+}
+
+/* « Mouvement réduit » : plus de tremblement ; la teinte du coup reçu reste (MAE-58) */
+@media (prefers-reduced-motion: reduce) {
+  .sprite.damaged .sprite-body,
+  #battle-scene.quake { animation: none; }
 }
 
 /* ─── CHIFFRES DE DÉGÂTS ───────────────────────────────────────────── */
@@ -423,6 +453,11 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   55%  { translate: 0 0; }
   85%  { opacity: 1; }
   100% { translate: 0 -4px;  opacity: 0; }
+}
+
+/* « Mouvement réduit » : le chiffre reste fixe à sa place, puis view.ts le retire (MAE-58) */
+@media (prefers-reduced-motion: reduce) {
+  .popup { animation: none; }
 }
 
 /* ─── EFFETS DE SOUFFLES ───────────────────────────────────────────── */
@@ -475,6 +510,12 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   100% { clip-path: inset(0 0 0 0); opacity: 0; }
 }
 
+/* « Mouvement réduit » : l'effet reste fixe et à demi transparent le temps de sa durée, puis view.ts le retire
+   (MAE-58, décision du 03/11/2026) */
+@media (prefers-reduced-motion: reduce) {
+  .fx, .fx-thunder, .fx-heal, .fx-slash { animation: none; opacity: 0.5; }
+}
+
 /* ─── FENÊTRES DU BAS ──────────────────────────────────────────────── */
 
 #battle-hud {
@@ -524,6 +565,11 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   height: 100%;
   background: var(--state-hp);
   transition: width 0.35s ease;
+}
+
+/* « Mouvement réduit » : la barre de PV change d'un coup (MAE-58) */
+@media (prefers-reduced-motion: reduce) {
+  .e-hp-fill { transition: none; }
 }
 
 #target-hint {
@@ -696,6 +742,11 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   100% { translate: 0 3px; }
 }
 
+/* « Mouvement réduit » : la flèche reste fixe (MAE-58) */
+@media (prefers-reduced-motion: reduce) {
+  #dialog-next { animation: none; }
+}
+
 .speaker { color: var(--gold-title); }
 
 /* Fragment de mémoire révélé par le blason de Maelor */
@@ -722,6 +773,11 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   60%  { opacity: 0; }
   80%  { opacity: 0.7; }
   100% { opacity: 0; }
+}
+
+/* « Mouvement réduit » : aucun éclair, le combat apparaît directement (MAE-58, décision du 03/11/2026) */
+@media (prefers-reduced-motion: reduce) {
+  #flash.on { animation: none; }
 }
 
 #sound-btn {
