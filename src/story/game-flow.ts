@@ -74,6 +74,8 @@ async function playChapters() {
     else {
       // Reddition (chapitre III) : les vaincus, à genoux, laissent passer le groupe
       if (chapter.surrender) await Dialog.show({ pages: chapter.surrender });
+      // Cœur d'Aure-Hin (chapitre IV) : l'écho s'est défait en lumière, le pouvoir est offert
+      if (chapter.afterVictory) await Dialog.show({ pages: chapter.afterVictory });
       if (chapter.powerChoice) await choosePower();
       await celebrateVictory();
     }
@@ -151,13 +153,17 @@ async function celebrateVictory(title = "Victoire !") {
   victoryPose(GameState.party);
   const rewards = grantRewards(Battle.enemies);
   updateBattleUI();
-  await Dialog.show({ title, pages: formatRewards(rewards) });
+  const pages = formatRewards(rewards);
+  if (pages.length) await Dialog.show({ title, pages });
 }
 
+// Une récompense qui vaut 0 (XP, Couronnes) ne s'affiche pas
 function formatRewards({ xp, gil, drops, levelUps }: Rewards) {
-  let loot = `Chaque héros debout gagne <strong>${xp} XP</strong>.<br>Le groupe ramasse <strong>${gil} Couronnes</strong> (total : ${GameState.gil}).`;
-  if (drops.length) loot += `<br>Objets trouvés : <strong>${drops.join(", ")}</strong>`;
-  const pages: Page[] = [loot];
+  const loot: string[] = [];
+  if (xp > 0) loot.push(`Chaque héros debout gagne <strong>${xp} XP</strong>.`);
+  if (gil > 0) loot.push(`Le groupe ramasse <strong>${gil} Couronnes</strong> (total : ${GameState.gil}).`);
+  if (drops.length) loot.push(`Objets trouvés : <strong>${drops.join(", ")}</strong>`);
+  const pages: Page[] = loot.length ? [loot.join("<br>")] : [];
 
   if (levelUps.length) {
     const lines = levelUps.map(({ hero, level, learned }) =>

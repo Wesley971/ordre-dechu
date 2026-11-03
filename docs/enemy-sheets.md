@@ -49,7 +49,7 @@ Les mentions « proposition » sont à juger sur l'image Gemini.
 - Ne doit pas ressembler à : Kratos (pas de lames au bout des chaînes, pas de bande rouge), Hommes des sables de Star Wars (pas de bandages ni lunettes), la tenue d'un peuple réel (pas de chèche indigo touareg), Hulk, Shrek, ogres de Warcraft.
 - Lisible : grande silhouette, chaînes, voile (bords soulignés si besoin), cicatrice.
 
-## Les Painkush, peuple de la Pierre Nue (chapitre IV, ex-minotaure)
+## Les Painkush, peuple de la Pierre Nue (chapitre V, ex-minotaure)
 
 - Identité : peuple cornu, très avancé, maîtres forgerons et bâtisseurs. Chez eux dans la Pierre Nue, territoire aride, reculé et interdit, que les héros doivent traverser ; un Painkush seul leur barre la route. Pas de méchant, chacun a ses raisons. Sans faiblesse élémentaire, force brute.
 - Tête : tête de taureau avec mufle, crâne massif et cornu (remplace « mâchoire d'homme, sans mufle », décision du 28/10/2026, bases Gemini).
@@ -78,7 +78,7 @@ Les mentions « proposition » sont à juger sur l'image Gemini.
   - Le dragon CraftPix de 2020 reste rejeté (trop cartoon, décision du 27/10/2026, MAE-24).
 - Lisible à taille de boss : silhouette maigre, plaques dorées où manquent les écailles, yeux rose violet, lueur de la gorge.
 
-## L'écho de Maelor (chapitre du Cœur d'Aure-Hin, épreuve)
+## L'écho de Maelor (chapitre IV, le Cœur d'Aure-Hin, épreuve)
 
 Fiche du 02/11/2026 (MAE-70).
 
@@ -90,3 +90,5 @@ Fiche du 02/11/2026 (MAE-70).
 - Palette : rampe d'or brun d'ombre `#2a2018`, or ancien `#c9a84c`, parchemin `#f1e4c3` ; contour `#140f12` et cheveux gardés tels quels ; valeurs complètes en section 8 de `docs/character-palette.md`.
 - Ne doit pas ressembler à : Dark Link (Zelda : silhouette noire aux yeux rouges), l'ombre noire du Prince de Perse, les Ombres de Persona.
 - Lisible : reconnaissable comme Maelor au premier regard, et visiblement « pas lui » : doré, en miroir.
+- Combat (MAE-73) : 420 PV, Atq 26, Déf 14, Souffle 0, Rés 8, Vit 12 ; capacité « Lame Déchue », la technique de Maelor en miroir. Vaincu, il disparaît comme un ennemi ordinaire : il se défait en lumière (animation dorée prévue dans MAE-30), puis les pages 8 et 9 et le choix du pouvoir suivent.
+- Récompense (décision de Wesley du 03/11/2026) : aucune XP, aucune Couronne, une Larme dorée (larme d'immortel, dorée comme les échos du Souffle). Le groupe arrive ainsi devant le Dragon au même niveau qu'avant le chapitre IV (268 XP, niveau 4).
