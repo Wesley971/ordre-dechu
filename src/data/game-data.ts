@@ -135,6 +135,7 @@ export type ItemId = keyof typeof ITEMS;
 export const ENEMY_SKILLS = {
   crush:      { name: "Écrasement",       kind: "physical", power: 1.6, target: "foe" },
   ashCloud:   { name: "Nuée de cendre",   kind: "magic", power: 34, element: "fire", target: "all-foes" },
+  echoBlade:  { name: "Lame Déchue",      kind: "physical", power: 2, pierce: true, target: "foe" }, // la technique de Maelor, en miroir
 } satisfies Record<string, Ability>;
 export type EnemySkillId = keyof typeof ENEMY_SKILLS;
 export type EnemyAction = "attack" | EnemySkillId;
@@ -189,6 +190,13 @@ export const ENEMIES = {
     maxHp: 320, atk: 26, def: 12, mag: 0, res: 5, spd: 7,
     skills: [{ skill: "crush", chance: 0.35 }],
     xp: 70, gil: 110, drop: { item: "ether", chance: 0.5 },
+  },
+  // L'écho de Maelor (MAE-70) : une épreuve, pas une proie. Ni XP ni Couronnes ; il laisse une Larme dorée.
+  maelorEcho: {
+    name: "Écho de Maelor", image: "images/maelor-echo.png", canvasWidth: 47, canvasHeight: 66,
+    maxHp: 420, atk: 26, def: 14, mag: 0, res: 8, spd: 12,
+    skills: [{ skill: "echoBlade", chance: 0.33 }],
+    xp: 0, gil: 0, drop: { item: "phoenix", chance: 1 },
   },
   vahn: {
     name: "Le Dragon", image: "images/vahn.png", canvasWidth: 142, canvasHeight: 88, boss: true, spareable: true,
@@ -329,7 +337,49 @@ export const CHAPTERS: Chapter[] = [
     ],
   },
   {
-    title: "IV · La Pierre Nue",
+    title: "IV · Le Cœur d'Aure-Hin",
+    tint: "rgba(70, 55, 10, 0.30)",
+    canRun: false, // fuir sauterait le choix du pouvoir
+    story: [
+      "De l'autre côté du pont, le chemin descend entre deux parois de pierre noire, lisses comme le pont. Puis la roche s'ouvre sur une vallée ronde. L'air y vibre. Au milieu, une lumière dorée bat lentement, comme un cœur.<br><br>" +
+      say("Corvin", "Je n'ai jamais senti autant de Souffle au même endroit. Comme si le monde entier respirait ici."),
+
+      "Plus le groupe approche, plus la lumière s'avive. Elle ne touche pas Maelor : elle le cherche. Ses cheveux cendrés s'éclairent ; sous sa peau, ses veines brillent d'or.<br><br>" +
+      say("Maelor", "Qu'est-ce qui m'arrive ?") + "<br>" +
+      say("Elwen", "Rien qui ne soit déjà en toi."),
+
+      "Elwen s'avance dans la lumière. Le rose de ses cheveux brûle plus fort que jamais ; le Souffle tourne autour d'elle comme autour d'une vieille amie.<br><br>" +
+      say("Elwen", "Je ne devrais pas vous le dire. Ceux de mon espèce regardent, ils n'interviennent pas. Mais vous avez fait trop de chemin pour repartir sans savoir."),
+
+      say("Elwen", "Je suis née du Souffle. Les hommes nous appellent les immortels, et nous croient morts depuis longtemps. Nous ne le sommes pas.") + "<br>" +
+      say("Corvin", "C'est pour ça que tes soins ne ressemblent à aucun autre."),
+
+      say("Elwen", "Et toi, Maelor, ton sang est doré. Tu descends d'un peuple qui vivait bien plus longtemps que les hommes, si proche du Souffle qu'il a été le premier à être oublié. Le monde ne sait plus qu'il a existé. Ta famille non plus.") + "<br>" +
+      say("Maelor", "Mon affinité avec les dragons... ce n'était pas un hasard.") + "<br>" +
+      say("Elwen", "Non. Je cherchais l'un des tiens depuis longtemps."),
+
+      say("Corvin", "Et le Souffle ? Je le sens faiblir partout, depuis des années.") + "<br>" +
+      say("Elwen", "Il respire, Corvin. Il s'emplit, puis il se retire. Nous sommes à la fin d'un très long souffle : le monde oublie parce que le Souffle s'en va.") + "<br>" +
+      say("Elwen", "Le reste, je n'ai pas le droit de le dire."),
+
+      "La lumière se resserre devant Maelor et prend une forme : la sienne. Même armure, même épée, même posture. Mais tout en lui est d'or, et il sourit d'un sourire que Maelor ne se connaît pas.<br><br>" +
+      say("Écho de Maelor", "Voilà ce que tu pourrais être. Plus personne ne te fera tomber.") + "<br>" +
+      say("Elwen", "Ce n'est pas un ennemi, Maelor. C'est un choix qui a pris corps."),
+    ],
+    enemies: ["maelorEcho"],
+    introMessage: "L'écho de Maelor lève son épée !",
+    // L'écho ne meurt pas : il se défait en lumière, puis le pouvoir du Cœur est offert
+    surrender: [
+      "L'écho recule, mais ne tombe pas. Il se défait en lumière, et cette lumière reste là, devant Maelor, tiède, offerte : le pouvoir du Cœur.<br><br>" +
+      say("Écho de Maelor", "Prends-moi. Plus jamais tu ne seras faible. Plus jamais tu n'oublieras."),
+
+      say("Corvin", "Avec ça, on pourrait affronter n'importe quoi. Même la bête du Val.") + "<br>" +
+      say("Elwen", "Ce que tu prends au Cœur, tu le prends au monde. Je ne peux pas choisir pour toi."),
+    ],
+    powerChoice: true,
+  },
+  {
+    title: "V · La Pierre Nue",
     tint: "rgba(60, 40, 20, 0.35)",
     story: [
       "Au-delà du pont, la forêt cède d'un coup. Plus un arbre, plus une herbe : une plaine de roche grise, polie par le vent. Au loin, des murs taillés d'un seul bloc barrent l'horizon, trop droits pour être l'œuvre du hasard.<br><br>" +
@@ -344,7 +394,7 @@ export const CHAPTERS: Chapter[] = [
     introMessage: "Un Painkush barre la route !",
   },
   {
-    title: "V · Le Puits des Anciens",
+    title: "VI · Le Puits des Anciens",
     tint: "rgba(20, 60, 70, 0.30)",
     rest: true,
     story: [
@@ -365,7 +415,7 @@ export const CHAPTERS: Chapter[] = [
     ],
   },
   {
-    title: "VI · L'Antre du Dragon",
+    title: "VII · L'Antre du Dragon",
     tint: "rgba(70, 12, 5, 0.45)",
     boss: true,
     canRun: false,
