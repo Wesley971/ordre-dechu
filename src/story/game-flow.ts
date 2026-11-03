@@ -74,6 +74,8 @@ async function playChapters() {
     else {
       // Reddition (chapitre III) : les vaincus, à genoux, laissent passer le groupe
       if (chapter.surrender) await Dialog.show({ pages: chapter.surrender });
+      // Cœur d'Aure-Hin (chapitre IV) : l'écho s'est défait en lumière, le pouvoir est offert
+      if (chapter.afterVictory) await Dialog.show({ pages: chapter.afterVictory });
       if (chapter.powerChoice) await choosePower();
       await celebrateVictory();
     }

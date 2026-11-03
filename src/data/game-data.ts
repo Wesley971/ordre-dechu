@@ -256,6 +256,8 @@ export interface BattleChapter extends ChapterBase {
   truce?: { afterActions: number; story: Page[] };
   // Reddition : les ennemis vaincus mettent un genou à terre au lieu de mourir ; surrender se joue avant « Victoire ! »
   surrender?: Page[];
+  // Pages jouées après une victoire ordinaire (les ennemis meurent), avant le choix du pouvoir et les récompenses
+  afterVictory?: Page[];
   // Choix du pouvoir du Cœur (POWER_CHOICE), posé après la victoire et la reddition, avant les récompenses
   powerChoice?: true;
 }
@@ -368,8 +370,8 @@ export const CHAPTERS: Chapter[] = [
     ],
     enemies: ["maelorEcho"],
     introMessage: "L'écho de Maelor lève son épée !",
-    // L'écho ne meurt pas : il se défait en lumière, puis le pouvoir du Cœur est offert
-    surrender: [
+    // Vaincu, l'écho disparaît (il se défait en lumière) ; puis le pouvoir du Cœur est offert
+    afterVictory: [
       "L'écho recule, mais ne tombe pas. Il se défait en lumière, et cette lumière reste là, devant Maelor, tiède, offerte : le pouvoir du Cœur.<br><br>" +
       say("Écho de Maelor", "Prends-moi. Plus jamais tu ne seras faible. Plus jamais tu n'oublieras."),
 
