@@ -1,7 +1,10 @@
 // game-flow.ts - Déroulement de la partie : titre, histoire, combats, fin
 
-import { CHAPTERS, PROLOGUE, POWER_CHOICE, DRAGON_FATE, ENDINGS, GAME_OVER, GameState, endingOf } from "../data/game-data.ts";
+import {
+  CHAPTERS, PROLOGUE, POWER_CHOICE, DRAGON_FATE, ENDINGS, GAME_OVER, GameState, endingOf, isValidCheckpoint,
+} from "../data/game-data.ts";
 import type { FateId, Page, PowerChoiceId } from "../data/game-data.ts";
+import { SaveGame } from "../data/save-game.ts";
 import { grantRewards, restoreParty, type Rewards } from "../party/heroes.ts";
 import { Battle, runBattle, isAlive, type Enemy } from "../battle/battle.ts";
 import { pickOption } from "../battle/battle-menu.ts";
@@ -21,10 +24,17 @@ export async function backToTitle({ startLabel, canRetry = false }: { startLabel
   Music.play("title"); // continue pendant le prologue ; reprend à l'épilogue et sur « Rejouer »
   $("#start-btn").textContent = startLabel;
   $("#retry-btn").hidden = !canRetry;
+  // Sauvegarde du navigateur (MAE-11) : après une défaite, « Réessayer » reprend déjà au même point
+  const saved = canRetry ? null : SaveGame.read();
+  $("#continue-btn").hidden = !isValidCheckpoint(saved);
 
   const options = [...document.querySelectorAll<HTMLElement>(".title-option")].filter(button => !button.hidden);
   const chosen = options[await pickOption(options)];
-  if (chosen.id === "retry-btn") retryChapter();
+  if (chosen.id === "retry-btn") resumeChapter();
+  else if (chosen.id === "continue-btn") {
+    GameState.checkpoint = saved;
+    resumeChapter();
+  }
   else newGame();
 }
 
@@ -44,7 +54,8 @@ async function newGame() {
   await playChapters();
 }
 
-async function retryChapter() {
+// « Réessayer le combat » et « Continuer » : reprise au début du chapitre du point de reprise
+async function resumeChapter() {
   GameState.loadCheckpoint();
   showScreen("game");
   await playChapters();
@@ -54,6 +65,7 @@ async function playChapters() {
   while (GameState.chapterIndex < CHAPTERS.length) {
     const chapter = GameState.currentChapter;
     GameState.saveCheckpoint();
+    SaveGame.write(GameState.checkpoint); // une nouvelle partie ne remplace la sauvegarde qu'ici, au chapitre I
     setSceneTint(chapter);
     renderIdleScene(GameState.party);
     Music.play(chapter.music);
@@ -90,6 +102,7 @@ async function playChapters() {
   }
 
   const ending = ENDINGS[endingOf(GameState.power, GameState.dragonSpared)];
+  SaveGame.clear(); // la fin est atteinte : fermer pendant l'épilogue ne ramène pas au chapitre VII
   Music.play("title");
   await Dialog.show({ title: "Épilogue", pages: ending.epilogue });
   backToTitle({ startLabel: "Rejouer" });

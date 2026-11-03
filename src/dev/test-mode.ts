@@ -12,8 +12,9 @@ const MAX_SPEED = 10;
 // startChapter : index du chapitre de départ (le numéro du titre moins un), null hors mode test
 // power : pouvoir du Cœur posé au départ de la partie, null hors mode test
 // winBattles : chaque ennemi tombe à 0 PV dès le début du combat, pour jouer la suite sans combattre
-export const TestMode: { startChapter: number | null; power: PowerState | null; winBattles: boolean } = {
-  startChapter: null, power: null, winBattles: false,
+// active : au moins un paramètre de test valide, vitesse comprise ; la sauvegarde n'est alors ni lue ni écrite (MAE-11)
+export const TestMode: { active: boolean; startChapter: number | null; power: PowerState | null; winBattles: boolean } = {
+  active: false, startChapter: null, power: null, winBattles: false,
 };
 const POWER_PARAM: Record<string, PowerState> = { pris: "taken", refuse: "refused" };
 
@@ -28,6 +29,7 @@ export function setupTestMode() {
   const winBattles = readWinBattles(params);
   if (chapter === null && speed === null && power === null && !winBattles) return;
 
+  TestMode.active = true;
   if (chapter !== null) TestMode.startChapter = chapter - 1;
   TestMode.power = power;
   TestMode.winBattles = winBattles;

@@ -50,6 +50,7 @@ http://localhost:5173/ordre-dechu/?chapitre=4&vitesse=4
 - `pouvoir=pris` ou `pouvoir=refuse` (MAE-72) : la partie démarre avec le pouvoir du Cœur d'Aure-Hin déjà pris ou refusé, pour atteindre les quatre fins avec `chapitre=7` sans rejouer le choix du chapitre IV.
 - `combat=gagne` (MAE-72) : dans chaque combat, l'ennemi tombe à 0 PV dès le début ; la suite se joue normalement (récompenses, choix face au Dragon, scènes, épilogues). Pour jouer les fins sans combattre, avec `chapitre=7`.
 - Les paramètres se combinent ou s'utilisent seuls. Le titre de l'onglet commence alors par « [Test] ». Une valeur invalide est ignorée, avec un avertissement dans la console.
+- En mode test, la sauvegarde du navigateur (MAE-11) n'est ni lue ni écrite, et « Continuer » est masqué. Pour tester la reprise, placer une sauvegarde (clé `ordre-dechu-save`) puis ouvrir le jeu sans paramètre.
 - Tests automatisés dans un navigateur invisible (headless) : toujours lancé sans le son (`--mute-audio`), pour que le jeu ne s'entende pas pendant les tests (décision de Wesley du 02/11/2026).
 
 Pas encore de lint ni de tests automatisés (MAE-23).
@@ -70,6 +71,10 @@ Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm r
 - Chaque fichier importe explicitement ce qu'il utilise, sans variable globale partagée.
 - Aucun code exécuté au chargement d'un module ne doit appeler un autre module : les modules s'importent en boucle (combat, menu, affichage), et un tel appel tomberait sur une valeur pas encore initialisée. Le code de démarrage va dans `src/main.ts`.
 - TypeScript strict : pas de `any`, pas de `!` (assertion non nulle), chaque `as` justifié en commentaire.
+
+## Sauvegarde
+- La partie est sauvegardée dans le navigateur au début de chaque chapitre (MAE-11, `src/data/save-game.ts`) ; une fin l'efface.
+- Changer la forme du point de reprise (`Checkpoint`) ou l'ordre des chapitres oblige à augmenter `SAVE_VERSION` (`src/data/game-data.ts`) : une sauvegarde d'une autre version est ignorée, au lieu de reprendre au mauvais chapitre.
 
 ## Histoire
 - Tout texte d'histoire du jeu (prologue, chapitres, fragments de mémoire, répliques, choix et fins) respecte la bible de l'univers : `docs/lore.md` (décisions du 02/11/2026, MAE-66).
