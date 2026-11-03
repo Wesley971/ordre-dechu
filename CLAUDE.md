@@ -63,6 +63,7 @@ Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm r
 - Fichiers en minuscules avec tirets (kebab-case), en anglais, sans accents ni espaces.
 - Code regroupé par domaine sous `src/` : `battle/`, `story/`, `party/`, `data/`, `ui/`, `audio/`, `input/`, `styles/`, `dev/` (outils de test en local).
 - Images dans `public/images/`, référencées en `images/...` dans le code et en `/images/...` dans le CSS.
+- Musiques dans `public/audio/` (MP3 96 kbps stéréo), référencées en `audio/...` dans le code (`MUSIC`, `src/data/game-data.ts`).
 - Identifiants en anglais ; textes affichés et commentaires en français.
 
 ## Modules

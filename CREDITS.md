@@ -1,6 +1,6 @@
 # Crédits
 
-Chaque image, police ou son du jeu est listé ici, avec son origine et ce qui autorise son usage, y compris commercial (diffusion payante sur itch.io ou Steam). Audit complet du 03/11/2026 (MAE-27) : chaque fichier de `public/` et chaque ressource chargée depuis Internet figure ci-dessous.
+Chaque image, police, musique ou son du jeu est listé ici, avec son origine et ce qui autorise son usage, y compris commercial (diffusion payante sur itch.io ou Steam). Audit complet du 03/11/2026 (MAE-27) : chaque fichier de `public/` et chaque ressource chargée depuis Internet figure ci-dessous.
 
 ## Résumé
 
@@ -13,6 +13,7 @@ Chaque image, police ou son du jeu est listé ici, avec son origine et ce qui au
 | `public/images/cursor.ico`, `cursor-hand.ico` | Générés avec ChatGPT (OpenAI) | Autorisé par les conditions d'OpenAI |
 | `public/images/hand.svg`, `shield.svg` | Créés pour le jeu | Oui, propriété du projet |
 | Polices Cinzel Decorative et DotGothic16 (Google Fonts) | Tiers | Autorisé par la SIL Open Font License 1.1 |
+| `public/audio/*.mp3` (9 musiques) | Otto Halmén, HitCtrl, Matthew Pablo, Yubatake, Tausdei, Kevin MacLeod | Autorisé par les licences CC-BY 3.0 et CC BY 4.0 |
 | Sons | Synthétisés par le code | Oui, propriété du projet |
 
 ## Images générées par IA
@@ -118,6 +119,40 @@ Licence confirmée par les fichiers `OFL.txt` du dépôt officiel `google/fonts`
 
 Les bruitages sont synthétisés par le code (Web Audio API, `src/audio/sfx.ts`) : aucun fichier son.
 
-## Modèles 3D et musique
+## Musique
+
+Musiques choisies par Wesley le 03/11/2026 (MAE-12). Licence de chaque piste relue sur sa page officielle le 03/11/2026, au moment du téléchargement. Les licences CC-BY 3.0 et CC BY 4.0 autorisent l'usage commercial, à condition de créditer l'auteur, de donner le lien de la licence et d'indiquer les changements.
+
+| Fichier | Lieu | Titre | Auteur | Licence | Source |
+|---|---|---|---|---|---|
+| `public/audio/title-death-is-just-another-path.mp3` | Écran titre, prologue, épilogue | Death Is Just Another Path | Otto Halmén | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [opengameart.org/content/death-is-just-another-path](https://opengameart.org/content/death-is-just-another-path) |
+| `public/audio/ch1-the-secret-within-the-woods.mp3` | Chapitre I, La Lisière | RPG - The Secret Within the Woods | HitCtrl | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [opengameart.org/content/rpg-the-secret-within-the-woods](https://opengameart.org/content/rpg-the-secret-within-the-woods) |
+| `public/audio/ch2-past-the-edge.mp3` | Chapitre II, Le Champ des Échos | Past the Edge | Kevin MacLeod | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) | [incompetech.com, ISRC USUAN1400026](https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1400026) |
+| `public/audio/ch3-spiritwatcher.mp3` | Chapitre III, Le Pont de Pierre-Noire | Spiritwatcher | Matthew Pablo | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [opengameart.org/content/spiritwatcher](https://opengameart.org/content/spiritwatcher) |
+| `public/audio/ch4-elegy.mp3` | Chapitre IV, Le Cœur d'Aure-Hin, et combat contre l'écho | Elegy Dm | Yubatake | [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) | [opengameart.org/content/elegy-dm](https://opengameart.org/content/elegy-dm) |
+| `public/audio/ch5-just-dust-remains.mp3` | Chapitre V, La Pierre Nue | Just Dust Remains | Tausdei | [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) | [opengameart.org/content/just-dust-remains](https://opengameart.org/content/just-dust-remains) |
+| `public/audio/ch6-ossuary-5-rest.mp3` | Chapitre VI, Le Puits des Anciens | Ossuary 5 - Rest | Kevin MacLeod | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) | [incompetech.com, ISRC USUAN1500047](https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1500047) |
+| `public/audio/dragon-lost-time.mp3` | Chapitre VII, L'Antre du Dragon, et combat contre le Dragon | Lost Time | Kevin MacLeod | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) | [incompetech.com, ISRC USUAN1500032](https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1500032) |
+| `public/audio/battle-unholy-knight.mp3` | Combats ordinaires | Unholy Knight | Kevin MacLeod | [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) | [incompetech.com, ISRC USUAN1700052](https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700052) |
+
+### Attributions
+
+- « Death Is Just Another Path » par Otto Halmén, licence CC-BY 3.0, sur OpenGameArt.org.
+- « RPG - The Secret Within the Woods » par HitCtrl, licence CC-BY 3.0, sur OpenGameArt.org.
+- « Spiritwatcher » par Matthew Pablo (http://www.matthewpablo.com), licence CC-BY 3.0, sur OpenGameArt.org.
+- « Elegy Dm » par Yubatake, sur OpenGameArt.org, licence CC-BY 4.0. Consigne de l'auteur : « Please just mention my username and this site. »
+- « Just Dust Remains » par Tausdei, licence CC-BY 4.0, sur OpenGameArt.org.
+- Kevin MacLeod, attribution exacte donnée sur la page de chaque piste :
+  - "Past the Edge" Kevin MacLeod (incompetech.com)<br>Licensed under Creative Commons: By Attribution 4.0 License<br>http://creativecommons.org/licenses/by/4.0/
+  - "Ossuary 5 - Rest" Kevin MacLeod (incompetech.com)<br>Licensed under Creative Commons: By Attribution 4.0 License<br>http://creativecommons.org/licenses/by/4.0/
+  - "Lost Time" Kevin MacLeod (incompetech.com)<br>Licensed under Creative Commons: By Attribution 4.0 License<br>http://creativecommons.org/licenses/by/4.0/
+  - "Unholy Knight" Kevin MacLeod (incompetech.com)<br>Licensed under Creative Commons: By Attribution 4.0 License<br>http://creativecommons.org/licenses/by/4.0/
+
+### Changements apportés
+
+- Toutes les pistes : converties en MP3 96 kbps stéréo 44,1 kHz avec ffmpeg, métadonnées et pochette retirées. Fichiers d'origine : MP3 (Death Is Just Another Path, Past the Edge, Spiritwatcher, Just Dust Remains, Ossuary 5 - Rest, Lost Time, Unholy Knight) ou OGG (RPG - The Secret Within the Woods ; Elegy Dm, rééchantillonné de 48 kHz à 44,1 kHz).
+- Aucun montage : le jeu boucle chaque piste en relançant le morceau en fondu enchaîné peu avant sa fin, sans modifier le fichier.
+
+## Modèles 3D
 
 Aucun pour l'instant. Chacun sera crédité ici par le ticket qui l'ajoute, avec son auteur, son lien et sa licence. Règle du dépôt : licence autorisant l'usage commercial ; musique en CC0 ou CC-BY uniquement, aucune licence NC.

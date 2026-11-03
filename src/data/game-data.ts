@@ -241,10 +241,25 @@ export const PROLOGUE: Page[] = [
   "Qui peut juger avec certitude, dans un monde qui a oublié jusqu'à l'origine de ses propres guerres ? Elwen croit que chaque vie peut être sauvée. Même celle qu'on a déjà jugée perdue.",
 ];
 
+// Musiques d'ambiance (MAE-12) : fichiers de public/audio/, crédits dans CREDITS.md
+export const MUSIC = {
+  title:    "title-death-is-just-another-path.mp3", // écran titre, prologue, épilogue
+  lisiere:  "ch1-the-secret-within-the-woods.mp3",
+  echoes:   "ch2-past-the-edge.mp3",
+  bridge:   "ch3-spiritwatcher.mp3",
+  heart:    "ch4-elegy.mp3",                      // aussi pendant le combat contre l'écho
+  bareRock: "ch5-just-dust-remains.mp3",
+  well:     "ch6-ossuary-5-rest.mp3",
+  dragon:   "dragon-lost-time.mp3",               // antre et combat contre le Dragon
+  battle:   "battle-unholy-knight.mp3",           // combats ordinaires
+} as const;
+export type MusicId = keyof typeof MUSIC;
+
 interface ChapterBase {
   title: string;
   tint: string;
   story: Page[];
+  music: MusicId; // pendant les pages du chapitre, et après la victoire
 }
 // Chapitre de repos : PV et PS restaurés, pas de combat
 export interface RestChapter extends ChapterBase {
@@ -256,6 +271,7 @@ export interface BattleChapter extends ChapterBase {
   boss?: boolean;
   canRun?: boolean;
   introMessage?: string; // message d'entrée propre au combat, à la place du message par défaut
+  battleMusic?: MusicId; // musique du combat, « battle » par défaut
   // Trêve : le combat s'arrête après afterActions actions (héros et ennemis), ou dès qu'un ennemi tombe ;
   // aucun ennemi ne meurt, et story se joue avant les récompenses
   truce?: { afterActions: number; story: Page[] };
@@ -272,6 +288,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: "I · La Lisière",
     tint: "rgba(8, 18, 40, 0.30)",
+    music: "lisiere",
     story: [
       "Aux abords du Val, les arbres se referment comme des doigts. Puis certains bougent. Des silhouettes massives se détachent des troncs : une peau d'écorce, des veines de braise sous la mousse, une lance noircie au feu.<br><br>" +
       say("Corvin", "Des Sankri. Ils ne prennent que le Souffle des arbres mourants, et ils défendent les vivants. Pour eux, tout ce qui entre dans la Lisière est une menace.") + "<br>" +
@@ -283,6 +300,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: "II · Le Champ des Échos",
     tint: "rgba(20, 40, 50, 0.45)",
+    music: "echoes",
     canRun: false, // se replier sauterait la trêve et l'alliance
     story: [
       "Au-delà des bois s'étend un champ de terre retournée, semé de pierres levées. Pas une croix, pas un nom : sur chaque tombe, des os taillés avec soin.<br><br>" +
@@ -328,6 +346,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: "III · Le Pont de Pierre-Noire",
     tint: "rgba(30, 20, 50, 0.40)",
+    music: "bridge",
     story: [
       "Un pont de pierre noire enjambe un gouffre sans fond. La pierre est lisse et tiède, sans un joint : aucun outil n'y a laissé de trace. Ses chaînes ont été arrachées. Au milieu, deux silhouettes immenses barrent le passage, les chaînes enroulées autour des bras, le visage caché derrière un voile que le vent ne soulève pas.<br><br>" +
       say("Corvin", "Des Gau-Tik. Je ne sens rien en eux, pas la moindre trace de Souffle.") + "<br>" +
@@ -346,6 +365,8 @@ export const CHAPTERS: Chapter[] = [
   {
     title: "IV · Le Cœur d'Aure-Hin",
     tint: "rgba(70, 55, 10, 0.30)",
+    music: "heart",
+    battleMusic: "heart", // un duel solennel contre soi-même, pas un combat ordinaire (Wesley, 03/11/2026)
     canRun: false, // se replier sauterait le choix du pouvoir
     story: [
       "De l'autre côté du pont, le chemin descend entre deux parois de pierre noire, lisses comme le pont. Puis la roche s'ouvre sur une vallée ronde. L'air y vibre. Au milieu, une lumière dorée bat lentement, comme un cœur.<br><br>" +
@@ -388,6 +409,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: "V · La Pierre Nue",
     tint: "rgba(60, 40, 20, 0.35)",
+    music: "bareRock",
     story: [
       "Le groupe quitte la vallée par l'autre versant. Derrière eux, la lumière du Cœur bat encore, de plus en plus lointaine. Puis les parois de pierre noire s'abaissent et s'ouvrent sur une plaine de roche grise, polie par le vent. Pas un arbre, pas une herbe. Au loin, des murs taillés d'un seul bloc barrent l'horizon, trop droits pour être l'œuvre du hasard.<br><br>" +
       say("Corvin", "La Pierre Nue. Les Painkush n'y laissent entrer personne. On dit qu'ils forgent un métal que rien ne raye."),
@@ -403,6 +425,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: "VI · Le Puits des Anciens",
     tint: "rgba(20, 60, 70, 0.30)",
+    music: "well",
     rest: true,
     story: [
       { html: "Au milieu de la roche nue, là où plus rien ne pousse, se dresse un vieux puits de pierre. Autour de la margelle, un peu d'herbe et un arbre tordu : un îlot de vie dans ce désert de pierre. Au fond, une eau brille d'une lueur pâle. Ses eaux referment les plaies et rendent l'éclat aux esprits las.<br><br>" +
@@ -424,6 +447,8 @@ export const CHAPTERS: Chapter[] = [
   {
     title: "VII · L'Antre du Dragon",
     tint: "rgba(70, 12, 5, 0.45)",
+    music: "dragon",
+    battleMusic: "dragon", // Lost Time dès les pages de l'antre, jusqu'au combat
     boss: true,
     canRun: false,
     story: [

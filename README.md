@@ -21,7 +21,7 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 * Dialogues avec **texte qui s'écrit lettre par lettre**
 * **Fragments de mémoire** : le blason de Maelor révèle, chapitre après chapitre, le passé de l'Ordre et son lien avec les dragons
 * **Choix** : prendre ou refuser le pouvoir du Cœur d'Aure-Hin, puis épargner ou achever le Dragon vaincu ; quatre fins différentes
-* **Bruitages 8-bit** générés en direct avec la Web Audio API (aucun fichier son), bouton pour couper le son
+* **Bruitages 8-bit** générés en direct avec la Web Audio API, et **musiques d'ambiance** libres (une par lieu, CC-BY), bouton pour couper le son
 * Jouable au **clavier**, à la **souris / au doigt**, et à la **manette** (API Gamepad : Xbox, PlayStation…)
 * **Défaite** avec possibilité de réessayer le chapitre en cours
 * Toutes les valeurs de gameplay centralisées dans `src/config.ts` et `src/data/game-data.ts`
@@ -53,10 +53,12 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 | `src/story/dialog.ts` | Fenêtre de dialogue avec effet machine à écrire, et questions à choix |
 | `src/ui/view.ts` | Affichage DOM : scène, fenêtres, chiffres de dégâts, animations |
 | `src/audio/sfx.ts` | Bruitages 8-bit (Web Audio API) |
+| `src/audio/music.ts` | Musiques d'ambiance : une piste par lieu, boucle et fondus |
 | `src/input/input.ts` | Clavier et manette traduits en actions (`up`, `confirm`, `cancel`…) |
 | `src/styles/design-system.css` | Design System : tokens CSS (couleurs, typographie, espacements) et styles de base |
 | `src/styles/style.css` | Mise en page, fenêtres, sprites, animations |
 | `public/images/` | Images, copiées telles quelles dans le build |
+| `public/audio/` | Musiques (MP3 96 kbps), chargées seulement quand elles servent |
 | `vite.config.ts` | Configuration de Vite (`base` de GitHub Pages) |
 | `tsconfig.json` | Configuration de TypeScript (mode strict) |
 | `.github/workflows/deploy.yml` | Vérification des types, build et publication sur GitHub Pages à chaque push sur `main` |
@@ -126,7 +128,6 @@ Ce projet m'a permis de progresser concrètement en :
 * Marchand entre les chapitres pour dépenser les Couronnes (Sève, équipement)
 * Équipement (armes, armures) et statuts (poison, sommeil…)
 * Sauvegarde dans le navigateur
-* Musiques d'ambiance
 * Carte d'exploration avec combats placés et rencontres optionnelles
 
 ## 📚 Documentation

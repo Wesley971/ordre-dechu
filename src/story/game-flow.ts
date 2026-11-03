@@ -6,6 +6,7 @@ import { grantRewards, restoreParty, type Rewards } from "../party/heroes.ts";
 import { Battle, runBattle, isAlive, type Enemy } from "../battle/battle.ts";
 import { pickOption } from "../battle/battle-menu.ts";
 import { Sfx } from "../audio/sfx.ts";
+import { Music } from "../audio/music.ts";
 import { Dialog } from "./dialog.ts";
 import { TestMode, prepareTestStart } from "../dev/test-mode.ts";
 import {
@@ -17,6 +18,7 @@ import {
 
 export async function backToTitle({ startLabel, canRetry = false }: { startLabel: string; canRetry?: boolean }) {
   showScreen("intro");
+  Music.play("title"); // continue pendant le prologue ; reprend à l'épilogue et sur « Rejouer »
   $("#start-btn").textContent = startLabel;
   $("#retry-btn").hidden = !canRetry;
 
@@ -54,6 +56,7 @@ async function playChapters() {
     GameState.saveCheckpoint();
     setSceneTint(chapter);
     renderIdleScene(GameState.party);
+    Music.play(chapter.music);
 
     if (chapter.rest) {
       restoreParty();
@@ -64,10 +67,13 @@ async function playChapters() {
     }
 
     await Dialog.show({ title: chapter.title, pages: chapter.story });
+    Music.play(chapter.battleMusic ?? "battle");
     const result = await runBattle(chapter);
 
     if (result === "defeat") return gameOver();
     const spareable = Battle.enemies.find(enemy => enemy.spareable);
+    // Après le combat, la musique du chapitre revient ; face au Dragon, Lost Time continue jusqu'au choix
+    if (!spareable) Music.play(chapter.music);
     if (result === "escape") await Dialog.show({ pages: ["Le groupe s'enfonce dans les brumes... sans le moindre butin."] });
     else if (result === "truce") await makeTruce(chapter.truce?.story ?? []);
     else if (spareable) await decideDragonFate(spareable);
@@ -84,6 +90,7 @@ async function playChapters() {
   }
 
   const ending = ENDINGS[endingOf(GameState.power, GameState.dragonSpared)];
+  Music.play("title");
   await Dialog.show({ title: "Épilogue", pages: ending.epilogue });
   backToTitle({ startLabel: "Rejouer" });
 }
@@ -114,6 +121,7 @@ async function decideDragonFate(dragon: Enemy) {
   const choice = await chooseFate(text, GameState.power === "kept" ? ["kill"] : ["spare", "kill"]);
   GameState.dragonSpared = choice === "spare";
   const ending = ENDINGS[endingOf(GameState.power, GameState.dragonSpared)];
+  Music.stop(); // la scène de fin se joue en silence
 
   if (GameState.dragonSpared) {
     await animateSpare(dragon);
@@ -175,6 +183,7 @@ function formatRewards({ xp, gil, drops, levelUps }: Rewards) {
 }
 
 async function gameOver() {
+  Music.stop(); // défaite : seuls les bruitages
   Sfx.play("gameOver");
   document.body.classList.add("game-over");
   await Dialog.show({ title: "Défaite", pages: GAME_OVER });

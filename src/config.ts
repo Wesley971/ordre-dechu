@@ -21,6 +21,13 @@ export const CONFIG = {
   power: {
     bonus: 1.25, // dégâts et soins des héros tant que le pouvoir du Cœur est pris (MAE-72)
   },
+  // Musiques (MAE-12) : en secondes, hors de timing pour ne pas être accélérées par le mode test
+  music: {
+    volume:          0.35, // volume général de la musique, sous les bruitages
+    fadeSeconds:     1.5,  // fondu enchaîné entre deux pistes, et fondu de sortie
+    loopFadeSeconds: 2,    // relais de boucle : la piste repart en fondu enchaîné, ce temps avant sa fin
+    muteSeconds:     0.3,  // bouton son
+  },
   revivePct:   0.25, // part des PV rendus par Liéver et la Larme dorée
   criticalPct: 0.25, // sous cette part des PV, un héros est en danger (PV dorés, héros à genoux)
 
