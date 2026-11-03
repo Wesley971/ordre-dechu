@@ -62,7 +62,7 @@ function createSprite(c: Combatant, [x, y]: [number, number]) {
   sprite.innerHTML = `<div class="sprite-body"><img class="sprite-img" src="${c.image}" alt="${c.name}">${embersHtml(c)}</div>`;
   sprite.addEventListener("click", () => Menu.clickTarget(c));
   if (c.side === "hero") {
-    // Un héros déjà K.O. quand la scène est construite est posé à terre, sans rejouer sa chute
+    // Un héros déjà éteint quand la scène est construite est posé à terre, sans rejouer sa chute
     if (!isAlive(c)) sprite.classList.add("ko", "fallen");
     const img = sprite.querySelector<HTMLImageElement>(".sprite-img");
     if (img) measureKoLift(sprite, img);
@@ -165,7 +165,7 @@ export function updateBattleUI() {
       if (sprite) sprite.classList.toggle(flag, on);
       if (row) row.classList.toggle(flag, on);
     }
-    // relevé : son prochain K.O. rejouera la chute
+    // relevé : sa prochaine extinction rejouera la chute
     if (sprite && alive) sprite.classList.remove("fallen");
     if (row) {
       $(".p-hp b", row).textContent = String(hero.hp);
@@ -255,7 +255,7 @@ export function renderMenu(menu: MenuController) {
 
   if (top.type === "list") {
     const entry = top.entries[top.cursor];
-    const title = top.kind === "spell" ? `${hero.command} <span>PS ${hero.mp}/${hero.maxMp}</span>` : "Objets";
+    const title = top.kind === "spell" ? `${hero.command} <span>PS ${hero.mp}/${hero.maxMp}</span>` : "Besace";
     listWindow.replaceChildren();
     listWindow.insertAdjacentHTML("beforeend", `<div class="window-title">${title}</div>`);
     listWindow.appendChild(menuList(top, menu.stack.length - 1, true));
@@ -393,7 +393,7 @@ export function showEffect(target: Combatant, effect: Effect, ability: Ability) 
 export function showDefend(hero: Hero) {
   Sfx.play("defend");
   const sprite = spriteEl(hero);
-  if (sprite) spawnPopup(sprite, "Défense", "info");
+  if (sprite) spawnPopup(sprite, "Garde", "info");
 }
 
 export async function killEnemies(enemies: Enemy[]) {

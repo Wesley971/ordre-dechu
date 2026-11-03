@@ -291,7 +291,7 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 }
 
 /* L'étirement part du centre : on remonte d'un demi-pixel de sprite pour garder les pieds au sol
-   (le genou à terre et le K.O. pivotent eux aussi autour du centre) */
+   (le genou à terre et la chute du héros éteint pivotent eux aussi autour du centre) */
 @keyframes breathe {
   50% { transform: translateY(calc(-0.5px * var(--px))) scaleY(calc(67 / 66)); }
 }
@@ -314,7 +314,7 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 .sprite.hero.fleeing .sprite-body { translate: -320px 0; transition: translate 0.6s ease-in; }
 
 .sprite.hero.critical .sprite-img { animation: kneel 1.4s ease-in-out infinite; }
-/* K.O. : le héros bascule autour de ses pieds, tête vers les ennemis, et reste à la même taille de pixel.
+/* Éteint : le héros bascule autour de ses pieds, tête vers les ennemis, et reste à la même taille de pixel.
    --ko-lift (mesuré par view.ts, en pixels de sprite) pose son flanc sur la ligne de sol ; sans mesure, demi-toile */
 .sprite.hero.ko .sprite-img {
   animation: none;
@@ -325,7 +325,7 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 .sprite.hero.victory .sprite-img { animation: victory-hop 0.45s ease-in-out 4; }
 
 /* « Mouvement réduit » : le héros prend directement la pose finale, sans animation.
-   Genou à terre : la pose de repos de kneel ; victoire : debout ; K.O. : couché au sol, la chute n'existant
+   Genou à terre : la pose de repos de kneel ; victoire : debout ; éteint : couché au sol, la chute n'existant
    que sans « mouvement réduit » */
 @media (prefers-reduced-motion: reduce) {
   .sprite.hero.critical .sprite-img { animation: none; transform: translateY(6px) scaleY(0.92); }

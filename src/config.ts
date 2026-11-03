@@ -11,7 +11,7 @@ export const CONFIG = {
     critChance:       0.06,
     critMultiplier:   2,
     missChance:       0.05,
-    defendMultiplier: 0.5,   // dégâts subis en Défense
+    defendMultiplier: 0.5,   // dégâts subis en Garde
     weakMultiplier:   2,     // faiblesse élémentaire
     resistMultiplier: 0.5,   // résistance élémentaire
   },
@@ -21,7 +21,7 @@ export const CONFIG = {
   power: {
     bonus: 1.25, // dégâts et soins des héros tant que le pouvoir du Cœur est pris (MAE-72)
   },
-  revivePct:   0.25, // part des PV rendus par Renaître et Larme dorée
+  revivePct:   0.25, // part des PV rendus par Selwen et la Larme dorée
   criticalPct: 0.25, // sous cette part des PV, un héros est en danger (PV dorés, héros à genoux)
 
   // XP totale requise pour chaque niveau (index 0 = niveau 1)

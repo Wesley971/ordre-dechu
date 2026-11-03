@@ -139,7 +139,7 @@ async function makeTruce(story: Page[]) {
   await celebrateVictory("Alliance");
 }
 
-// Le combat est fini : les héros K.O. se relèvent (à 1 PV) pour la scène qui suit
+// Le combat est fini : les héros éteints se relèvent (à 1 PV) pour la scène qui suit
 function standUpParty() {
   for (const hero of GameState.party.filter(hero => !isAlive(hero))) {
     hero.hp = 1;
@@ -168,7 +168,7 @@ function formatRewards({ xp, gil, drops, levelUps }: Rewards) {
   if (levelUps.length) {
     const lines = levelUps.map(({ hero, level, learned }) =>
       `<strong>${hero.name}</strong> passe au niveau ${level} !` +
-      learned.map(spell => `<br>${hero.name} apprend <strong>${spell}</strong> !`).join(""));
+      learned.map(spell => `<br>${hero.name} apprend <strong>${spell.name}</strong> !<br>${spell.desc}`).join(""));
     pages.push({ html: lines.join("<br>"), sfx: "levelUp" });
   }
   return pages;

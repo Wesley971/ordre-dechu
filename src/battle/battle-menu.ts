@@ -1,6 +1,6 @@
 // battle-menu.ts - Menus : petit menu de choix (écran titre, dialogues), menus de combat et sélection des cibles
 
-import { ATTACK, RUN, SPELLS, ITEMS, GameState } from "../data/game-data.ts";
+import { ATTACK, RUN, SPELLS, ITEMS, ELEMENT_NAMES, GameState } from "../data/game-data.ts";
 import type { Ability, ItemId } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import { Input, type Action } from "../input/input.ts";
@@ -72,19 +72,21 @@ export type MenuLevel = CommandLevel | ListLevel | TargetLevel;
 
 function commandEntries(hero: Hero): MenuEntry[] {
   return [
-    { label: "Attaque",    select: () => Menu.chooseTarget(ATTACK) },
+    { label: "Frapper",    select: () => Menu.chooseTarget(ATTACK) },
     { label: hero.command, select: () => Menu.openList("spell"), disabled: hero.spells.length === 0 },
-    { label: "Objet",      select: () => Menu.openList("item") },
-    { label: "Défense",    select: () => { defend(hero); Menu.done(); } },
-    { label: "Fuite",      select: () => Menu.confirmAction(RUN, []) },
+    { label: "Besace",     select: () => Menu.openList("item") },
+    { label: "Garde",      select: () => { defend(hero); Menu.done(); } },
+    { label: "Repli",      select: () => Menu.confirmAction(RUN, []) },
   ];
 }
 
 function spellEntries(hero: Hero): MenuEntry[] {
   return hero.spells.map(id => {
     const spell = SPELLS[id];
+    // L'élément s'affiche entre le nom et le coût (« Tocsin · Foudre · 5 PS »)
+    const element = "element" in spell && spell.element ? `${ELEMENT_NAMES[spell.element]} · ` : "";
     return {
-      label: spell.name, detail: `${spell.mp} PS`, help: spell.desc,
+      label: spell.name, detail: `${element}${spell.mp} PS`, help: spell.desc,
       disabled: hero.mp < spell.mp || targetCandidates(hero, spell.target).length === 0,
       select: () => Menu.chooseTarget(spell),
     };
