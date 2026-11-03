@@ -9,6 +9,12 @@ RPG au tour par tour (combat ATB) en TypeScript strict, modules ES, build Vite, 
 - Done seulement quand le code est sur `main`, le déploiement GitHub Pages réussi et la vérification sur le site en ligne faite.
 - Le passage en Done se fait uniquement sur le « oui » de Wesley.
 
+## Méthode
+Règle de Wesley du 03/11/2026, pour tous les tickets :
+- Avant la fusion, ce sont les tests automatiques de Claude (bot, comparaisons mot pour mot, débordements) qui vérifient. Wesley valide sur le rapport de Claude et l'avis de claude.ai ; il ne joue plus lui-même avant chaque fusion.
+- Après la mise en ligne, des testeurs humains jouent sur le site, à vitesse normale. Un problème qu'ils trouvent devient un nouveau ticket.
+- Un ticket passe en Done après la fusion, le déploiement et le contrôle en ligne de Claude, comme avant.
+
 ## Tickets
 - Format des nouveaux tickets, et d'un ticket existant quand on l'ouvre avec /task-flow. Pas de réécriture en masse.
 - Champs : Type, State, Priority, Assignee.
@@ -40,7 +46,7 @@ Mode test (MAE-68), en local seulement (`npm run dev` ou `npm run preview`), ine
 http://localhost:5173/ordre-dechu/?chapitre=4&vitesse=4
 ```
 - `chapitre=N` (1 à 6, numéro du titre) : « Nouvelle partie » démarre au chapitre N, sans prologue. Chaque héros a l'XP de tous les combats précédents, ses PV et PS pleins, et les objets de départ ; le groupe a les Couronnes de ces combats.
-- `vitesse=X` (1 à 10) : durées, jauges ATB et animations CSS X fois plus rapides ; chaque page de dialogue attend toujours la validation. La vitesse du mode test sert au bot : en vitesse 4, l'ennemi agit plus vite qu'un humain ne peut réagir. L'équilibrage devant le Dragon est à valider par Wesley à vitesse normale, pas seulement par le bot (décision du 03/11/2026).
+- `vitesse=X` (1 à 10) : durées, jauges ATB et animations CSS X fois plus rapides ; chaque page de dialogue attend toujours la validation. La vitesse du mode test sert au bot : en vitesse 4, l'ennemi agit plus vite qu'un humain ne peut réagir. L'équilibrage devant le Dragon se valide par des testeurs humains à vitesse normale, après la mise en ligne, pas seulement par le bot (décisions du 03/11/2026, voir « Méthode »).
 - `pouvoir=pris` ou `pouvoir=refuse` (MAE-72) : la partie démarre avec le pouvoir du Cœur d'Aure-Hin déjà pris ou refusé, pour atteindre les quatre fins avec `chapitre=6` tant que le choix n'est pas en jeu (MAE-73).
 - `combat=gagne` (MAE-72) : dans chaque combat, l'ennemi tombe à 0 PV dès le début ; la suite se joue normalement (récompenses, choix face au Dragon, scènes, épilogues). Pour jouer les fins sans combattre, avec `chapitre=6`.
 - Les paramètres se combinent ou s'utilisent seuls. Le titre de l'onglet commence alors par « [Test] ». Une valeur invalide est ignorée, avec un avertissement dans la console.
