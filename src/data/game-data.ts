@@ -647,6 +647,10 @@ export const GAME_OVER: Page[] = [
 
 // — État de la partie —
 
+// Format du point de reprise, aussi sauvegardé dans le navigateur (MAE-11, save-game.ts).
+// À augmenter si sa forme ou l'ordre des chapitres change : une sauvegarde d'une autre version est ignorée.
+const SAVE_VERSION = 1;
+
 // Ce que garde le point de reprise
 interface Checkpoint {
   party: Hero[];
@@ -687,7 +691,7 @@ export const GameState: GameStateStore = {
 
   saveCheckpoint() {
     const { party, inventory, gil, chapterIndex, power, dragonSpared } = this;
-    this.checkpoint = JSON.stringify({ party, inventory, gil, chapterIndex, power, dragonSpared });
+    this.checkpoint = JSON.stringify({ version: SAVE_VERSION, party, inventory, gil, chapterIndex, power, dragonSpared });
   },
 
   // Une copie absente, illisible ou d'une forme inattendue fait repartir la partie de zéro
@@ -724,7 +728,8 @@ function parseHero(value: unknown): Hero | null {
     maxHp, maxMp, atk, def, mag, res, spd, hp, mp,
   } = value;
 
-  if (!isString(id) || !HEROES.some(hero => hero.id === id)) return null;
+  const sheet = HEROES.find(hero => hero.id === id);
+  if (!sheet) return null;
   if (!isString(name) || !isString(job) || !isString(image) || !isString(command)) return null;
   if (side !== "hero" || !isCombatState(state) || typeof defending !== "boolean") return null;
   if (!Array.isArray(spells) || !spells.every(isSpellId)) return null;
@@ -732,8 +737,11 @@ function parseHero(value: unknown): Hero | null {
   if (!isNumber(maxHp) || !isNumber(maxMp) || !isNumber(atk) || !isNumber(def)) return null;
   if (!isNumber(mag) || !isNumber(res) || !isNumber(spd)) return null;
 
+  // Nom, métier, image et commande viennent de la fiche du héros, pas de la sauvegarde :
+  // une sauvegarde faite avant un renommage ou un nouveau portrait affiche ainsi les valeurs à jour
   return {
-    id, name, job, image, command, side, level, xp, spells, atb, state, defending,
+    id: sheet.id, name: sheet.name, job: sheet.job, image: sheet.image, command: sheet.command,
+    side, level, xp, spells, atb, state, defending,
     maxHp, maxMp, atk, def, mag, res, spd, hp, mp,
   };
 }
@@ -745,13 +753,17 @@ function parseInventory(value: unknown): Record<ItemId, number> | null {
   return { potion, ether, phoenix };
 }
 
+// Vrai si le point de reprise se relit sans erreur : « Continuer » n'apparaît qu'à cette condition
+export const isValidCheckpoint = (json: string | null) => parseCheckpoint(json) !== null;
+
 function parseCheckpoint(json: string | null): Checkpoint | null {
   if (json === null) return null;
   let data: unknown;
   try { data = JSON.parse(json); } catch { return null; }
   if (!isRecord(data)) return null;
 
-  const { party, inventory, gil, chapterIndex, power, dragonSpared } = data;
+  const { version, party, inventory, gil, chapterIndex, power, dragonSpared } = data;
+  if (version !== SAVE_VERSION) return null;
   if (!Array.isArray(party)) return null;
   const heroes = party.map(parseHero);
   if (heroes.length !== HEROES.length || !heroes.every(hero => hero !== null)) return null;
