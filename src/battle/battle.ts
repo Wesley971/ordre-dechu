@@ -9,6 +9,7 @@ import type {
 import type { Hero } from "../party/heroes.ts";
 import { Sfx } from "../audio/sfx.ts";
 import { Menu } from "./battle-menu.ts";
+import { TestMode } from "../dev/test-mode.ts";
 import {
   renderBattle, updateBattleUI, updateAtbUI, showMessage, playBattleIntro,
   animateActorStart, animateActorEnd, showEffect, showDefend, showDefeated, killEnemies, animateEscape,
@@ -242,6 +243,12 @@ export async function runBattle(chapter: BattleChapter) {
 
   renderBattle(Battle);
   await playBattleIntro(Battle);
+  // Mode test (local, ?combat=gagne) : les ennemis tombent d'office, la suite (choix, scènes) se joue normalement
+  if (TestMode.winBattles) {
+    for (const enemy of Battle.enemies) enemy.hp = 0;
+    await handleKnockouts(Battle.enemies);
+    checkBattleEnd();
+  }
   Menu.attach();
   Battle.busy = false;
   Battle.lastTime = performance.now();
