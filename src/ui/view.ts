@@ -275,6 +275,10 @@ export function renderMenu(menu: MenuController) {
     // Pendant le ciblage, la liste des ennemis reste visible pour voir les noms
     $("#enemy-list").hidden = false;
     commandWindow.hidden = true;
+    // Nom et aide de la capacité ou de l'objet choisi : au toucher, la liste se ferme aussitôt (MAE-74)
+    const help = top.ability.desc ? `<strong>${top.ability.name}</strong> · ${top.ability.desc}` : "";
+    $("#target-help").innerHTML = help;
+    $("#target-help").hidden = !help;
     $("#target-hint").hidden = false;
   }
 
@@ -405,7 +409,7 @@ export async function killEnemies(enemies: Enemy[]) {
 
 export async function animateEscape() {
   Sfx.play("run");
-  await showMessage("Le groupe prend la fuite !", CONFIG.timing.escapeMessage);
+  await showMessage("Le groupe se replie !", CONFIG.timing.escapeMessage);
   document.querySelectorAll(".sprite.hero").forEach(el => el.classList.add("fleeing"));
   await wait(CONFIG.timing.flee);
 }

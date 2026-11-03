@@ -538,6 +538,13 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 
 #target-hint span { color: var(--text-light); }
 
+/* Nom et aide de la capacité ou de l'objet en cours de ciblage (MAE-74, à reprendre en maquette : MAE-15) */
+#target-help {
+  margin-bottom: var(--space-1);
+  color: var(--text-parchment);
+}
+#target-help strong { font-weight: normal; color: var(--gold-title); }
+
 /* Menus (écran titre et combat) */
 .menu {
   margin: 0;
