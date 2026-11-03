@@ -63,17 +63,15 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 - Le nom de Vahn n'est révélé qu'à la fin, quand la mémoire revient. Avant, le récit et le combat disent « le Dragon » (nom affiché, messages d'entrée et de fureur).
 
 ## Langues
-Décisions de Wesley du 03/11/2026 (MAE-74). Les noms des capacités en viennent.
+Décisions de Wesley du 03/11/2026 (MAE-74, MAE-75). Les noms des capacités en viennent. Le lexique complet, avec le sens de chaque mot : `docs/lexique.md`.
 
-- Langue de l'Ordre : dure et gravée (r, d, k, fins en -or et -is).
-  - rédror = l'Ordre ; drak = Tyrdrak ; -unis = des ; vor = côte à côte ; kar = lame ; hal = aile ; skor = cercle ; édri = oubli.
-  - Rédror Drakunis = « l'Ordre des Tyrdrak ».
-- Langue des immortels : douce et lumineuse (l, v, n, voyelles longues).
-  - aure = lumière dorée ; hin = cœur ; lia = douceur ; wen = source ; el = vie ; nael = retour ; sel = grâce, pardon.
-  - Elwen = « Source de vie ».
-- Les Veilleurs nomment leurs techniques avec des mots de métier français (veille, lanterne, feu de nuit).
+- Méthode : les mots du monde sont fabriqués à partir du français (des mots à l'envers, mélangés à des mots qui existent, et des jeux de sons). Ils sonnent familiers et étrangers à la fois. Pas de grammaire, pas d'alphabet.
+- Le langage de l'Ordre : un mélange créé par l'Ordre pour se comprendre entre hommes, Tyrdrak et peuples. Son dur (r, d, k). Rédror Drakunis = « l'Ordre des Tyrdrak ».
+- Les mots des immortels : même méthode, son doux (l, v, n, voyelles).
+- Les Veilleurs nomment leurs techniques avec des mots de métier français.
+- Un nouveau mot s'ajoute d'abord au lexique, avec son sens.
 - Maelor : ses gestes de combat viennent de son grand-père. L'oubli avait pris sa mémoire, pas son corps, et il les lui a appris sans en connaître le sens. Les vrais noms reviennent avec le blason.
-- Noms des capacités : Maelor, Vordrak (« côte à côte ») et Skorad (« le cercle gardé ») ; Corvin, Mèche, Nuit blanche, Tocsin, Soufre ; Elwen, Liaure (« douce lumière »), Aurewen (« source dorée »), Selwen (« grâce de la Source »).
+- Noms des capacités : Maelor, Vordrak (« côte à côte ») et Édrag (« la garde ») ; Corvin, Mèche, Nuit blanche, Tocsin, Soufre ; Elwen, Nios (« soin »), Aurésor (« rosée d'or »), Liéver (« réveil »). L'écho de Maelor lance Kardrov (Vordrak à l'envers).
 
 ## Textes du jeu à réécrire
 - Prologue : présenter le Souffle en une phrase ; Corvin « au regard de nuit ».
