@@ -10,6 +10,7 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 - Le Souffle « respire » (inspiration, expiration) ; le jeu se passe à la fin d'une longue expiration (monde sombre, couleurs rares, guerres sans origine) ; l'oubli est le prix du renouveau ; les Gau-Tik, sans Souffle, n'oublient pas d'un cycle à l'autre.
 - Le joueur ne comprend vraiment le cycle que dans la vraie fin.
 - Les échos du Souffle sont dorés : les échos de lumière du Champ des Échos (lieu d'enterrement des Hésiums), les larmes dorées des immortels, l'écho de Maelor.
+- Les lucioles et les lumières féeriques des décors sont le Souffle rendu visible (décision de Wesley du 03/11/2026, MAE-1).
 
 ## Le Cœur d'Aure-Hin
 - Le centre du monde, un lieu qui concentre naturellement le Souffle, et qui pourrait changer le monde s'il était mal utilisé.
