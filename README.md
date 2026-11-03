@@ -3,7 +3,7 @@
 Bienvenue dans **L'Ordre Déchu**, mon RPG développé en pur **HTML / CSS / TypeScript**, dans l'esprit des **Final Fantasy à l'ancienne** (jauges ATB, menus de commande, Souffle et objets), habillé de couleurs sombres et dorées.
 Ce projet est né d'une passion pour les jeux vidéo et d'une volonté d'apprendre par la pratique, sans framework ni moteur de jeu.
 
-Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé des mémoires, accompagné de *Corvin* le veilleur et d'*Elwen* la Source, dans une aventure sombre en six chapitres. Personne ne l'a choisi : il a choisi de venir.
+Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé des mémoires, accompagné de *Corvin* le veilleur et d'*Elwen* la Source, dans une aventure sombre en sept chapitres. Personne ne l'a choisi : il a choisi de venir.
 
 ## 🎮 Fonctionnalités actuelles
 
@@ -20,7 +20,7 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 * Chiffres de dégâts rebondissants, effets de souffles, héros qui s'avancent pour agir
 * Dialogues avec **texte qui s'écrit lettre par lettre**
 * **Fragments de mémoire** : le blason de Maelor révèle, chapitre après chapitre, le passé de l'Ordre et son lien avec les dragons
-* **Choix final** : une fois le Dragon vaincu, l'épargner ou l'achever mène à deux fins différentes
+* **Choix** : prendre ou refuser le pouvoir du Cœur d'Aure-Hin, puis épargner ou achever le Dragon vaincu ; quatre fins différentes
 * **Bruitages 8-bit** générés en direct avec la Web Audio API (aucun fichier son), bouton pour couper le son
 * Jouable au **clavier**, à la **souris / au doigt**, et à la **manette** (API Gamepad : Xbox, PlayStation…)
 * **Défaite** avec possibilité de réessayer le chapitre en cours
