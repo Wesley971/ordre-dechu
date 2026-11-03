@@ -9,12 +9,12 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 
 * **Groupe de 3 héros** aux rôles distincts : Maelor (chevalier déchu), Corvin (veilleur), Elwen (Source)
 * **Combat ATB** (Active Time Battle) : chaque combattant a une jauge qui se remplit selon sa vitesse ; les ennemis n'attendent pas
-* Mode **Attente** : le temps se fige quand tu fouilles dans les menus Souffle / Objet (réglable dans `src/config.ts`)
-* Menu de commandes façon FF : **Attaque**, **Techniques / Souffle**, **Objet**, **Défense**, **Fuite**
-* **Souffle et PS** : Feu, Glace, Foudre, Brasier, Apaiser, Raviver, Renaître, et les techniques de Maelor (Lame Déchue, Tourbillon)
+* Mode **Attente** : le temps se fige quand tu fouilles dans les techniques ou la Besace (réglable dans `src/config.ts`)
+* Menu de commandes façon FF : **Frapper**, **Gestes / Lanterne / Source** (les techniques de chaque héros), **Besace**, **Garde**, **Repli**
+* **Techniques et PS** (points de Souffle) : les gestes de Maelor (Vordrak, Skorad), la lanterne de Corvin (Mèche, Nuit blanche, Tocsin, Soufre) et la Source d'Elwen (Liaure, Aurewen, Selwen) ; l'élément s'affiche dans la liste
 * **Faiblesses élémentaires** : le Gau-Tik craint la foudre, Vahn la glace… et il **absorbe** le feu
-* **Objets** partagés : Baume, Encens, Larme dorée
-* Coups critiques, attaques ratées, **K.O.** et réanimation
+* **Besace** partagée : Sève, Encens, Larme dorée
+* Coups critiques, attaques ratées, héros **éteints** et ranimés
 * **Boss** avec phase de fureur sous 50 % de PV
 * **Écran de victoire** : XP, Couronnes, objets trouvés, montées de niveau, nouveaux souffles appris
 * Chiffres de dégâts rebondissants, effets de souffles, héros qui s'avancent pour agir
@@ -106,7 +106,7 @@ Le code a d'abord été refactorisé en 5 chantiers (extraction de fonctions, é
 Tout le jeu (écran titre, combat, dialogues) repose sur un seul Design System, défini dans `src/styles/design-system.css` :
 
 * **Polices** : [Cinzel Decorative](https://fonts.google.com/specimen/Cinzel+Decorative) pour le logo uniquement, [DotGothic16](https://fonts.google.com/specimen/DotGothic16) pour tout le reste
-* **Palette** : noirs profonds, ors vieillis et texte parchemin ; des couleurs d'état réservées au combat (PV, PS, soins, faiblesses, K.O.)
+* **Palette** : noirs profonds, ors vieillis et texte parchemin ; des couleurs d'état réservées au combat (PV, PS, soins, faiblesses, héros éteint)
 * **Une seule fenêtre** : `.window` (fond sombre dégradé, liseré or, coins à 2 px) sert pour l'écran titre, la scène, les menus, les dialogues et le bouton son
 * **Un seul curseur** : la main dorée `images/hand.svg` désigne l'option ou la cible choisie, partout
 * **Tokens CSS** : couleurs, typographie, espacements, curseurs de souris exposés comme variables `--var`

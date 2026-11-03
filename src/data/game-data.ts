@@ -38,6 +38,8 @@ export interface HeroDef {
 }
 
 export type ElementName = "fire" | "ice" | "thunder";
+// Nom de l'élément affiché au joueur (liste des techniques)
+export const ELEMENT_NAMES: Record<ElementName, string> = { fire: "Feu", ice: "Glace", thunder: "Foudre" };
 export type Affinity = "weak" | "resist" | "absorb";
 export type TargetType = "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" | "none";
 
@@ -73,21 +75,21 @@ const memory = (html: string): PageObject => ({ html: `<span class="memory">${ht
 export const HEROES: HeroDef[] = [
   {
     id: "maelor", name: "Maelor", job: "Chevalier déchu", image: "images/maelor.png",
-    command: "Techniques",
+    command: "Gestes",
     stats:  { maxHp: 160, maxMp: 18, atk: 18, def: 10, mag: 6,  res: 6,  spd: 9  },
     growth: { maxHp: 22,  maxMp: 2,  atk: 3,  def: 2,  mag: 1,  res: 1,  spd: 1  },
     spells: { 1: ["fallenBlade"], 3: ["whirlwind"] },
   },
   {
     id: "corvin", name: "Corvin", job: "Veilleur", image: "images/corvin.png",
-    command: "Souffle",
+    command: "Lanterne",
     stats:  { maxHp: 95,  maxMp: 40, atk: 8,  def: 5,  mag: 18, res: 12, spd: 11 },
     growth: { maxHp: 12,  maxMp: 6,  atk: 1,  def: 1,  mag: 3,  res: 2,  spd: 1  },
     spells: { 1: ["fire", "ice"], 2: ["thunder"], 4: ["blaze"] },
   },
   {
     id: "elwen", name: "Elwen", job: "Source", image: "images/elwen.png",
-    command: "Souffle",
+    command: "Source",
     // bords enflammés du drapé
     embers: [[34, 41], [36, 46], [32, 55], [9, 42], [8, 47], [10, 52]],
     stats:  { maxHp: 110, maxMp: 44, atk: 9,  def: 6,  mag: 15, res: 14, spd: 10 },
@@ -100,42 +102,45 @@ export const HEROES: HeroDef[] = [
 // kind   : "physical" | "magic" | "heal" | "mp" | "revive" | "run"
 // target : "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" | "none"
 
-export const ATTACK: PhysicalAbility = { name: "Attaque", kind: "physical", power: 1, target: "foe" };
-export const RUN: RunAbility         = { name: "Fuite",   kind: "run", target: "none" };
+export const ATTACK: PhysicalAbility = { name: "Frapper", kind: "physical", power: 1, target: "foe" };
+export const RUN: RunAbility         = { name: "Repli",   kind: "run", target: "none" };
 
 export const SPELLS = {
-  fallenBlade: { name: "Lame Déchue", mp: 6,  kind: "physical", power: 2, pierce: true, target: "foe",
-                 desc: "Frappe double qui ignore la défense." },
-  whirlwind:   { name: "Tourbillon",  mp: 10, kind: "physical", power: 1.2, target: "all-foes",
-                 desc: "Balaie tous les ennemis." },
-  fire:        { name: "Feu",         mp: 4,  kind: "magic", power: 28, element: "fire",    target: "foe",
+  // Noms de la langue de l'Ordre (Maelor), des mots de métier des Veilleurs (Corvin), de la langue des immortels
+  // (Elwen) : docs/lore.md, section « Langues »
+  fallenBlade: { name: "Vordrak",      mp: 6,  kind: "physical", power: 2, pierce: true, target: "foe",
+                 desc: "« Côte à côte » : frappe double qui ignore la défense." },
+  whirlwind:   { name: "Skorad",       mp: 10, kind: "physical", power: 1.2, target: "all-foes",
+                 desc: "« Le cercle gardé » : balaie tous les ennemis." },
+  fire:        { name: "Mèche",        mp: 4,  kind: "magic", power: 28, element: "fire",    target: "foe",
                  desc: "Flammes sur un ennemi." },
-  ice:         { name: "Glace",       mp: 4,  kind: "magic", power: 28, element: "ice",     target: "foe",
+  ice:         { name: "Nuit blanche", mp: 4,  kind: "magic", power: 28, element: "ice",     target: "foe",
                  desc: "Givre sur un ennemi." },
-  thunder:     { name: "Foudre",      mp: 5,  kind: "magic", power: 34, element: "thunder", target: "foe",
+  thunder:     { name: "Tocsin",       mp: 5,  kind: "magic", power: 34, element: "thunder", target: "foe",
                  desc: "Éclair sur un ennemi." },
-  blaze:       { name: "Brasier",     mp: 12, kind: "magic", power: 30, element: "fire",    target: "all-foes",
+  blaze:       { name: "Soufre",       mp: 12, kind: "magic", power: 30, element: "fire",    target: "all-foes",
                  desc: "Flammes sur tous les ennemis." },
-  cure:        { name: "Apaiser",     mp: 5,  kind: "heal", power: 40, target: "ally",
-                 desc: "Rend des PV à un allié." },
-  curePlus:    { name: "Raviver",     mp: 14, kind: "heal", power: 30, target: "all-allies",
-                 desc: "Rend des PV à tout le groupe." },
-  life:        { name: "Renaître",    mp: 12, kind: "revive", target: "ko-ally",
-                 desc: "Ranime un allié K.O." },
+  cure:        { name: "Liaure",       mp: 5,  kind: "heal", power: 40, target: "ally",
+                 desc: "« Douce lumière » : rend des PV à un allié." },
+  curePlus:    { name: "Aurewen",      mp: 14, kind: "heal", power: 30, target: "all-allies",
+                 desc: "« Source dorée » : rend des PV à tout le groupe." },
+  life:        { name: "Selwen",       mp: 12, kind: "revive", target: "ko-ally",
+                 desc: "« Grâce de la Source » : ranime un allié éteint." },
 } satisfies Record<string, Spell>;
 export type SpellId = keyof typeof SPELLS;
 
 export const ITEMS = {
-  potion:  { name: "Baume",           kind: "heal",   amount: 100, target: "ally",    desc: "Rend 100 PV." },
+  potion:  { name: "Sève",            kind: "heal",   amount: 100, target: "ally",    desc: "Rend 100 PV." },
   ether:   { name: "Encens",          kind: "mp",     amount: 30,  target: "ally",    desc: "Rend 30 PS." },
-  phoenix: { name: "Larme dorée",     kind: "revive",              target: "ko-ally", desc: "Ranime un allié K.O." },
+  phoenix: { name: "Larme dorée",     kind: "revive",              target: "ko-ally", desc: "Ranime un allié éteint." },
 } satisfies Record<string, Item>;
 export type ItemId = keyof typeof ITEMS;
 
 export const ENEMY_SKILLS = {
-  crush:      { name: "Écrasement",       kind: "physical", power: 1.6, target: "foe" },
+  chains:     { name: "Chaînes",          kind: "physical", power: 1.6, target: "foe" }, // Gau-Tik
+  pillar:     { name: "Pilier",           kind: "physical", power: 1.6, target: "foe" }, // Painkush, même effet
   ashCloud:   { name: "Nuée de cendre",   kind: "magic", power: 34, element: "fire", target: "all-foes" },
-  echoBlade:  { name: "Lame Déchue",      kind: "physical", power: 2, pierce: true, target: "foe" }, // la technique de Maelor, en miroir
+  echoBlade:  { name: "Vordrak",          kind: "physical", power: 2, pierce: true, target: "foe" }, // la technique de Maelor, en miroir
 } satisfies Record<string, Ability>;
 export type EnemySkillId = keyof typeof ENEMY_SKILLS;
 export type EnemyAction = "attack" | EnemySkillId;
@@ -182,13 +187,13 @@ export const ENEMIES = {
     name: "Gau-Tik", image: "images/gautik.png", canvasWidth: 43, canvasHeight: 78,
     maxHp: 260, atk: 24, def: 10, mag: 0, res: 4, spd: 6,
     elements: { thunder: "weak" },
-    skills: [{ skill: "crush", chance: 0.3 }],
+    skills: [{ skill: "chains", chance: 0.3 }],
     xp: 55, gil: 90, drop: { item: "potion", chance: 0.6 },
   },
   painkush: {
     name: "Painkush", image: "images/painkush.png", canvasWidth: 75, canvasHeight: 80,
     maxHp: 320, atk: 26, def: 12, mag: 0, res: 5, spd: 7,
-    skills: [{ skill: "crush", chance: 0.35 }],
+    skills: [{ skill: "pillar", chance: 0.35 }],
     xp: 70, gil: 110, drop: { item: "ether", chance: 0.5 },
   },
   // L'écho de Maelor (MAE-70) : une épreuve, pas une proie. Ni XP ni Couronnes ; il laisse une Larme dorée.
@@ -278,7 +283,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: "II · Le Champ des Échos",
     tint: "rgba(20, 40, 50, 0.45)",
-    canRun: false, // fuir sauterait la trêve et l'alliance
+    canRun: false, // se replier sauterait la trêve et l'alliance
     story: [
       "Au-delà des bois s'étend un champ de terre retournée, semé de pierres levées. Pas une croix, pas un nom : sur chaque tombe, des os taillés avec soin.<br><br>" +
       say("Corvin", "Au village, on dit que les squelettes déterrent les morts pour les manger.") + "<br>" +
@@ -341,7 +346,7 @@ export const CHAPTERS: Chapter[] = [
   {
     title: "IV · Le Cœur d'Aure-Hin",
     tint: "rgba(70, 55, 10, 0.30)",
-    canRun: false, // fuir sauterait le choix du pouvoir
+    canRun: false, // se replier sauterait le choix du pouvoir
     story: [
       "De l'autre côté du pont, le chemin descend entre deux parois de pierre noire, lisses comme le pont. Puis la roche s'ouvre sur une vallée ronde. L'air y vibre. Au milieu, une lumière dorée bat lentement, comme un cœur.<br><br>" +
       say("Corvin", "Je n'ai jamais senti autant de Souffle au même endroit. Comme si le monde entier respirait ici."),

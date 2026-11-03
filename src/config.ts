@@ -11,7 +11,7 @@ export const CONFIG = {
     critChance:       0.06,
     critMultiplier:   2,
     missChance:       0.05,
-    defendMultiplier: 0.5,   // dégâts subis en Défense
+    defendMultiplier: 0.5,   // dégâts subis en Garde
     weakMultiplier:   2,     // faiblesse élémentaire
     resistMultiplier: 0.5,   // résistance élémentaire
   },
@@ -21,7 +21,7 @@ export const CONFIG = {
   power: {
     bonus: 1.25, // dégâts et soins des héros tant que le pouvoir du Cœur est pris (MAE-72)
   },
-  revivePct:   0.25, // part des PV rendus par Renaître et Larme dorée
+  revivePct:   0.25, // part des PV rendus par Selwen et la Larme dorée
   criticalPct: 0.25, // sous cette part des PV, un héros est en danger (PV dorés, héros à genoux)
 
   // XP totale requise pour chaque niveau (index 0 = niveau 1)
@@ -32,9 +32,9 @@ export const CONFIG = {
   // Durées en millisecondes. Celles marquées (CSS) doivent suivre l'animation du même nom dans style.css
   timing: {
     typewriter:    22,   // délai entre deux lettres des dialogues
-    message:       1000, // bandeau d'annonce (nom du souffle, fuite...)
+    message:       1000, // bandeau d'annonce (nom de la capacité, repli...)
     introMessage:  900,  // « Des ennemis surgissent ! »
-    escapeMessage: 500,  // « Le groupe prend la fuite ! »
+    escapeMessage: 500,  // « Le groupe se replie ! »
     step:          220,  // pas en avant d'un héros qui agit (CSS hero-lunge)
     effect:        750,  // pause pour lire les chiffres de dégâts
     flash:         600,  // éclair du début de combat (CSS encounter-flash)

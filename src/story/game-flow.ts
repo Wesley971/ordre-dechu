@@ -139,7 +139,7 @@ async function makeTruce(story: Page[]) {
   await celebrateVictory("Alliance");
 }
 
-// Le combat est fini : les héros K.O. se relèvent (à 1 PV) pour la scène qui suit
+// Le combat est fini : les héros éteints se relèvent (à 1 PV) pour la scène qui suit
 function standUpParty() {
   for (const hero of GameState.party.filter(hero => !isAlive(hero))) {
     hero.hp = 1;
@@ -162,13 +162,13 @@ function formatRewards({ xp, gil, drops, levelUps }: Rewards) {
   const loot: string[] = [];
   if (xp > 0) loot.push(`Chaque héros debout gagne <strong>${xp} XP</strong>.`);
   if (gil > 0) loot.push(`Le groupe ramasse <strong>${gil} Couronnes</strong> (total : ${GameState.gil}).`);
-  if (drops.length) loot.push(`Objets trouvés : <strong>${drops.join(", ")}</strong>`);
+  if (drops.length) loot.push(`Ajouté à la besace : <strong>${drops.join(", ")}</strong>`);
   const pages: Page[] = loot.length ? [loot.join("<br>")] : [];
 
   if (levelUps.length) {
     const lines = levelUps.map(({ hero, level, learned }) =>
       `<strong>${hero.name}</strong> passe au niveau ${level} !` +
-      learned.map(spell => `<br>${hero.name} apprend <strong>${spell}</strong> !`).join(""));
+      learned.map(spell => `<br>${hero.name} apprend <strong>${spell.name}</strong> !<br>${spell.desc}`).join(""));
     pages.push({ html: lines.join("<br>"), sfx: "levelUp" });
   }
   return pages;

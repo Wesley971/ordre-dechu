@@ -91,7 +91,7 @@ export function gainXp(hero: Hero, xp: number) {
   hero.level = newLevel;
   hero.spells.push(...learned);
 
-  return { level: newLevel, learned: learned.map(id => SPELLS[id].name) };
+  return { level: newLevel, learned: learned.map(id => ({ name: SPELLS[id].name, desc: SPELLS[id].desc })) };
 }
 
 // Récompenses de fin de combat : XP pour chaque héros debout, Couronnes et objets pour le groupe
@@ -118,7 +118,7 @@ export function grantRewards(enemies: Enemy[]) {
 }
 export type Rewards = ReturnType<typeof grantRewards>;
 
-// Puits des Anciens : PV/PS au maximum, les K.O. se relèvent
+// Puits des Anciens : PV/PS au maximum, les éteints se relèvent
 export function restoreParty() {
   for (const hero of GameState.party) {
     hero.hp = hero.maxHp;

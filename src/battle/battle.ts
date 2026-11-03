@@ -401,14 +401,14 @@ async function checkRage(targets: Combatant[]) {
 
 async function attemptRun() {
   if (Battle.chapter?.canRun === false) {
-    await showMessage("Impossible de fuir !");
+    await showMessage("Repli impossible !");
     return;
   }
   if (Math.random() < CONFIG.run.successChance) {
     await animateEscape();
     endBattle("escape");
   } else {
-    await showMessage("La fuite a échoué !");
+    await showMessage("Le repli a échoué !");
   }
 }
 

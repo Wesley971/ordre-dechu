@@ -26,7 +26,7 @@
 
   /* ─── ÉTATS DE COMBAT ────────────────────────────────────────────── */
   --state-hp:   #b3241f;  /* barre de PV des ennemis */
-  --state-ko:   #e0564b;  /* héros K.O. */
+  --state-ko:   #e0564b;  /* héros éteint */
   --state-heal: #8fd68a;  /* soins */
   --state-mp:   #8fb8e0;  /* PS */
   --state-weak: #f0913a;  /* faiblesse élémentaire */
