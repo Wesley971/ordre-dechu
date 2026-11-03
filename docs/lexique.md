@@ -5,6 +5,7 @@ Les mots du monde sont fabriqués à partir du français : des mots à l'envers,
 - Le langage de l'Ordre : un mélange créé par l'Ordre pour se comprendre entre hommes, Tyrdrak et peuples. Son dur (r, d, k).
 - Les mots des immortels : même méthode, son doux (l, v, n, voyelles).
 - Les Veilleurs nomment leurs techniques avec des mots de métier français.
+
 Les notes d'auteur (en italique) ne s'affichent pas dans le jeu.
 
 ## Le langage de l'Ordre
