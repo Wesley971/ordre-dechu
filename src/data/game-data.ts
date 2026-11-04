@@ -4,6 +4,7 @@ import { CONFIG } from "../config.ts";
 import { createHero, type Hero } from "../party/heroes.ts";
 import type { CombatState } from "../battle/battle.ts";
 import type { SoundName } from "../audio/sfx.ts";
+import type { DecorId } from "./decors.ts";
 
 // — Types —
 
@@ -260,6 +261,7 @@ interface ChapterBase {
   tint: string;
   story: Page[];
   music: MusicId; // pendant les pages du chapitre, et après la victoire
+  decor?: DecorId; // décor peint en 2,5D (MAE-28) ; les chapitres sans image prête n'en déclarent pas encore
 }
 // Chapitre de repos : PV et PS restaurés, pas de combat
 export interface RestChapter extends ChapterBase {
@@ -289,6 +291,7 @@ export const CHAPTERS: Chapter[] = [
     title: "I · La Lisière",
     tint: "rgba(8, 18, 40, 0.30)",
     music: "lisiere",
+    decor: "lisiere",
     story: [
       "Aux abords du Val, les arbres se referment comme des doigts. Puis certains bougent. Des silhouettes massives se détachent des troncs : une peau d'écorce, des veines de braise sous la mousse, une lance noircie au feu.<br><br>" +
       say("Corvin", "Des Sankri. Ils ne prennent que le Souffle des arbres mourants, et ils défendent les vivants. Pour eux, tout ce qui entre dans la Lisière est une menace.") + "<br>" +

@@ -5,11 +5,18 @@ import { Sfx } from "./audio/sfx.ts";
 import { Music } from "./audio/music.ts";
 import { Menu } from "./battle/battle-menu.ts";
 import { backToTitle } from "./story/game-flow.ts";
-import { setupTestMode } from "./dev/test-mode.ts";
+import { setupTestMode, TestMode } from "./dev/test-mode.ts";
 import { $ } from "./ui/view.ts";
 
 document.addEventListener("DOMContentLoaded", () => {
   setupTestMode(); // local seulement : ?chapitre=N et ?vitesse=X (voir CLAUDE.md)
+
+  // Scène peinte seule, à la place du jeu. Import à la demande : Three.js ne se charge que dans ce cas (MAE-28)
+  const previewedDecor = TestMode.scene;
+  if (previewedDecor !== null) {
+    void import("./dev/scene-preview.ts").then(({ openScenePreview }) => openScenePreview(previewedDecor, TestMode.sceneQuality)).catch(console.error);
+    return;
+  }
 
   // Un clic dans la fenêtre de dialogue vaut « Valider », sauf pendant un choix (il faut cliquer une option)
   $("#dialog").addEventListener("click", () => {
