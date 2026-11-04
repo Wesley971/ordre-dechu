@@ -46,6 +46,9 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 | `src/main.ts` | Point d'entrée : branche les contrôles de la page et lance l'écran titre |
 | `src/config.ts` | Constantes de gameplay (vitesse ATB, dégâts, XP par niveau) et toutes les durées |
 | `src/data/game-data.ts` | Héros, souffles, objets, ennemis, chapitres, textes + objet `GameState` |
+| `src/data/decors.ts` | Décors peints en 2,5D : images, relief, places des personnages et ambiance de chaque lieu |
+| `src/scene/` | Scène peinte en 2,5D (Three.js), pas encore branchée sur le jeu : cadrage, relief, brume, lucioles, sprites nets |
+| `src/dev/` | Outils de test en local : mode test, page de contrôle de la scène |
 | `src/party/heroes.ts` | Création des héros, XP, montées de niveau, récompenses |
 | `src/battle/battle.ts` | Moteur de combat : calculs purs (dégâts, soins, ciblage) et boucle ATB |
 | `src/battle/battle-menu.ts` | Petit menu de choix (titre, dialogues), menus de commande et sélection des cibles |
@@ -59,6 +62,7 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 | `src/styles/style.css` | Mise en page, fenêtres, sprites, animations |
 | `public/images/` | Images, copiées telles quelles dans le build |
 | `public/audio/` | Musiques (MP3 96 kbps), chargées seulement quand elles servent |
+| `public/licenses/` | Texte des licences à publier avec le jeu (Three.js) |
 | `vite.config.ts` | Configuration de Vite (`base` de GitHub Pages) |
 | `tsconfig.json` | Configuration de TypeScript (mode strict) |
 | `.github/workflows/deploy.yml` | Vérification des types, build et publication sur GitHub Pages à chaque push sur `main` |
@@ -69,6 +73,7 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 * CSS (style, ambiance RPG, animations)
 * TypeScript strict en modules ES (logique de combat, DOM, interactivité, narration)
 * [Vite](https://vite.dev/) (serveur de développement et build)
+* [Three.js](https://threejs.org/) (scène peinte en 2,5D, chargée seulement à la demande)
 
 ## 🚀 Lancer le jeu
 

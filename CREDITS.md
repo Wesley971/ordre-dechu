@@ -11,6 +11,8 @@ Chaque image, police, musique ou son du jeu est listé ici, avec son origine et 
 | `public/images/maelor-echo.png` | Dérivée de `maelor.png` par un script | Comme `maelor.png` |
 | `public/images/background.png`, `preview.png` | Générées avec ChatGPT (OpenAI) | Autorisé par les conditions d'OpenAI |
 | `public/images/cursor.ico`, `cursor-hand.ico` | Générés avec ChatGPT (OpenAI) | Autorisé par les conditions d'OpenAI |
+| `public/images/backdrops/lisiere/` (12 images) | Générée avec Gemini (Google), retravaillée ; côtés tirés de `background.png` (ChatGPT, OpenAI) | Autorisé par les conditions de Google et d'OpenAI |
+| Three.js (bibliothèque, chargée pour la scène peinte) | Three.js authors | Autorisé par la licence MIT |
 | `public/images/hand.svg`, `shield.svg` | Créés pour le jeu | Oui, propriété du projet |
 | Polices Cinzel Decorative et DotGothic16 (Google Fonts) | Tiers | Autorisé par la SIL Open Font License 1.1 |
 | `public/audio/*.mp3` (9 musiques) | Otto Halmén, HitCtrl, Matthew Pablo, Yubatake, Tausdei, Kevin MacLeod | Autorisé par les licences CC-BY 3.0 et CC BY 4.0 |
@@ -88,6 +90,19 @@ Les images générées par IA peuvent ne pas être protégées par le droit d'au
 
 D'après l'audit du 11/10/2026, ces images ont été générées environ un an plus tôt.
 
+### Décor de la Lisière
+
+Générée par Wesley avec Gemini (Google) le 03/11/2026, puis préparée par un script gardé hors du dépôt, dans le labo du projet (`tools/prepare-lisiere.mjs`), avec l'image d'origine.
+
+| Image | Contenu | Origine |
+|---|---|---|
+| `public/images/backdrops/lisiere/wide.png` | La peinture et ses prolongements | Générée avec Gemini (Google) : couleurs et luminosité ramenées à celles de `background.png`, grain ajouté par le code. Prolongements repris de `background.png` (ChatGPT, OpenAI) |
+| `foreground.png`, `glints.png` | Fougères qui se balancent, lucioles et fleurs qui luisent | Découpées dans la même image (Gemini) |
+| `depth.png` | Carte de profondeur | Calculée par le script |
+| `side-far-*.png`, `side-near-*.png`, `side-glints-*.png`, `corner-*.png` | Forêt des côtés des écrans larges, fougères des coins | Découpées dans `background.png` (ChatGPT, OpenAI) par un script : morceaux retournés, étirés ou assombris |
+
+Conditions de Google et d'OpenAI : voir « Conditions des outils » plus haut.
+
 ### Curseurs
 
 | Image | Usage | Origine |
@@ -152,6 +167,10 @@ Musiques choisies par Wesley le 03/11/2026 (MAE-12). Licence de chaque piste rel
 
 - Toutes les pistes : converties en MP3 96 kbps stéréo 44,1 kHz avec ffmpeg, métadonnées et pochette retirées. Fichiers d'origine : MP3 (Death Is Just Another Path, Past the Edge, Spiritwatcher, Just Dust Remains, Ossuary 5 - Rest, Lost Time, Unholy Knight) ou OGG (RPG - The Secret Within the Woods ; Elegy Dm, rééchantillonné de 48 kHz à 44,1 kHz).
 - Aucun montage : le jeu boucle chaque piste en relançant le morceau en fondu enchaîné peu avant sa fin, sans modifier le fichier.
+
+## Bibliothèques
+
+[Three.js](https://threejs.org/) (dépendance `three`), scène peinte en 2,5D : licence MIT, Copyright © 2010-2026 three.js authors. Elle autorise l'usage commercial à condition de garder sa mention de copyright : le build retire les commentaires du code, le texte complet est donc publié avec le jeu dans `public/licenses/three-license.txt`. Ce code n'est chargé que pour la scène (MAE-28).
 
 ## Modèles 3D
 

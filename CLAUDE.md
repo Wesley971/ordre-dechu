@@ -49,6 +49,8 @@ http://localhost:5173/ordre-dechu/?chapitre=4&vitesse=4
 - `vitesse=X` (1 à 10) : durées, jauges ATB et animations CSS X fois plus rapides ; chaque page de dialogue attend toujours la validation. La vitesse du mode test sert au bot : en vitesse 4, l'ennemi agit plus vite qu'un humain ne peut réagir. L'équilibrage devant le Dragon se valide par des testeurs humains à vitesse normale, après la mise en ligne, pas seulement par le bot (décisions du 03/11/2026, voir « Méthode »).
 - `pouvoir=pris` ou `pouvoir=refuse` (MAE-72) : la partie démarre avec le pouvoir du Cœur d'Aure-Hin déjà pris ou refusé, pour atteindre les quatre fins avec `chapitre=7` sans rejouer le choix du chapitre IV.
 - `combat=gagne` (MAE-72) : dans chaque combat, l'ennemi tombe à 0 PV dès le début ; la suite se joue normalement (récompenses, choix face au Dragon, scènes, épilogues). Pour jouer les fins sans combattre, avec `chapitre=7`.
+- `scene=lisiere` (MAE-28) : affiche le décor seul, à la place du jeu, avec un compteur d'images/s à l'écran et les personnages du chapitre. Three.js n'est chargé que dans ce cas. Touche P : la caméra oscille pour montrer le relief. `qualite=1`, `2` ou `3` en plus : niveau de qualité du décor (`CONFIG.scene.qualityLevels`, 2 par défaut partout), affiché dans le compteur ; les sprites restent à pleine résolution. `verif=1` en plus : sans compteur, mesures pour le bot (`data-verif` sur `body`, `window.scenePreview`), à comparer aux PNG avec `tools/check-sprite-sharpness.mjs` du labo.
+- Test sur un téléphone en Wi-Fi : `npm run preview -- --host`, puis ouvrir sur le téléphone l'adresse `Network` affichée, suivie de `?scene=lisiere`. Le mode test accepte aussi les adresses privées du réseau local (`192.168.*`, `10.*`, `172.16-31.*`). Fermer le serveur après le test.
 - Les paramètres se combinent ou s'utilisent seuls. Le titre de l'onglet commence alors par « [Test] ». Une valeur invalide est ignorée, avec un avertissement dans la console.
 - En mode test, la sauvegarde du navigateur (MAE-11) n'est ni lue ni écrite, et « Continuer » est masqué. Pour tester la reprise, placer une sauvegarde (clé `ordre-dechu-save`) puis ouvrir le jeu sans paramètre.
 - Tests automatisés dans un navigateur invisible (headless) : toujours lancé sans le son (`--mute-audio`), pour que le jeu ne s'entende pas pendant les tests (décision de Wesley du 02/11/2026).
@@ -62,7 +64,7 @@ Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm r
 
 ## Convention de noms
 - Fichiers en minuscules avec tirets (kebab-case), en anglais, sans accents ni espaces.
-- Code regroupé par domaine sous `src/` : `battle/`, `story/`, `party/`, `data/`, `ui/`, `audio/`, `input/`, `styles/`, `dev/` (outils de test en local).
+- Code regroupé par domaine sous `src/` : `battle/`, `story/`, `party/`, `data/`, `ui/`, `audio/`, `input/`, `styles/`, `scene/` (scène peinte en 2,5D, seul domaine à importer Three.js, jamais depuis le code de démarrage), `dev/` (outils de test en local).
 - Images dans `public/images/`, référencées en `images/...` dans le code et en `/images/...` dans le CSS.
 - Musiques dans `public/audio/` (MP3 96 kbps stéréo), référencées en `audio/...` dans le code (`MUSIC`, `src/data/game-data.ts`).
 - Identifiants en anglais ; textes affichés et commentaires en français.
