@@ -172,6 +172,8 @@ Musiques choisies par Wesley le 03/11/2026 (MAE-12). Licence de chaque piste rel
 
 [Three.js](https://threejs.org/) (dépendance `three`), scène peinte en 2,5D : licence MIT, Copyright © 2010-2026 three.js authors. Elle autorise l'usage commercial à condition de garder sa mention de copyright : le build retire les commentaires du code, le texte complet est donc publié avec le jeu dans `public/licenses/three-license.txt`. Ce code n'est chargé que pour la scène (MAE-28).
 
+[Vitest](https://vitest.dev/) 5.1.0 (dépendance de développement `vitest`), tests des règles du combat : licence MIT, vérifiée le 05/11/2026 sur le paquet installé. Il ajoute 20 paquets au dépôt, 19 sous licence MIT et `expect-type` sous licence Apache-2.0. Aucun de ces paquets n'est publié avec le jeu : ils ne servent qu'à lancer `npm test` (MAE-22).
+
 ## Modèles 3D
 
 Aucun pour l'instant. Chacun sera crédité ici par le ticket qui l'ajoute, avec son auteur, son lien et sa licence. Règle du dépôt : licence autorisant l'usage commercial ; musique en CC0 ou CC-BY uniquement, aucune licence NC.
