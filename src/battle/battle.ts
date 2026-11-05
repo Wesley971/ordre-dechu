@@ -102,7 +102,7 @@ function calcRevive(target: Combatant): Effect {
   return { type: "revive", amount: Math.max(1, Math.round(target.maxHp * CONFIG.revivePct)) };
 }
 
-function computeEffect(actor: Combatant, ability: Ability, target: Combatant): Effect {
+export function computeEffect(actor: Combatant, ability: Ability, target: Combatant): Effect {
   switch (ability.kind) {
     case "physical": return calcPhysical(actor, target, ability);
     case "magic":    return calcMagic(actor, target, ability);

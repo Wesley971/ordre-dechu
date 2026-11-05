@@ -40,6 +40,7 @@ Règle de Wesley du 03/11/2026, pour tous les tickets :
 | `npm run build` | Build de production dans `dist/` |
 | `npm run preview` | Servir `dist/` comme sur GitHub Pages |
 | `npm run typecheck` | Vérifier les types (`tsc --noEmit`), aussi lancé par le déploiement avant le build |
+| `npm test` | Lancer les tests Vitest des règles du combat (dégâts, critiques, jauge ATB), une fois, sans mode surveillance (MAE-22) |
 | `npm run check:battle` | Jouer un combat complet de chaque chapitre sous Node, sans navigateur, avec la vue muette (MAE-21) ; `-- <graine>` pour rejouer la même partie |
 
 Mode test (MAE-68), en local seulement (`npm run dev` ou `npm run preview`), inerte sur le site en ligne :
@@ -56,7 +57,7 @@ http://localhost:5173/ordre-dechu/?chapitre=4&vitesse=4
 - En mode test, la sauvegarde du navigateur (MAE-11) n'est ni lue ni écrite, et « Continuer » est masqué. Pour tester la reprise, placer une sauvegarde (clé `ordre-dechu-save`) puis ouvrir le jeu sans paramètre.
 - Tests automatisés dans un navigateur invisible (headless) : toujours lancé sans le son (`--mute-audio`), pour que le jeu ne s'entende pas pendant les tests (décision de Wesley du 02/11/2026).
 
-Pas encore de lint (MAE-23) ni de tests Vitest (MAE-22) ; `npm run check:battle` joue déjà les combats sans affichage.
+Les tests sont dans `src/dev/*.test.ts`, sous Node, sans DOM : hasard par `vi.spyOn` sur `Math.random` (`src/dev/test-helpers.ts`), combat par la vue muette. Pas encore de lint ni de vérification à chaque pull request (MAE-23).
 Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm run preview`.
 
 ## Environnements
@@ -65,7 +66,7 @@ Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm r
 
 ## Convention de noms
 - Fichiers en minuscules avec tirets (kebab-case), en anglais, sans accents ni espaces.
-- Code regroupé par domaine sous `src/` : `battle/`, `story/`, `party/`, `data/` (la logique : règles, état, histoire), `ui/` (l'affichage DOM : scène, fenêtres, dialogue, menus de combat ; `dom-view.ts` implémente le contrat), `audio/`, `input/`, `styles/`, `scene/` (scène peinte en 2,5D, seul domaine à importer Three.js, jamais depuis le code de démarrage), `dev/` (outils de test en local, dont la vue muette `silent-view.ts` et `headless-battle.ts`). Le contrat entre logique et affichage est `src/game-view.ts`.
+- Code regroupé par domaine sous `src/` : `battle/`, `story/`, `party/`, `data/` (la logique : règles, état, histoire), `ui/` (l'affichage DOM : scène, fenêtres, dialogue, menus de combat ; `dom-view.ts` implémente le contrat), `audio/`, `input/`, `styles/`, `scene/` (scène peinte en 2,5D, seul domaine à importer Three.js, jamais depuis le code de démarrage), `dev/` (outils de test en local, dont la vue muette `silent-view.ts`, `headless-battle.ts` et les tests Vitest). Le contrat entre logique et affichage est `src/game-view.ts`.
 - Images dans `public/images/`, référencées en `images/...` dans le code et en `/images/...` dans le CSS.
 - Musiques dans `public/audio/` (MP3 96 kbps stéréo), référencées en `audio/...` dans le code (`MUSIC`, `src/data/game-data.ts`).
 - Identifiants en anglais ; textes affichés et commentaires en français.
