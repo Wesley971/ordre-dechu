@@ -1,53 +1,18 @@
-// battle-menu.ts - Menus : petit menu de choix (écran titre, dialogues), menus de combat et sélection des cibles
+// battle-menu.ts - Menus de combat et sélection des cibles, côté affichage (MAE-21)
+//
+// La logique demande un ordre pour un héros prêt (GameView.requestOrder) ; ce menu l'obtient du joueur et
+// le rend par la promesse de la demande. Il lit l'état du combat pour proposer les bonnes entrées, sans jamais
+// le modifier : réserver un objet, mettre l'action en file ou passer la main reste l'affaire de la logique.
 
 import { ATTACK, RUN, SPELLS, ITEMS, ELEMENT_NAMES, GameState } from "../data/game-data.ts";
 import type { Ability, ItemId } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
+import type { HeroOrder, OrderContext, OrderRequest } from "../game-view.ts";
 import { Input, type Action } from "../input/input.ts";
 import { Sfx } from "../audio/sfx.ts";
-import { Battle, isAlive, groupOf, targetCandidates, queueHeroAction, defend, type Combatant } from "./battle.ts";
-import { renderMenu, updateMenuCursor, listColumns } from "../ui/view.ts";
+import { isAlive, groupOf, targetCandidates, type Combatant } from "../battle/battle.ts";
+import { renderMenu, updateMenuCursor, listColumns } from "./view.ts";
 
-// — Petit menu de choix —
-
-// Options verticales avec le curseur main : flèches, Valider, survol ou clic.
-// preselect: false → aucune option désignée au départ, il faut d'abord bouger la main.
-// Renvoie une promesse résolue avec l'index de l'option choisie.
-export function pickOption(items: HTMLElement[], { preselect = true }: { preselect?: boolean } = {}) {
-  let cursor = preselect ? 0 : -1;
-  const highlight = () => items.forEach((item, i) => item.classList.toggle("selected", i === cursor));
-  const listeners = new AbortController();
-  highlight();
-
-  return new Promise<number>(resolve => {
-    const choose = (index: number) => {
-      Input.pop();
-      listeners.abort();
-      Sfx.play("confirm");
-      resolve(index);
-    };
-
-    items.forEach((item, i) => {
-      item.addEventListener("mouseenter", () => { cursor = i; highlight(); }, { signal: listeners.signal });
-      item.addEventListener("click", event => {
-        event.stopPropagation(); // le clic ne doit pas aussi « valider » la fenêtre qui contient le menu
-        choose(i);
-      }, { signal: listeners.signal });
-    });
-
-    Input.push(action => {
-      if (action === "up" || action === "down") {
-        const delta = action === "up" ? -1 : 1;
-        cursor = cursor < 0 ? (delta < 0 ? items.length - 1 : 0) : (cursor + delta + items.length) % items.length;
-        Sfx.play("cursor");
-        highlight();
-      }
-      if (action === "confirm" && cursor >= 0) choose(cursor);
-    });
-  });
-}
-
-// — Menus de combat —
 // Le menu est une pile de niveaux : commande → liste (souffle / objets) → cible
 
 export interface MenuEntry {
@@ -75,7 +40,7 @@ function commandEntries(hero: Hero): MenuEntry[] {
     { label: "Frapper",    select: () => Menu.chooseTarget(ATTACK) },
     { label: hero.command, select: () => Menu.openList("spell"), disabled: hero.spells.length === 0 },
     { label: "Besace",     select: () => Menu.openList("item") },
-    { label: "Garde",      select: () => { defend(hero); Menu.done(); } },
+    { label: "Garde",      select: () => Menu.finish({ kind: "defend" }) },
     { label: "Repli",      select: () => Menu.confirmAction(RUN, []) },
   ];
 }
@@ -114,15 +79,12 @@ const canSwitchSide = (ability: Ability) => ability.target === "foe" || ability.
 export interface MenuController {
   hero: Hero | null; // héros dont le menu est ouvert
   stack: MenuLevel[];
+  context: OrderContext | null;                  // la demande en cours
+  settle: ((order: HeroOrder | null) => void) | null;
   readonly level: MenuLevel | undefined;
-  isInSubmenu(): boolean;
-  attach(): void;
-  detach(): void;
-  onHeroReady(): void;
-  onHeroDown(hero: Hero): void;
-  openNext(): void;
-  close(): void;
-  done(): void;
+  request(context: OrderContext): OrderRequest;
+  finish(order: HeroOrder | null): void;
+  syncDepth(): void;
   render(): void;
   openList(kind: "spell" | "item"): void;
   chooseTarget(ability: Ability, itemId?: ItemId | null): void;
@@ -141,38 +103,39 @@ export interface MenuController {
 export const Menu: MenuController = {
   hero: null,
   stack: [],
+  context: null,
+  settle: null,
 
   get level() { return this.stack[this.stack.length - 1]; },
-  isInSubmenu() { return this.stack.length > 1; },
 
-  attach() { Input.push(action => this.handle(action)); },
-  detach() { Input.pop(); this.close(); },
-
-  onHeroReady() {
-    if (!this.hero) this.openNext();
-  },
-
-  onHeroDown(hero) {
-    if (this.hero === hero) this.done();
-  },
-
-  openNext() {
-    const hero = Battle.readyQueue[0];
-    if (!hero || Battle.over) return this.close();
-    this.hero = hero;
-    this.stack = [{ type: "command", cursor: 0, entries: commandEntries(hero) }];
+  // Ouvre le menu du héros ; la promesse rendue se résout avec son ordre, ou null si la logique annule
+  request(context) {
+    if (this.settle) this.finish(null); // une demande encore ouverte ne doit jamais rester sans réponse
+    const order = new Promise<HeroOrder | null>(resolve => { this.settle = resolve; });
+    this.context = context;
+    this.hero = context.hero;
+    Input.push(action => this.handle(action));
+    this.stack = [{ type: "command", cursor: 0, entries: commandEntries(context.hero) }];
     this.render();
+    return { order, cancel: () => { if (this.context === context) this.finish(null); } };
   },
 
-  close() {
+  // Ferme le menu et rend l'ordre, une seule fois par demande
+  finish(order) {
+    const settle = this.settle;
+    if (!settle) return;
+    this.settle = null;
+    this.context = null;
     this.hero = null;
     this.stack = [];
+    Input.pop();
     this.render();
+    settle(order);
   },
 
-  done() {
-    this.close();
-    this.openNext();
+  // Dit à la logique si le joueur est dans un sous-menu (le temps se fige en mode « wait »)
+  syncDepth() {
+    this.context?.onBrowse(this.stack.length > 1);
   },
 
   render() {
@@ -183,6 +146,7 @@ export const Menu: MenuController = {
     if (!this.hero) return;
     const entries = kind === "spell" ? spellEntries(this.hero) : itemEntries(this.hero);
     this.stack.push({ type: "list", kind, cursor: 0, entries });
+    this.syncDepth();
     this.render();
   },
 
@@ -195,6 +159,7 @@ export const Menu: MenuController = {
       level.cursor = defaultTargetIndex(ability, this.targetsOf(level));
     }
     this.stack.push(level);
+    this.syncDepth();
     this.render();
   },
 
@@ -206,22 +171,19 @@ export const Menu: MenuController = {
   },
 
   confirmAction(ability, targets, itemId = null) {
-    if (!this.hero) return;
-    queueHeroAction(this.hero, ability, targets, itemId);
-    this.done();
+    this.finish({ kind: "ability", ability, targets, itemId });
   },
 
   back() {
     if (this.stack.length > 1) {
       this.stack.pop();
       Sfx.play("cancel");
+      this.syncDepth();
       this.render();
-    } else if (Battle.readyQueue.length > 1) {
+    } else if (this.context?.canPass()) {
       // Comme dans FF : Annuler au menu principal passe la main au héros prêt suivant
-      const first = Battle.readyQueue.shift();
-      if (first) Battle.readyQueue.push(first);
       Sfx.play("cursor");
-      this.openNext();
+      this.finish({ kind: "pass" });
     }
   },
 

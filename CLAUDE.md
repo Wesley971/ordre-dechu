@@ -40,6 +40,7 @@ Règle de Wesley du 03/11/2026, pour tous les tickets :
 | `npm run build` | Build de production dans `dist/` |
 | `npm run preview` | Servir `dist/` comme sur GitHub Pages |
 | `npm run typecheck` | Vérifier les types (`tsc --noEmit`), aussi lancé par le déploiement avant le build |
+| `npm run check:battle` | Jouer un combat complet de chaque chapitre sous Node, sans navigateur, avec la vue muette (MAE-21) ; `-- <graine>` pour rejouer la même partie |
 
 Mode test (MAE-68), en local seulement (`npm run dev` ou `npm run preview`), inerte sur le site en ligne :
 ```
@@ -55,7 +56,7 @@ http://localhost:5173/ordre-dechu/?chapitre=4&vitesse=4
 - En mode test, la sauvegarde du navigateur (MAE-11) n'est ni lue ni écrite, et « Continuer » est masqué. Pour tester la reprise, placer une sauvegarde (clé `ordre-dechu-save`) puis ouvrir le jeu sans paramètre.
 - Tests automatisés dans un navigateur invisible (headless) : toujours lancé sans le son (`--mute-audio`), pour que le jeu ne s'entende pas pendant les tests (décision de Wesley du 02/11/2026).
 
-Pas encore de lint ni de tests automatisés (MAE-23).
+Pas encore de lint (MAE-23) ni de tests Vitest (MAE-22) ; `npm run check:battle` joue déjà les combats sans affichage.
 Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm run preview`.
 
 ## Environnements
@@ -64,7 +65,7 @@ Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm r
 
 ## Convention de noms
 - Fichiers en minuscules avec tirets (kebab-case), en anglais, sans accents ni espaces.
-- Code regroupé par domaine sous `src/` : `battle/`, `story/`, `party/`, `data/`, `ui/`, `audio/`, `input/`, `styles/`, `scene/` (scène peinte en 2,5D, seul domaine à importer Three.js, jamais depuis le code de démarrage), `dev/` (outils de test en local).
+- Code regroupé par domaine sous `src/` : `battle/`, `story/`, `party/`, `data/` (la logique : règles, état, histoire), `ui/` (l'affichage DOM : scène, fenêtres, dialogue, menus de combat ; `dom-view.ts` implémente le contrat), `audio/`, `input/`, `styles/`, `scene/` (scène peinte en 2,5D, seul domaine à importer Three.js, jamais depuis le code de démarrage), `dev/` (outils de test en local, dont la vue muette `silent-view.ts` et `headless-battle.ts`). Le contrat entre logique et affichage est `src/game-view.ts`.
 - Images dans `public/images/`, référencées en `images/...` dans le code et en `/images/...` dans le CSS.
 - Musiques dans `public/audio/` (MP3 96 kbps stéréo), référencées en `audio/...` dans le code (`MUSIC`, `src/data/game-data.ts`).
 - Identifiants en anglais ; textes affichés et commentaires en français.
@@ -73,6 +74,7 @@ Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm r
 - Chaque fichier importe explicitement ce qu'il utilise, sans variable globale partagée.
 - Aucun code exécuté au chargement d'un module ne doit appeler un autre module : les modules s'importent en boucle (combat, menu, affichage), et un tel appel tomberait sur une valeur pas encore initialisée. Le code de démarrage va dans `src/main.ts`.
 - TypeScript strict : pas de `any`, pas de `!` (assertion non nulle), chaque `as` justifié en commentaire.
+- Logique et affichage séparés (MAE-21) : `src/battle/`, `src/story/`, `src/party/` et `src/data/` ne touchent ni au DOM ni à Three.js (aucun `document`, aucun `three`, vérifiable par recherche) et n'importent rien de `ui/`, `audio/`, `scene/` ni `dev/` (sauf des types, par `import type`). La logique reçoit son affichage en paramètre (`startGame`, `runBattle`) et ne lui parle que par l'interface `GameView` de `src/game-view.ts`. L'affichage lit l'état (`GameState`, `Battle`) pour dessiner, mais ne le modifie pas : il rend les décisions du joueur (ordres de combat, choix) par des promesses. Sons et musiques sont du côté de l'affichage. Toute nouvelle sortie visuelle ou sonore passe par une méthode du contrat, implémentée dans `ui/dom-view.ts` et dans `dev/silent-view.ts`.
 
 ## Sauvegarde
 - La partie est sauvegardée dans le navigateur au début de chaque chapitre (MAE-11, `src/data/save-game.ts`) ; une fin l'efface.

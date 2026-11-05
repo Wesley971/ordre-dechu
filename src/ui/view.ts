@@ -5,10 +5,10 @@ import { ATTACK, GameState, HEROES } from "../data/game-data.ts";
 import type { Ability, Chapter } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import { Sfx, type SoundName } from "../audio/sfx.ts";
-import { Battle, isAlive, wait } from "../battle/battle.ts";
+import { Battle, isAlive } from "../battle/battle.ts";
 import type { BattleState, Combatant, Effect, Enemy } from "../battle/battle.ts";
-import { Menu } from "../battle/battle-menu.ts";
-import type { CommandLevel, ListLevel, MenuController } from "../battle/battle-menu.ts";
+import { Menu } from "./battle-menu.ts";
+import type { CommandLevel, ListLevel, MenuController } from "./battle-menu.ts";
 
 // Élément de la page, qui doit exister : son absence est une erreur de structure de index.html
 export function $(selector: string, root: ParentNode = document) {
@@ -16,6 +16,8 @@ export function $(selector: string, root: ParentNode = document) {
   if (!element) throw new Error(`Élément introuvable : ${selector}`);
   return element;
 }
+
+export const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
 // Positions (en % de la zone) selon le nombre d'ennemis, et des héros en diagonale
 const FORMATIONS: Record<number, [number, number][]> = {
@@ -25,7 +27,8 @@ const FORMATIONS: Record<number, [number, number][]> = {
 };
 const HERO_SLOTS: [number, number][] = [[78, 28], [50, 52], [22, 76]];
 
-// Toile commune des sprites de héros, en pixels de sprite (affichée ×3 sur ordinateur, ×1 sur mobile)
+// Toile commune des sprites de héros, en pixels de sprite (affichée ×3 sur ordinateur, ×1 sur mobile).
+// Seule déclaration : style.css la reçoit en variables --canvas-w et --canvas-h, comme pour les ennemis (MAE-21)
 const HERO_CANVAS = { w: 47, h: 66 };
 
 // Éléments d'un combattant, absents tant que la scène n'est pas construite
@@ -54,11 +57,10 @@ function createSprite(c: Combatant, [x, y]: [number, number]) {
   sprite.style.left = x + "%";
   // Hauteur voulue ; style.css la borne pour que le sprite reste entier dans la scène (voir .sprite.hero, .sprite.enemy)
   sprite.style.setProperty("--slot-y", y + "%");
-  // Ennemi en pixel art : sa taille à l'écran vient de sa toile (voir .sprite.enemy dans style.css)
-  if (c.side === "enemy") {
-    sprite.style.setProperty("--canvas-w", String(c.canvasWidth));
-    sprite.style.setProperty("--canvas-h", String(c.canvasHeight));
-  }
+  // Pixel art : la taille à l'écran vient de la toile du PNG (voir .sprite.hero et .sprite.enemy dans style.css)
+  const canvas = c.side === "enemy" ? { w: c.canvasWidth, h: c.canvasHeight } : HERO_CANVAS;
+  sprite.style.setProperty("--canvas-w", String(canvas.w));
+  sprite.style.setProperty("--canvas-h", String(canvas.h));
   sprite.innerHTML = `<div class="sprite-body"><img class="sprite-img" src="${c.image}" alt="${c.name}">${embersHtml(c)}</div>`;
   sprite.addEventListener("click", () => Menu.clickTarget(c));
   if (c.side === "hero") {

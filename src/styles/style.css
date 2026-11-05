@@ -197,9 +197,9 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   cursor: var(--cursor-pointer);
 }
 
-/* Héros en pixel art : toile de 47 × 66 pixels de sprite, un pixel de sprite = --px pixels d'écran */
-.sprite.hero       { --px: 3; --canvas-h: 66; --size: calc(47px * var(--px)); }
-/* Ennemis en pixel art : toile propre à chacun (--canvas-w, posé par view.ts d'après ENEMIES), même échelle que les héros */
+/* Pixel art : un pixel de sprite = --px pixels d'écran. La toile du PNG (--canvas-w, --canvas-h, en pixels de sprite)
+   est posée par view.ts : HERO_CANVAS pour les héros, ENEMIES pour les ennemis. Même échelle pour tous. */
+.sprite.hero,
 .sprite.enemy      { --px: 3; --size: calc(var(--canvas-w) * 1px * var(--px)); }
 
 /* Position verticale bornée (MAE-67) : --slot-y (posé par view.ts) est gardé tant que le sprite tient entier dans la scène ;
@@ -305,9 +305,10 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 }
 
 /* L'étirement part du centre : on remonte d'un demi-pixel de sprite pour garder les pieds au sol
-   (le genou à terre et la chute du héros éteint pivotent eux aussi autour du centre) */
+   (le genou à terre et la chute du héros éteint pivotent eux aussi autour du centre).
+   Un pixel de sprite de plus sur la hauteur de la toile */
 @keyframes breathe {
-  50% { transform: translateY(calc(-0.5px * var(--px))) scaleY(calc(67 / 66)); }
+  50% { transform: translateY(calc(-0.5px * var(--px))) scaleY(calc((var(--canvas-h) + 1) / var(--canvas-h))); }
 }
 
 @keyframes hero-lunge {
@@ -334,7 +335,7 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   animation: none;
   filter: grayscale(1) brightness(0.55);
   transform-origin: 50% 100%;
-  transform: translateY(calc(-1px * var(--px) * var(--ko-lift, 23.5))) rotate(90deg);
+  transform: translateY(calc(-1px * var(--px) * var(--ko-lift, calc(var(--canvas-w) / 2)))) rotate(90deg);
 }
 .sprite.hero.victory .sprite-img { animation: victory-hop 0.45s ease-in-out 4; }
 

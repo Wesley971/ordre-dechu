@@ -4,14 +4,14 @@
 
 import { CONFIG } from "../config.ts";
 import { DECORS, isDecorId, type DecorId } from "../data/decors.ts";
-import { CHAPTERS, ENEMIES, GameState, type PowerState } from "../data/game-data.ts";
-import { gainXp } from "../party/heroes.ts";
+import { CHAPTERS, type PowerState } from "../data/game-data.ts";
 
 const LOCAL_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
 // Adresses privées du réseau local : le test sur un téléphone en Wi-Fi (MAE-28). Le site en ligne n'en fait jamais partie.
 const PRIVATE_NETWORK = /^(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})$/;
 const MAX_SPEED = 10;
 
+// Le départ au chapitre choisi lui-même (XP, Couronnes) est dans game-flow.ts (startAtChapter), hors du DOM.
 // startChapter : index du chapitre de départ (le numéro du titre moins un), null hors mode test
 // power : pouvoir du Cœur posé au départ de la partie, null hors mode test
 // winBattles : chaque ennemi tombe à 0 PV dès le début du combat, pour jouer la suite sans combattre
@@ -103,24 +103,4 @@ function applySpeed(speed: number) {
     requestAnimationFrame(speedUpAnimations);
   };
   requestAnimationFrame(speedUpAnimations);
-}
-
-// Nouvelle partie au chapitre choisi : groupe nourri de l'XP et des Couronnes de tous les combats précédents,
-// PV et PS pleins, objets de départ seulement (les objets trouvés sont aléatoires)
-export function prepareTestStart(chapterIndex: number) {
-  let xp = 0, gil = 0;
-  for (const chapter of CHAPTERS.slice(0, chapterIndex)) {
-    if (chapter.rest) continue;
-    for (const key of chapter.enemies) {
-      xp += ENEMIES[key].xp;
-      gil += ENEMIES[key].gil;
-    }
-  }
-  for (const hero of GameState.party) {
-    gainXp(hero, xp);
-    hero.hp = hero.maxHp;
-    hero.mp = hero.maxMp;
-  }
-  GameState.gil += gil;
-  GameState.chapterIndex = chapterIndex;
 }
