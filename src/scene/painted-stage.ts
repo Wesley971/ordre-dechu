@@ -20,8 +20,6 @@ import { computeFraming, type Framing } from "./framing.ts";
 import { ResourceBin } from "./materials.ts";
 import { buildRelief, type ReliefView } from "./relief.ts";
 
-const PARALLAX = { amplitude: 0.9, speed: 0.35 };
-
 export type SceneQuality = keyof typeof CONFIG.scene.qualityLevels;
 
 export interface StageMeasure {
@@ -218,7 +216,8 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
     time.value = t;
     view.actors.update(t, moving);
     view.atmosphere.update(t);
-    const targetDrift = parallax && moving ? Math.sin(t * PARALLAX.speed) * PARALLAX.amplitude : 0;
+    const { amplitude, speed } = cameraConfig.parallax;
+    const targetDrift = parallax && moving ? Math.sin(t * speed) * amplitude : 0;
     if (framing && Math.abs(targetDrift - drift) > 1e-4) {
       drift = targetDrift;
       placeCamera(framing.cameraDistance, drift);

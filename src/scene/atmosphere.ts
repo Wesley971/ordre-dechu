@@ -18,6 +18,7 @@ const MIST_LAYERS = [
   { size: [70, 34], position: [0, 0.3, -7], opacity: 0.22, repeat: [2.2, 1.1], speed: [-0.004, 0.0015], seed: 22 },
 ] as const;
 const SHAFTS = [[-2.5, -2.5, 2.4, 0.38], [0.8, -3.5, 1.6, 0.34], [3.2, -1.5, 1.1, 0.4]] as const;
+const SHAFT_RECEDE = 2.5;
 // Clairière du combat : la plupart des lucioles restent autour, pour ne pas gêner la lecture des personnages
 const CLEARING = { x: 0.3, z: 0.5, rx: 6.8, rz: 3.7, margin: -2.5 };
 
@@ -87,6 +88,7 @@ export function buildAtmosphere(decor: Decor, parent: Group, camera: Perspective
       }
     }
   }, false));
+  const shaftMeshes: Mesh[] = [];
   const shafts = SHAFTS.map(([x, z, width, tilt]) => {
     const material = bin.add(new MeshBasicMaterial({
       color: colors.moonlight, alphaMap: shaftMask, transparent: true, opacity: atmosphere.shafts.opacity,
@@ -97,6 +99,7 @@ export function buildAtmosphere(decor: Decor, parent: Group, camera: Perspective
     shaft.rotation.z = -tilt;
     shaft.renderOrder = ORDER.shafts;
     parent.add(shaft);
+    shaftMeshes.push(shaft);
     return material;
   });
 
@@ -148,6 +151,13 @@ export function buildAtmosphere(decor: Decor, parent: Group, camera: Perspective
       cameraDistance = framing.cameraDistance;
       uniformEdge.value = imageEdge;
       uniformResolution.value.copy(drawingBuffer);
+      // Rayons reculés vers la forêt peinte et agrandis d'autant : même image au repos, sans glisser sur la lune
+      // quand la caméra bouge. Toujours avec la caméra au repos, comme le relief.
+      shaftMeshes.forEach((shaft, i) => {
+        const [x, z] = SHAFTS[i];
+        shaft.position.set(x, 8, z).sub(camera.position).multiplyScalar(SHAFT_RECEDE).add(camera.position);
+        shaft.scale.setScalar(SHAFT_RECEDE);
+      });
     },
     update(t) {
       for (const layer of mistLayers) layer.texture.offset.set(layer.speed.x * t, layer.speed.y * t);

@@ -1,7 +1,7 @@
 // relief.ts - La peinture montée en relief, ses côtés et le fondu des bords (MAE-28)
 
 import {
-  Color, Mesh, MeshBasicMaterial, PlaneGeometry, RepeatWrapping, ShaderMaterial,
+  Color, MathUtils, Mesh, MeshBasicMaterial, MirroredRepeatWrapping, PlaneGeometry, RepeatWrapping, ShaderMaterial,
   type Group, type Material, type PerspectiveCamera, type Texture, type Vector3,
 } from "three";
 import { CONFIG } from "../config.ts";
@@ -145,20 +145,22 @@ export async function buildRelief(
     add(plain(nearRight), ORDER.sideNear, false, sides.near.depth);
   }
 
-  // Fougères sombres des coins de l'écran
-  const corners: { mesh: Mesh; width: number; height: number; isLeft: boolean }[] = [];
+  // Fougères sombres des coins de l'écran. L'image se reflète au-delà de son bord extérieur (bord de l'écran) :
+  // la marge qui reste hors champ au repos ne montre ni bord net ni couleurs étirées quand la caméra bouge.
+  const corners: { mesh: Mesh; map: Texture; width: number; height: number; isLeft: boolean }[] = [];
   if (sides?.corners && cornerTextures) {
     const { left, right, amplitude, rise } = sides.corners;
     [{ map: cornerTextures[0], size: left, isLeft: true }, { map: cornerTextures[1], size: right, isLeft: false }].forEach(({ map, size, isLeft }) => {
+      map.wrapS = MirroredRepeatWrapping;
       const material = bin.add(swayingMaterial(map, time, amplitude, rise));
       material.fog = false;
       const mesh = fullPlane(material, ORDER.corners, parent);
       bin.add(mesh.geometry);
-      corners.push({ mesh, width: size.width, height: size.height, isLeft });
+      corners.push({ mesh, map, width: size.width, height: size.height, isLeft });
     });
   }
 
-  const pitch = CONFIG.scene.camera.pitch;
+  const { pitch, fov, parallax } = CONFIG.scene.camera;
   // Plan face à la caméra, qui couvre exactement ce rectangle de l'écran à cette profondeur
   const placeOnScreen = (mesh: Mesh, left: number, right: number, top: number, bottom: number, depth: number) => {
     const topLeft = pointAtDepth(camera, left, top, depth);
@@ -234,9 +236,17 @@ export async function buildRelief(
           heightPx = (widthPx * corner.height) / corner.width;
         }
         const out = 0.02; // déborde légèrement de l'écran : aucun bord visible
+        const depth = sides?.corners?.depth ?? 14;
         const inner = -1 + (2 * widthPx) / canvasSize.width;
-        const [left, right] = corner.isLeft ? [-1 - out, inner] : [-inner, 1 + out];
-        placeOnScreen(corner.mesh, left, right, -1 + (2 * heightPx) / canvasSize.height, -1 - out, sides?.corners?.depth ?? 7);
+        // Marge hors champ, égale au plus grand déplacement de la caméra vu à cette profondeur
+        const aspect = canvasSize.width / canvasSize.height;
+        const travel = parallax.amplitude / (depth * aspect * Math.tan(MathUtils.degToRad(fov / 2)));
+        const visible = inner + 1 + out;
+        const [left, right] = corner.isLeft ? [-1 - out - travel, inner] : [-inner, 1 + out + travel];
+        // Au repos, la partie visible garde exactement la même échelle
+        corner.map.repeat.x = (visible + travel) / visible;
+        corner.map.offset.x = corner.isLeft ? -travel / visible : 0;
+        placeOnScreen(corner.mesh, left, right, -1 + (2 * heightPx) / canvasSize.height, -1 - out, depth);
       }
     },
   };

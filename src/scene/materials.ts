@@ -139,10 +139,18 @@ export async function loadDepthMap(url: string) {
   const context = context2d(canvas, { willReadFrequently: true });
   context.drawImage(image, 0, 0);
   const { data, width, height } = context.getImageData(0, 0, image.width, image.height);
+  const at = (x: number, y: number) => data[(y * width + x) * 4] / 255;
+  // Lecture lissée entre quatre pixels : au plus proche, le relief ferait de petites marches
   return (u: number, v: number) => {
-    const x = Math.min(width - 1, Math.max(0, Math.round(u * (width - 1))));
-    const y = Math.min(height - 1, Math.max(0, Math.round((1 - v) * (height - 1))));
-    return data[(y * width + x) * 4] / 255;
+    const x = Math.min(width - 1, Math.max(0, u * (width - 1)));
+    const y = Math.min(height - 1, Math.max(0, (1 - v) * (height - 1)));
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
+    const x1 = Math.min(width - 1, x0 + 1);
+    const y1 = Math.min(height - 1, y0 + 1);
+    const top = at(x0, y0) + (at(x1, y0) - at(x0, y0)) * (x - x0);
+    const bottom = at(x0, y1) + (at(x1, y1) - at(x0, y1)) * (x - x0);
+    return top + (bottom - top) * (y - y0);
   };
 }
 

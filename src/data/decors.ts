@@ -74,7 +74,7 @@ export const DECORS: Record<DecorId, Decor> = {
       corners: {
         left:  { file: `${LISIERE_DIR}/corner-left.png`,  width: 290, height: 360 },
         right: { file: `${LISIERE_DIR}/corner-right.png`, width: 350, height: 310 },
-        depth: 7, amplitude: 0.012, rise: [0.15, 1],
+        depth: 14, amplitude: 0.012, rise: [0.15, 1],
       },
     },
     atmosphere: {
