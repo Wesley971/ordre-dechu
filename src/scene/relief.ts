@@ -8,21 +8,19 @@ import { CONFIG } from "../config.ts";
 import type { Decor, ImagePoint } from "../data/decors.ts";
 import { pointAtDepth, type Framing } from "./framing.ts";
 import {
-  computedTexture, glintMaterial, loadDepthMap, loadPainting, swayingMaterial, tileableNoise, type ResourceBin,
+  computedTexture, glintMaterial, loadDataTexture, loadDepthMap, loadPainting, mistMaterial, swayingMaterial, tileableNoise, type ResourceBin,
 } from "./materials.ts";
 
 // Un sommet tous les 10 pixels environ de l'image, assez fin pour suivre la carte de profondeur
 const RELIEF_SEGMENTS = { x: 258, y: 77 };
-// Ordre de dessin : relief, côtés, lueurs, brume (2), rayons (3), lucioles (4), fondu, feuillages, ombres (50)
-const ORDER = { relief: -20, sideFar: -16, sideGlints: -14, sideNear: -12, glints: -10, edgeFade: 25, foreground: 30, edgeFadeFitted: 35, corners: 40 };
+// Ordre de dessin : relief, côtés lointains, lueurs, brume, côtés proches, rayons (3), lucioles (4), fondu, feuillages, ombres (50)
+const ORDER = { relief: -20, sideFar: -16, sideGlints: -14, glints: -10, mist: 2, sideNear: 2.5, edgeFade: 25, foreground: 30, edgeFadeFitted: 35, corners: 40 };
 // Part de la peinture qui se fond dans la brume en haut et en bas, quand elle ne remplit pas la hauteur.
 // Assez pour qu'aucun bord ne se voie, assez peu pour garder la lune (voile léger sur son haut) et les pieds nets.
 const FITTED_FADE = { top: 0.09, bottom: 0.1 };
 
 export interface ReliefView {
   layout(framing: Framing, canvasSize: { width: number; height: number }): void;
-  // Bord de la peinture à l'écran (en coordonnées -1 à 1), pour alléger la brume au-delà
-  edge(): number;
   // Point du relief à cet endroit de la peinture. Après layout, avec la caméra au repos.
   surfacePoint(place: ImagePoint): Vector3;
 }
@@ -89,9 +87,10 @@ export async function buildRelief(
 ): Promise<ReliefView> {
   const { image, relief, sides } = decor;
   const texture = (url: string) => loadPainting(url, bin);
-  const [wide, sampleDepth, foreground, glints, sideTextures, cornerTextures] = await Promise.all([
+  const [wide, sampleDepth, depthTexture, foreground, glints, sideTextures, cornerTextures] = await Promise.all([
     texture(image.wide),
     loadDepthMap(image.depthMap),
+    loadDataTexture(image.depthMap, bin),
     image.foreground ? texture(image.foreground.file) : null,
     image.glints ? texture(image.glints) : null,
     sides ? Promise.all([sides.far, sides.glints, sides.near].flatMap((s) => [texture(s.left), texture(s.right)])) : null,
@@ -123,6 +122,8 @@ export async function buildRelief(
     }
   }, false));
   noise.wrapS = noise.wrapT = RepeatWrapping;
+  // La brume est posée sur le relief : elle suit la profondeur de la peinture et ne s'en décolle pas
+  addOnRelief(mistMaterial(depthTexture, noise, time, decor.atmosphere.mist, decor.atmosphere.colors.mist, image), ORDER.mist);
   const fade = bin.add(edgeFadeMaterial(decor, noise, time));
   const fadePlane = fullPlane(fade, ORDER.edgeFade, parent);
   bin.add(fadePlane.geometry);
@@ -173,13 +174,11 @@ export async function buildRelief(
     mesh.rotation.set(-pitch, 0, 0);
   };
 
-  let edge = 0.5;
   let currentFraming: Framing | null = null;
 
   const depthAt = (u: number, v: number) => relief.near + relief.span * sampleDepth(u, v) ** relief.power;
 
   return {
-    edge: () => edge,
     surfacePoint(place) {
       if (!currentFraming) throw new Error("Scène peinte : relief pas encore mis en place");
       const u = (place.col + image.extend) / (image.width + 2 * image.extend);
@@ -211,7 +210,7 @@ export async function buildRelief(
         }
       }
 
-      edge = Math.min(Math.abs(framing.colToNdc(0)), Math.abs(framing.colToNdc(image.width)));
+      const edge = Math.min(Math.abs(framing.colToNdc(0)), Math.abs(framing.colToNdc(image.width)));
       const top = framing.rowToNdc(0);
       const bottom = framing.rowToNdc(image.height);
       const uniforms = fade.uniforms;
