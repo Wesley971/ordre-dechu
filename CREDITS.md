@@ -92,13 +92,13 @@ D'après l'audit du 11/10/2026, ces images ont été générées environ un an p
 
 ### Décor de la Lisière
 
-Générée par Wesley avec Gemini (Google) le 03/11/2026, puis préparée par un script gardé hors du dépôt, dans le labo du projet (`tools/prepare-lisiere.mjs`), avec l'image d'origine.
+Générée par Wesley avec Gemini (Google) le 03/11/2026, puis préparée par un script gardé hors du dépôt, dans le labo du projet (`tools/prepare-lisiere.mjs` et `tools/prepare-lisiere-2.mjs`), avec l'image d'origine.
 
 | Image | Contenu | Origine |
 |---|---|---|
 | `public/images/backdrops/lisiere/wide.png` | La peinture et ses prolongements | Générée avec Gemini (Google) : couleurs et luminosité ramenées à celles de `background.png`, grain ajouté par le code. Prolongements repris de `background.png` (ChatGPT, OpenAI) |
 | `foreground.png`, `glints.png` | Fougères qui se balancent, lucioles et fleurs qui luisent | Découpées dans la même image (Gemini) |
-| `depth.png` | Carte de profondeur | Calculée par le script |
+| `depth.png` | Carte de profondeur | Calculée par le script, d'après les troncs relevés à la main sur la peinture |
 | `side-far-*.png`, `side-near-*.png`, `side-glints-*.png`, `corner-*.png` | Forêt des côtés des écrans larges, fougères des coins | Découpées dans `background.png` (ChatGPT, OpenAI) par un script : morceaux retournés, étirés ou assombris |
 
 Conditions de Google et d'OpenAI : voir « Conditions des outils » plus haut.
