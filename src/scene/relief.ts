@@ -2,10 +2,10 @@
 
 import {
   Color, Mesh, MeshBasicMaterial, PlaneGeometry, RepeatWrapping, ShaderMaterial,
-  type Group, type Material, type PerspectiveCamera, type Texture,
+  type Group, type Material, type PerspectiveCamera, type Texture, type Vector3,
 } from "three";
 import { CONFIG } from "../config.ts";
-import type { Decor } from "../data/decors.ts";
+import type { Decor, ImagePoint } from "../data/decors.ts";
 import { pointAtDepth, type Framing } from "./framing.ts";
 import {
   computedTexture, glintMaterial, loadDepthMap, loadPainting, swayingMaterial, tileableNoise, type ResourceBin,
@@ -23,6 +23,8 @@ export interface ReliefView {
   layout(framing: Framing, canvasSize: { width: number; height: number }): void;
   // Bord de la peinture à l'écran (en coordonnées -1 à 1), pour alléger la brume au-delà
   edge(): number;
+  // Point du relief à cet endroit de la peinture. Après layout, avec la caméra au repos.
+  surfacePoint(place: ImagePoint): Vector3;
 }
 
 function fullPlane(material: Material, order: number, parent: Group) {
@@ -170,19 +172,28 @@ export async function buildRelief(
   };
 
   let edge = 0.5;
+  let currentFraming: Framing | null = null;
+
+  const depthAt = (u: number, v: number) => relief.near + relief.span * sampleDepth(u, v) ** relief.power;
 
   return {
     edge: () => edge,
+    surfacePoint(place) {
+      if (!currentFraming) throw new Error("Scène peinte : relief pas encore mis en place");
+      const u = (place.col + image.extend) / (image.width + 2 * image.extend);
+      const depth = depthAt(u, 1 - place.row / image.height);
+      return pointAtDepth(camera, currentFraming.colToNdc(place.col), currentFraming.rowToNdc(place.row), depth);
+    },
     // Toujours appelé avec la caméra au repos : c'est depuis elle que la peinture est projetée
     layout(framing, canvasSize) {
+      currentFraming = framing;
       const position = geometry.getAttribute("position");
       const uv = geometry.getAttribute("uv");
       for (let i = 0; i < position.count; i++) {
         const u = uv.getX(i);
         const v = uv.getY(i);
-        const depth = relief.near + relief.span * sampleDepth(u, v) ** relief.power;
         const point = pointAtDepth(
-          camera, framing.colToNdc(-image.extend + u * (image.width + 2 * image.extend)), framing.rowToNdc((1 - v) * image.height), depth,
+          camera, framing.colToNdc(-image.extend + u * (image.width + 2 * image.extend)), framing.rowToNdc((1 - v) * image.height), depthAt(u, v),
         );
         position.setXYZ(i, point.x, point.y, point.z);
       }

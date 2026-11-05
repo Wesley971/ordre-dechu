@@ -205,7 +205,7 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
     view.relief.layout(framing, { width: cssWidth, height: cssHeight });
     // La brume mesure sa position en pixels de l'image où elle est dessinée : ceux du décor, pas ceux de l'écran
     view.atmosphere.layout(framing, view.relief.edge(), new Vector2(composer.readBuffer.width, composer.readBuffer.height));
-    view.actors.layout(framing);
+    view.actors.layout(framing, view.relief.surfacePoint);
     if (drift !== 0) {
       placeCamera(framing.cameraDistance, drift);
       view.actors.rescale();

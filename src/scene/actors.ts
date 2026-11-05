@@ -9,7 +9,7 @@ import {
 } from "three";
 import { CONFIG } from "../config.ts";
 import type { ImagePoint } from "../data/decors.ts";
-import { depthOf, pointOnGround, type Framing, type GroupExtent } from "./framing.ts";
+import { depthOf, type Framing, type GroupExtent } from "./framing.ts";
 import { context2d, loadImage, pixelTexture, radialTexture, type ResourceBin } from "./materials.ts";
 
 export interface ActorDef {
@@ -26,7 +26,8 @@ export interface ActorBox { id: string; file: string; left: number; top: number;
 
 export interface ActorsView {
   extent: GroupExtent;
-  layout(framing: Framing): void;
+  // surfacePoint : point du relief peint sous les pieds (colonne et ligne de la peinture)
+  layout(framing: Framing, surfacePoint: (place: ImagePoint) => Vector3): void;
   rescale(): void; // après un déplacement de la caméra
   update(t: number, moving: boolean): void;
   focusRange(): { min: number; max: number } | null; // bande de l'écran occupée, de 0 (bas) à 1 (haut)
@@ -34,7 +35,7 @@ export interface ActorsView {
 }
 
 const SHADOW_ORDER = 50; // au-dessus du décor peint, sans test de profondeur : le relief la couperait
-// Sprites à ~0,8 fois la distance de la caméra : à cette échelle, les ombres gardent la taille validée dans le labo
+// Taille des ombres à l'écran, validée dans le labo
 const SHADOW_BOOST = 1.2;
 const HALO_OPACITY = 0.35;
 
@@ -127,12 +128,13 @@ export async function buildActors(
   const point = new Vector3();
   return {
     extent: defs.map((def, index) => ({ col: def.place.col, spriteWidth: images[index].width })),
-    layout(framing) {
+    // Les pieds sont sur le relief : le sprite suit le sol peint quand la caméra bouge, au lieu d'y glisser
+    layout(framing, surfacePoint) {
       cameraDistance = framing.cameraDistance;
       for (const view of views) {
-        const ground = pointOnGround(camera, framing.colToNdc(view.def.place.col), framing.rowToNdc(view.def.place.row));
-        view.root.position.copy(ground);
-        view.sprite.position.copy(ground);
+        const feet = surfacePoint(view.def.place);
+        view.root.position.copy(feet);
+        view.sprite.position.copy(feet);
       }
       rescale();
     },
@@ -150,7 +152,7 @@ export async function buildActors(
       let max = -Infinity;
       for (const view of views) {
         for (const y of [0, view.height * view.sprite.scale.y]) {
-          point.set(view.root.position.x, y, view.root.position.z).project(camera);
+          point.set(view.root.position.x, view.root.position.y + y, view.root.position.z).project(camera);
           min = Math.min(min, (point.y + 1) / 2);
           max = Math.max(max, (point.y + 1) / 2);
         }

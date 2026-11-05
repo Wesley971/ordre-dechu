@@ -66,13 +66,6 @@ export function pointAtDepth(camera: PerspectiveCamera, ndcX: number, ndcY: numb
   return camera.position.clone().addScaledVector(ray, depth / ray.dot(forward));
 }
 
-// Point du sol (y = 0) qui s'affiche en (x, y) à l'écran. Le bas du champ de la caméra vise toujours le sol :
-// l'inclinaison (20,6°) dépasse la demi-focale (14°), donc le rayon descend.
-export function pointOnGround(camera: PerspectiveCamera, ndcX: number, ndcY: number): Vector3 {
-  const ray = new Vector3(ndcX, ndcY, 0.5).unproject(camera).sub(camera.position).normalize();
-  return camera.position.clone().addScaledVector(ray, -camera.position.y / ray.y);
-}
-
 // Profondeur (le long de l'axe de la caméra) d'un point du monde
 export function depthOf(camera: PerspectiveCamera, point: Vector3): number {
   const forward = camera.getWorldDirection(new Vector3());
