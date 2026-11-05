@@ -1,4 +1,7 @@
 // battle.ts - Moteur de combat : calculs (logique pure) et boucle ATB
+//
+// Le moteur ne connaît pas l'affichage : il reçoit une vue (GameView, src/game-view.ts) qui dessine, anime et
+// demande ses ordres au joueur. Aucun DOM, aucun son, aucune horloge du navigateur ici : la vue fournit les images.
 
 import { CONFIG } from "../config.ts";
 import { ATTACK, ENEMY_SKILLS, ENEMIES, GameState } from "../data/game-data.ts";
@@ -7,13 +10,7 @@ import type {
   MagicAbility, PhysicalAbility, TargetType,
 } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
-import { Sfx } from "../audio/sfx.ts";
-import { Menu } from "./battle-menu.ts";
-import { TestMode } from "../dev/test-mode.ts";
-import {
-  renderBattle, updateBattleUI, updateAtbUI, showMessage, playBattleIntro,
-  animateActorStart, animateActorEnd, showEffect, showDefend, showDefeated, killEnemies, animateEscape,
-} from "../ui/view.ts";
+import { noView, type GameView, type HeroOrder, type OrderRequest } from "../game-view.ts";
 
 // charging : la jauge se remplit · ready : héros en attente d'un ordre · queued : action en file · ko : à terre
 export type CombatState = "charging" | "ready" | "queued" | "ko";
@@ -52,7 +49,6 @@ export interface QueuedAction {
 
 export type BattleResult = "victory" | "defeat" | "escape" | "truce";
 
-export const wait       = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 const randomItem = <T>(list: T[]) => list[Math.floor(Math.random() * list.length)];
 export const isAlive    = (combatant: Combatant) => combatant.hp > 0;
 
@@ -206,9 +202,10 @@ export interface BattleState {
   readyQueue: Hero[];           // héros dont la jauge est pleine, en attente d'un ordre
   actionQueue: QueuedAction[];  // actions choisies, exécutées une par une
   busy: boolean;                // une action est en cours d'animation
+  browsing: boolean;            // le joueur est dans une liste ou un ciblage (le temps se fige en mode « wait »)
   actionsDone: number;          // actions jouées depuis le début du combat (trêve)
   over: boolean;
-  lastTime: number;
+  order: { hero: Hero; request: OrderRequest } | null; // demande d'ordre en cours auprès de la vue
   resolve: (result: BattleResult) => void;
 }
 
@@ -217,21 +214,30 @@ export const Battle: BattleState = {
   readyQueue: [],
   actionQueue: [],
   busy: false,
+  browsing: false,
   actionsDone: 0,
   over: false,
-  lastTime: 0,
+  order: null,
   resolve: () => {}, // remplacé par runBattle
 };
+
+// La vue du combat en cours, posée par runBattle
+let view: GameView = noView();
 
 function allCombatants(): Combatant[] {
   return [...Battle.heroes, ...Battle.enemies];
 }
 
-// Joue un combat complet ; renvoie "victory", "defeat" ou "escape"
-export async function runBattle(chapter: BattleChapter) {
+export interface BattleOptions {
+  winBattles?: boolean; // mode test (?combat=gagne) : les ennemis tombent d'office, la suite se joue normalement
+}
+
+// Joue un combat complet ; renvoie "victory", "defeat", "escape" ou "truce"
+export async function runBattle(gameView: GameView, chapter: BattleChapter, { winBattles = false }: BattleOptions = {}) {
+  view = gameView;
   Object.assign(Battle, {
     heroes: GameState.party, enemies: createEnemies(chapter.enemies), chapter,
-    readyQueue: [], actionQueue: [], busy: true, actionsDone: 0, over: false,
+    readyQueue: [], actionQueue: [], busy: true, browsing: false, actionsDone: 0, over: false, order: null,
   });
   const ended = new Promise<BattleResult>(resolve => Battle.resolve = resolve);
 
@@ -241,38 +247,32 @@ export async function runBattle(chapter: BattleChapter) {
     c.defending = false;
   }
 
-  renderBattle(Battle);
-  await playBattleIntro(Battle);
-  // Mode test (local, ?combat=gagne) : les ennemis tombent d'office, la suite (choix, scènes) se joue normalement
-  if (TestMode.winBattles) {
+  await view.startBattle(Battle);
+  if (winBattles) {
     for (const enemy of Battle.enemies) enemy.hp = 0;
     await handleKnockouts(Battle.enemies);
     checkBattleEnd();
   }
-  Menu.attach();
   Battle.busy = false;
-  Battle.lastTime = performance.now();
-  requestAnimationFrame(battleLoop);
+  const stopFrames = view.frames(battleLoop);
 
   const result = await ended;
-  Menu.detach();
+  stopFrames();
   return result;
 }
 
-function battleLoop(now: number) {
+// Une image : le temps écoulé est plafonné, pour qu'un onglet resté en arrière-plan ne rattrape pas d'un coup
+function battleLoop(elapsedMs: number) {
   if (Battle.over) return;
-  const dt = Math.min((now - Battle.lastTime) / 1000, 0.1);
-  Battle.lastTime = now;
+  const dt = Math.min(elapsedMs / 1000, 0.1);
 
   if (!isTimeFrozen()) fillGauges(dt);
   if (!Battle.busy && Battle.actionQueue.length > 0) runNextAction();
-  updateAtbUI(Battle.heroes);
-
-  requestAnimationFrame(battleLoop);
+  view.refreshGauges(Battle.heroes);
 }
 
 function isTimeFrozen() {
-  return Battle.busy || (CONFIG.atb.mode === "wait" && Menu.isInSubmenu());
+  return Battle.busy || (CONFIG.atb.mode === "wait" && Battle.browsing);
 }
 
 function fillGauges(dt: number) {
@@ -290,9 +290,8 @@ function fillGauges(dt: number) {
 function heroReady(hero: Hero) {
   hero.defending = false;
   Battle.readyQueue.push(hero);
-  Sfx.play("ready");
-  updateBattleUI();
-  Menu.onHeroReady();
+  view.heroReady(hero);
+  offerOrder();
 }
 
 function enemyReady(enemy: Enemy) {
@@ -306,21 +305,66 @@ function removeFromReadyQueue(hero: Hero) {
 
 // — Ordres du joueur —
 
-export function queueHeroAction(hero: Hero, ability: Ability, targets: Combatant[], itemId: ItemId | null = null) {
+// Demande à la vue l'ordre du premier héros prêt, s'il n'y a pas déjà une demande en cours
+function offerOrder() {
+  if (Battle.order || Battle.over) return;
+  const hero = Battle.readyQueue[0];
+  if (!hero) return;
+
+  const request = view.requestOrder({
+    hero,
+    canPass: () => Battle.readyQueue.length > 1,
+    onBrowse: (inSubmenu) => { if (Battle.order?.request === request) Battle.browsing = inSubmenu; },
+  });
+  Battle.order = { hero, request };
+  void request.order.then(order => {
+    if (Battle.order?.request !== request) return; // annulée entre-temps
+    Battle.order = null;
+    Battle.browsing = false;
+    // Le combat a pu se finir, ou le héros tomber, entre le choix et son arrivée ici
+    if (order && !Battle.over && hero.state === "ready") applyOrder(hero, order);
+    offerOrder();
+  });
+}
+
+// Annule la demande en cours : la vue ferme son menu, l'ordre éventuel est ignoré
+function cancelOrder() {
+  const pending = Battle.order;
+  if (!pending) return;
+  Battle.order = null;
+  Battle.browsing = false;
+  pending.request.cancel();
+}
+
+function applyOrder(hero: Hero, order: HeroOrder) {
+  switch (order.kind) {
+    case "ability": queueHeroAction(hero, order.ability, order.targets, order.itemId); break;
+    case "defend":  defend(hero); break;
+    case "pass":
+      // Comme dans FF : Annuler au menu principal passe la main au héros prêt suivant
+      if (Battle.readyQueue.length > 1) {
+        const first = Battle.readyQueue.shift();
+        if (first) Battle.readyQueue.push(first);
+      }
+      break;
+  }
+}
+
+function queueHeroAction(hero: Hero, ability: Ability, targets: Combatant[], itemId: ItemId | null = null) {
   removeFromReadyQueue(hero);
   hero.state = "queued";
   if (itemId) GameState.inventory[itemId]--;  // réservé dès le choix, rendu si l'action n'a pas lieu
   Battle.actionQueue.push({ actor: hero, ability, targets, itemId });
-  updateBattleUI();
+  view.refresh();
 }
 
-export function defend(hero: Hero) {
+function defend(hero: Hero) {
   removeFromReadyQueue(hero);
   hero.defending = true;
   hero.atb = 0;
   hero.state = "charging";
-  showDefend(hero);
-  updateBattleUI();
+  view.showDefend(hero);
+  view.refresh();
 }
 
 // — Exécution des actions —
@@ -351,19 +395,18 @@ async function performAbility({ actor, ability, targets: chosen }: QueuedAction)
   const targets = retarget(actor, ability, chosen);
   if (ability.mp) actor.mp = Math.max(0, actor.mp - ability.mp);
 
-  await animateActorStart(actor, ability);
+  await view.actionStart(actor, ability);
 
-  for (const target of targets) {
+  const hits = targets.map(target => {
     const effect = computeEffect(actor, ability, target);
     applyEffect(target, effect);
-    showEffect(target, effect, ability);
-  }
-  updateBattleUI();
-  await wait(CONFIG.timing.effect);
+    return { target, effect };
+  });
+  await view.showEffects(hits, ability);
 
   await handleKnockouts(targets);
   await checkRage(targets);
-  await animateActorEnd(actor);
+  await view.actionEnd(actor);
 }
 
 async function handleKnockouts(targets: Combatant[]) {
@@ -374,7 +417,10 @@ async function handleKnockouts(targets: Combatant[]) {
     c.defending = false;
     if (c.side === "hero") {
       removeFromReadyQueue(c);
-      Menu.onHeroDown(c);
+      if (Battle.order?.hero === c) {
+        cancelOrder();
+        offerOrder();
+      }
     }
   }
 
@@ -383,10 +429,10 @@ async function handleKnockouts(targets: Combatant[]) {
   const staysDown = (enemy: Enemy) =>
     enemy.spareable || Battle.chapter?.truce !== undefined || Battle.chapter?.surrender !== undefined;
   const fallenEnemies = fallen.filter(c => c.side === "enemy");
-  fallenEnemies.filter(staysDown).forEach(showDefeated);
+  for (const enemy of fallenEnemies.filter(staysDown)) view.showDefeated(enemy);
   const deadEnemies = fallenEnemies.filter(c => !staysDown(c));
-  if (deadEnemies.length) await killEnemies(deadEnemies);
-  updateBattleUI();
+  if (deadEnemies.length) await view.killEnemies(deadEnemies);
+  view.refresh();
 }
 
 async function checkRage(targets: Combatant[]) {
@@ -395,20 +441,20 @@ async function checkRage(targets: Combatant[]) {
     if (enemy.hp / enemy.maxHp > enemy.rage.threshold) continue;
     enemy.enraged = true;
     enemy.turns = 0;
-    await showMessage(enemy.rage.message);
+    await view.message(enemy.rage.message);
   }
 }
 
 async function attemptRun() {
   if (Battle.chapter?.canRun === false) {
-    await showMessage("Repli impossible !");
+    await view.message("Repli impossible !");
     return;
   }
   if (Math.random() < CONFIG.run.successChance) {
-    await animateEscape();
+    await view.animateEscape();
     endBattle("escape");
   } else {
-    await showMessage("Le repli a échoué !");
+    await view.message("Le repli a échoué !");
   }
 }
 
@@ -438,7 +484,7 @@ function endBattle(result: BattleResult) {
     hero.defending = false;
     if (isAlive(hero)) hero.state = "charging";
   }
-  updateAtbUI(Battle.heroes);
-  Menu.close();
+  view.refreshGauges(Battle.heroes);
+  cancelOrder();
   Battle.resolve(result);
 }

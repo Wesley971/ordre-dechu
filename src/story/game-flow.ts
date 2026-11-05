@@ -1,41 +1,46 @@
 // game-flow.ts - Déroulement de la partie : titre, histoire, combats, fin
+//
+// Tout passe par la vue reçue dans startGame (GameView, src/game-view.ts) : aucun DOM, aucun son ici.
 
 import {
-  CHAPTERS, PROLOGUE, POWER_CHOICE, DRAGON_FATE, ENDINGS, GAME_OVER, GameState, endingOf, isValidCheckpoint,
+  CHAPTERS, ENEMIES, PROLOGUE, POWER_CHOICE, DRAGON_FATE, ENDINGS, GAME_OVER, GameState, endingOf, isValidCheckpoint,
 } from "../data/game-data.ts";
-import type { FateId, Page, PowerChoiceId } from "../data/game-data.ts";
+import type { FateId, Page, PowerChoiceId, PowerState } from "../data/game-data.ts";
 import { SaveGame } from "../data/save-game.ts";
-import { grantRewards, restoreParty, type Rewards } from "../party/heroes.ts";
+import { gainXp, grantRewards, restoreParty, type Rewards } from "../party/heroes.ts";
 import { Battle, runBattle, isAlive, type Enemy } from "../battle/battle.ts";
-import { pickOption } from "../battle/battle-menu.ts";
-import { Sfx } from "../audio/sfx.ts";
-import { Music } from "../audio/music.ts";
-import { Dialog } from "./dialog.ts";
-import { TestMode, prepareTestStart } from "../dev/test-mode.ts";
-import {
-  $, showScreen, setSceneTint, renderIdleScene, updateBattleUI, victoryPose,
-  animateSpare, animateFinishingBlow,
-} from "../ui/view.ts";
+import { noView, type GameView } from "../game-view.ts";
+
+// Options du mode test (src/dev/test-mode.ts), toutes neutres hors mode test
+export interface GameOptions {
+  startChapter: number | null; // index du chapitre de départ, sans prologue
+  power: PowerState | null;    // pouvoir du Cœur déjà choisi au départ
+  winBattles: boolean;         // chaque combat est gagné d'office
+}
+
+let view: GameView = noView();
+let options: GameOptions = { startChapter: null, power: null, winBattles: false };
+
+// Point d'entrée : la partie commence à l'écran titre
+export function startGame(gameView: GameView, gameOptions: GameOptions) {
+  view = gameView;
+  options = gameOptions;
+  void backToTitle({ startLabel: "Nouvelle partie" });
+}
 
 // — Écran titre —
 
-export async function backToTitle({ startLabel, canRetry = false }: { startLabel: string; canRetry?: boolean }) {
-  showScreen("intro");
-  Music.play("title"); // continue pendant le prologue ; reprend à l'épilogue et sur « Rejouer »
-  $("#start-btn").textContent = startLabel;
-  $("#retry-btn").hidden = !canRetry;
+async function backToTitle({ startLabel, canRetry = false }: { startLabel: string; canRetry?: boolean }) {
+  view.music("title"); // continue pendant le prologue ; reprend à l'épilogue et sur « Rejouer »
   // Sauvegarde du navigateur (MAE-11) : après une défaite, « Réessayer » reprend déjà au même point
   const saved = canRetry ? null : SaveGame.read();
-  $("#continue-btn").hidden = !isValidCheckpoint(saved);
-
-  const options = [...document.querySelectorAll<HTMLElement>(".title-option")].filter(button => !button.hidden);
-  const chosen = options[await pickOption(options)];
-  if (chosen.id === "retry-btn") resumeChapter();
-  else if (chosen.id === "continue-btn") {
+  const choice = await view.showTitle({ startLabel, canRetry, canContinue: isValidCheckpoint(saved) });
+  if (choice === "retry") void resumeChapter();
+  else if (choice === "continue") {
     GameState.checkpoint = saved;
-    resumeChapter();
+    void resumeChapter();
   }
-  else newGame();
+  else void newGame();
 }
 
 // — Partie —
@@ -43,21 +48,38 @@ export async function backToTitle({ startLabel, canRetry = false }: { startLabel
 async function newGame() {
   GameState.reset();
   // Mode test (local) : départ direct au chapitre choisi, sans prologue, et pouvoir du Cœur déjà choisi
-  const testStart = TestMode.startChapter;
-  if (testStart !== null) prepareTestStart(testStart);
-  if (TestMode.power !== null) GameState.power = TestMode.power;
-  setSceneTint(GameState.currentChapter);
-  renderIdleScene(GameState.party);
-  showScreen("game");
+  const testStart = options.startChapter;
+  if (testStart !== null) startAtChapter(testStart);
+  if (options.power !== null) GameState.power = options.power;
+  view.showChapter(GameState.currentChapter, GameState.party);
 
-  if (testStart === null) await Dialog.show({ title: "Prologue", pages: PROLOGUE });
+  if (testStart === null) await view.tell({ title: "Prologue", pages: PROLOGUE });
   await playChapters();
+}
+
+// Nouvelle partie au chapitre choisi : groupe nourri de l'XP et des Couronnes de tous les combats précédents,
+// PV et PS pleins, objets de départ seulement (les objets trouvés sont aléatoires). Mode test et vue muette.
+export function startAtChapter(chapterIndex: number) {
+  let xp = 0, gil = 0;
+  for (const chapter of CHAPTERS.slice(0, chapterIndex)) {
+    if (chapter.rest) continue;
+    for (const key of chapter.enemies) {
+      xp += ENEMIES[key].xp;
+      gil += ENEMIES[key].gil;
+    }
+  }
+  for (const hero of GameState.party) {
+    gainXp(hero, xp);
+    hero.hp = hero.maxHp;
+    hero.mp = hero.maxMp;
+  }
+  GameState.gil += gil;
+  GameState.chapterIndex = chapterIndex;
 }
 
 // « Réessayer le combat » et « Continuer » : reprise au début du chapitre du point de reprise
 async function resumeChapter() {
   GameState.loadCheckpoint();
-  showScreen("game");
   await playChapters();
 }
 
@@ -66,34 +88,33 @@ async function playChapters() {
     const chapter = GameState.currentChapter;
     GameState.saveCheckpoint();
     SaveGame.write(GameState.checkpoint); // une nouvelle partie ne remplace la sauvegarde qu'ici, au chapitre I
-    setSceneTint(chapter);
-    renderIdleScene(GameState.party);
-    Music.play(chapter.music);
+    view.showChapter(chapter, GameState.party);
+    view.music(chapter.music);
 
     if (chapter.rest) {
       restoreParty();
-      updateBattleUI();
-      await Dialog.show({ title: chapter.title, pages: chapter.story });
+      view.refresh();
+      await view.tell({ title: chapter.title, pages: chapter.story });
       GameState.chapterIndex++;
       continue;
     }
 
-    await Dialog.show({ title: chapter.title, pages: chapter.story });
-    Music.play(chapter.battleMusic ?? "battle");
-    const result = await runBattle(chapter);
+    await view.tell({ title: chapter.title, pages: chapter.story });
+    view.music(chapter.battleMusic ?? "battle");
+    const result = await runBattle(view, chapter, { winBattles: options.winBattles });
 
     if (result === "defeat") return gameOver();
     const spareable = Battle.enemies.find(enemy => enemy.spareable);
     // Après le combat, la musique du chapitre revient ; face au Dragon, Lost Time continue jusqu'au choix
-    if (!spareable) Music.play(chapter.music);
-    if (result === "escape") await Dialog.show({ pages: ["Le groupe s'enfonce dans les brumes... sans le moindre butin."] });
+    if (!spareable) view.music(chapter.music);
+    if (result === "escape") await view.tell({ pages: ["Le groupe s'enfonce dans les brumes... sans le moindre butin."] });
     else if (result === "truce") await makeTruce(chapter.truce?.story ?? []);
     else if (spareable) await decideDragonFate(spareable);
     else {
       // Reddition (chapitre III) : les vaincus, à genoux, laissent passer le groupe
-      if (chapter.surrender) await Dialog.show({ pages: chapter.surrender });
+      if (chapter.surrender) await view.tell({ pages: chapter.surrender });
       // Cœur d'Aure-Hin (chapitre IV) : l'écho s'est défait en lumière, le pouvoir est offert
-      if (chapter.afterVictory) await Dialog.show({ pages: chapter.afterVictory });
+      if (chapter.afterVictory) await view.tell({ pages: chapter.afterVictory });
       if (chapter.powerChoice) await choosePower();
       await celebrateVictory();
     }
@@ -103,60 +124,60 @@ async function playChapters() {
 
   const ending = ENDINGS[endingOf(GameState.power, GameState.dragonSpared)];
   SaveGame.clear(); // la fin est atteinte : fermer pendant l'épilogue ne ramène pas au chapitre VII
-  Music.play("title");
-  await Dialog.show({ title: "Épilogue", pages: ending.epilogue });
-  backToTitle({ startLabel: "Rejouer" });
+  view.music("title");
+  await view.tell({ title: "Épilogue", pages: ending.epilogue });
+  void backToTitle({ startLabel: "Rejouer" });
 }
 
 // Cœur d'Aure-Hin : prendre le pouvoir (bonus de combat, la vraie fin se ferme) ou le refuser
 async function choosePower() {
   standUpParty();
-  const choice = await Dialog.choose({
+  const choice = await view.ask({
     text: POWER_CHOICE.question,
     options: (["take", "refuse"] satisfies PowerChoiceId[]).map(id => ({ id, label: POWER_CHOICE[id].label })),
   });
   GameState.power = choice === "take" ? "taken" : "refused";
-  await Dialog.show({ pages: POWER_CHOICE[choice].scene });
+  await view.tell({ pages: POWER_CHOICE[choice].scene });
 }
 
 // Le Dragon est à terre. Pouvoir pris : le rendre (puis Épargner · Achever) ou le garder (Achever seul).
 // Sinon : Épargner · Achever. La fin qui suit se déduit des deux choix (endingOf).
 async function decideDragonFate(dragon: Enemy) {
   standUpParty();
+  const maelor = GameState.party.find(hero => hero.id === "maelor");
+  if (!maelor) throw new Error("Maelor est absent du groupe");
 
   let text = DRAGON_FATE.question;
   if (GameState.power === "taken") {
     const kept = await chooseFate(DRAGON_FATE.powerQuestion, ["return", "keep"]) === "keep";
     GameState.power = kept ? "kept" : "returned";
-    if (!kept) Sfx.play("memory"); // l'or quitte Maelor (animation : MAE-30)
+    if (!kept) view.animatePowerReturn(maelor);
     text = kept ? DRAGON_FATE.kept : DRAGON_FATE.returned;
   }
   const choice = await chooseFate(text, GameState.power === "kept" ? ["kill"] : ["spare", "kill"]);
   GameState.dragonSpared = choice === "spare";
   const ending = ENDINGS[endingOf(GameState.power, GameState.dragonSpared)];
-  Music.stop(); // la scène de fin se joue en silence
+  view.music(null); // la scène de fin se joue en silence
 
   if (GameState.dragonSpared) {
-    await animateSpare(dragon);
-    await Dialog.show({ pages: ending.scene });
+    await view.animateSpare(dragon);
+    await view.tell({ pages: ending.scene });
   } else {
-    const maelor = GameState.party.find(hero => hero.id === "maelor");
-    if (!maelor) throw new Error("Maelor est absent du groupe");
-    await animateFinishingBlow(maelor, dragon);
-    await Dialog.show({ pages: ending.scene });
+    await view.animateFinishingBlow(maelor, dragon);
+    await view.tell({ pages: ending.scene });
     await celebrateVictory();
   }
 }
 
 function chooseFate(text: string, ids: FateId[]) {
-  return Dialog.choose({ text, options: ids.map(id => ({ id, label: DRAGON_FATE.labels[id] })) });
+  return view.ask({ text, options: ids.map(id => ({ id, label: DRAGON_FATE.labels[id] })) });
 }
 
 // Trêve (chapitre II) : chacun se relève, la scène se joue, puis les récompenses comme une victoire
 async function makeTruce(story: Page[]) {
   standUpParty();
-  for (const enemy of Battle.enemies.filter(enemy => !isAlive(enemy))) await animateSpare(enemy);
-  await Dialog.show({ pages: story });
+  for (const enemy of Battle.enemies.filter(enemy => !isAlive(enemy))) await view.animateSpare(enemy);
+  await view.tell({ pages: story });
   await celebrateVictory("Alliance");
 }
 
@@ -166,16 +187,15 @@ function standUpParty() {
     hero.hp = 1;
     hero.state = "charging";
   }
-  updateBattleUI();
+  view.refresh();
 }
 
 async function celebrateVictory(title = "Victoire !") {
-  Sfx.play("victory");
-  victoryPose(GameState.party);
+  view.celebrate(GameState.party);
   const rewards = grantRewards(Battle.enemies);
-  updateBattleUI();
+  view.refresh();
   const pages = formatRewards(rewards);
-  if (pages.length) await Dialog.show({ title, pages });
+  if (pages.length) await view.tell({ title, pages });
 }
 
 // Une récompense qui vaut 0 (XP, Couronnes) ne s'affiche pas
@@ -196,10 +216,7 @@ function formatRewards({ xp, gil, drops, levelUps }: Rewards) {
 }
 
 async function gameOver() {
-  Music.stop(); // défaite : seuls les bruitages
-  Sfx.play("gameOver");
-  document.body.classList.add("game-over");
-  await Dialog.show({ title: "Défaite", pages: GAME_OVER });
-  document.body.classList.remove("game-over");
-  backToTitle({ startLabel: "Nouvelle partie", canRetry: true });
+  view.music(null); // défaite : seuls les bruitages
+  await view.showDefeat({ title: "Défaite", pages: GAME_OVER });
+  void backToTitle({ startLabel: "Nouvelle partie", canRetry: true });
 }

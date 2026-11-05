@@ -5,10 +5,10 @@ import { ATTACK, GameState, HEROES } from "../data/game-data.ts";
 import type { Ability, Chapter } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import { Sfx, type SoundName } from "../audio/sfx.ts";
-import { Battle, isAlive, wait } from "../battle/battle.ts";
+import { Battle, isAlive } from "../battle/battle.ts";
 import type { BattleState, Combatant, Effect, Enemy } from "../battle/battle.ts";
-import { Menu } from "../battle/battle-menu.ts";
-import type { CommandLevel, ListLevel, MenuController } from "../battle/battle-menu.ts";
+import { Menu } from "./battle-menu.ts";
+import type { CommandLevel, ListLevel, MenuController } from "./battle-menu.ts";
 
 // Élément de la page, qui doit exister : son absence est une erreur de structure de index.html
 export function $(selector: string, root: ParentNode = document) {
@@ -16,6 +16,8 @@ export function $(selector: string, root: ParentNode = document) {
   if (!element) throw new Error(`Élément introuvable : ${selector}`);
   return element;
 }
+
+export const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
 // Positions (en % de la zone) selon le nombre d'ennemis, et des héros en diagonale
 const FORMATIONS: Record<number, [number, number][]> = {
