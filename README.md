@@ -43,18 +43,21 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 | Fichier | Rôle |
 |---|---|
 | `index.html` | Structure HTML du jeu, IDs utilisés par le code |
-| `src/main.ts` | Point d'entrée : branche les contrôles de la page et lance l'écran titre |
+| `src/main.ts` | Point d'entrée : mode test, affichage DOM, puis lancement de la partie |
+| `src/game-view.ts` | Contrat entre la logique du jeu et son affichage (`GameView`) |
 | `src/config.ts` | Constantes de gameplay (vitesse ATB, dégâts, XP par niveau) et toutes les durées |
 | `src/data/game-data.ts` | Héros, souffles, objets, ennemis, chapitres, textes + objet `GameState` |
 | `src/data/decors.ts` | Décors peints en 2,5D : images, relief, places des personnages et ambiance de chaque lieu |
 | `src/scene/` | Scène peinte en 2,5D (Three.js), pas encore branchée sur le jeu : cadrage, relief, brume, lucioles, sprites nets |
-| `src/dev/` | Outils de test en local : mode test, page de contrôle de la scène |
+| `src/dev/` | Outils de test en local : mode test, page de contrôle de la scène, vue muette, combats sans navigateur, tests Vitest |
 | `src/party/heroes.ts` | Création des héros, XP, montées de niveau, récompenses |
 | `src/battle/battle.ts` | Moteur de combat : calculs purs (dégâts, soins, ciblage) et boucle ATB |
-| `src/battle/battle-menu.ts` | Petit menu de choix (titre, dialogues), menus de commande et sélection des cibles |
 | `src/story/game-flow.ts` | Déroulement de la partie : titre, chapitres, victoire, défaite |
-| `src/story/dialog.ts` | Fenêtre de dialogue avec effet machine à écrire, et questions à choix |
+| `src/ui/dom-view.ts` | Implémentation DOM du contrat : relie la logique à la page, aux sons et aux contrôles |
 | `src/ui/view.ts` | Affichage DOM : scène, fenêtres, chiffres de dégâts, animations |
+| `src/ui/battle-menu.ts` | Menus de commande et sélection des cibles ; rend l'ordre du joueur à la logique |
+| `src/ui/dialog.ts` | Fenêtre de dialogue avec effet machine à écrire, et questions à choix |
+| `src/ui/pick-option.ts` | Petit menu de choix (titre, dialogues) |
 | `src/audio/sfx.ts` | Bruitages 8-bit (Web Audio API) |
 | `src/audio/music.ts` | Musiques d'ambiance : une piste par lieu, boucle et fondus |
 | `src/input/input.ts` | Clavier et manette traduits en actions (`up`, `confirm`, `cancel`…) |
@@ -74,6 +77,7 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 * TypeScript strict en modules ES (logique de combat, DOM, interactivité, narration)
 * [Vite](https://vite.dev/) (serveur de développement et build)
 * [Three.js](https://threejs.org/) (scène peinte en 2,5D, chargée seulement à la demande)
+* [Vitest](https://vitest.dev/) (tests des règles du combat, outil de développement non publié avec le jeu)
 
 ## 🚀 Lancer le jeu
 
@@ -92,6 +96,8 @@ Pour tester la version de production : `npm run build`, puis `npm run preview`.
 
 Pour vérifier les types : `npm run typecheck` (Vite compile le TypeScript sans le vérifier).
 
+Pour lancer les tests des règles du combat : `npm test`. Pour jouer un combat de chaque chapitre sans navigateur : `npm run check:battle`.
+
 Ou teste directement la démo ici :
 🔗 [https://wesley971.github.io/ordre-dechu/](https://wesley971.github.io/ordre-dechu/)
 
@@ -102,11 +108,11 @@ Le code a d'abord été refactorisé en 5 chantiers (extraction de fonctions, é
 | Règle | Exemple |
 |---|---|
 | **Identifiants en anglais**, textes affichés et commentaires en français | `SPELLS.fire` s'affiche « Mèche », `ENEMIES.gautik` s'affiche « Gau-Tik » |
-| **Logique pure séparée du DOM** | `calcPhysical`, `calcMagic`, `calcHeal` (`battle.ts`) ne touchent jamais à la page ; `view.ts` affiche |
+| **Logique séparée de l'affichage** | `battle.ts` et `game-flow.ts` ne connaissent que l'interface `GameView` ; `dom-view.ts` l'implémente sur la page |
 | **Un objet par module qui garde un état**, nommé en PascalCase | `GameState`, `Battle`, `Menu`, `Dialog`, `Input`, `Sfx` |
 | **Réglages dans `config.ts`, contenu dans `game-data.ts`** | `CONFIG.timing.death`, `CONFIG.damage.critChance`, `ENEMIES.vahn` |
 | **Couleurs de l'interface via les tokens** (seuls les effets de souffles et les ombres ont leurs propres valeurs) | `var(--gold-bright)`, `var(--state-heal)` |
-| **Fichiers et images en kebab-case anglais**, rangés par domaine sous `src/` ; l'image d'un héros porte son id | `src/battle/battle-menu.ts`, `images/maelor.png` |
+| **Fichiers et images en kebab-case anglais**, rangés par domaine sous `src/` ; l'image d'un héros porte son id | `src/ui/battle-menu.ts`, `images/maelor.png` |
 
 ## 🎨 Design System
 
