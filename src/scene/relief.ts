@@ -62,7 +62,8 @@ function edgeFadeMaterial(decor: Decor, noise: Texture, time: { value: number })
         float x = abs( vNdc.x );
         float start = uEdge + 0.55 * ( 1.0 - uEdge );
         float side = smoothstep( start, 1.0, x ) * step( uEdge, x );
-        float sideMist = exp( -pow( ( vNdc.y + 0.15 ) * 1.6, 2.0 ) );
+        float offset = ( vNdc.y + 0.15 ) * 1.6; // pas de pow() : son résultat n'est pas défini pour une valeur négative
+        float sideMist = exp( -offset * offset );
         vec3 sideColor = mix( uShadow, uMist, 0.55 * sideMist );
 
         float above = clamp( ( vNdc.y - uTopInner ) / ( uTop - uTopInner ), 0.0, 1.0 );
