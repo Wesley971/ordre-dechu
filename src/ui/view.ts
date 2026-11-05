@@ -27,7 +27,8 @@ const FORMATIONS: Record<number, [number, number][]> = {
 };
 const HERO_SLOTS: [number, number][] = [[78, 28], [50, 52], [22, 76]];
 
-// Toile commune des sprites de héros, en pixels de sprite (affichée ×3 sur ordinateur, ×1 sur mobile)
+// Toile commune des sprites de héros, en pixels de sprite (affichée ×3 sur ordinateur, ×1 sur mobile).
+// Seule déclaration : style.css la reçoit en variables --canvas-w et --canvas-h, comme pour les ennemis (MAE-21)
 const HERO_CANVAS = { w: 47, h: 66 };
 
 // Éléments d'un combattant, absents tant que la scène n'est pas construite
@@ -56,11 +57,10 @@ function createSprite(c: Combatant, [x, y]: [number, number]) {
   sprite.style.left = x + "%";
   // Hauteur voulue ; style.css la borne pour que le sprite reste entier dans la scène (voir .sprite.hero, .sprite.enemy)
   sprite.style.setProperty("--slot-y", y + "%");
-  // Ennemi en pixel art : sa taille à l'écran vient de sa toile (voir .sprite.enemy dans style.css)
-  if (c.side === "enemy") {
-    sprite.style.setProperty("--canvas-w", String(c.canvasWidth));
-    sprite.style.setProperty("--canvas-h", String(c.canvasHeight));
-  }
+  // Pixel art : la taille à l'écran vient de la toile du PNG (voir .sprite.hero et .sprite.enemy dans style.css)
+  const canvas = c.side === "enemy" ? { w: c.canvasWidth, h: c.canvasHeight } : HERO_CANVAS;
+  sprite.style.setProperty("--canvas-w", String(canvas.w));
+  sprite.style.setProperty("--canvas-h", String(canvas.h));
   sprite.innerHTML = `<div class="sprite-body"><img class="sprite-img" src="${c.image}" alt="${c.name}">${embersHtml(c)}</div>`;
   sprite.addEventListener("click", () => Menu.clickTarget(c));
   if (c.side === "hero") {
