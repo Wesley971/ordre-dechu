@@ -5,8 +5,9 @@
 // La scène n'a donc aucune lumière Three.js, ni ombre calculée : ce serait du calcul sans effet à l'écran.
 
 import {
-  AdditiveBlending, CanvasTexture, MeshBasicMaterial, NearestFilter, SRGBColorSpace, TextureLoader, type Texture,
+  AdditiveBlending, CanvasTexture, Color, MeshBasicMaterial, NearestFilter, SRGBColorSpace, ShaderMaterial, TextureLoader, type Texture,
 } from "three";
+import type { Decor } from "../data/decors.ts";
 
 // Ce que la mémoire graphique garde tant qu'on ne le libère pas (géométries, matériaux, textures).
 // Une fois fermée, tout ce qu'on y ajoute est libéré aussitôt : un chargement qui se termine après
@@ -130,6 +131,13 @@ export async function loadPainting(url: string, bin: ResourceBin): Promise<Textu
   return texture;
 }
 
+// Image lue comme une donnée (carte, masque), sans conversion de couleurs
+export async function loadDataTexture(url: string, bin: ResourceBin): Promise<Texture> {
+  return bin.add(await new TextureLoader().loadAsync(url).catch(() => {
+    throw new Error(`Scène peinte : image introuvable : ${url}`);
+  }));
+}
+
 // Lecture de la carte de profondeur (0 = proche, 1 = loin), une fois pour toutes au chargement
 export async function loadDepthMap(url: string) {
   const image = await loadImage(url);
@@ -139,11 +147,69 @@ export async function loadDepthMap(url: string) {
   const context = context2d(canvas, { willReadFrequently: true });
   context.drawImage(image, 0, 0);
   const { data, width, height } = context.getImageData(0, 0, image.width, image.height);
+  const at = (x: number, y: number) => data[(y * width + x) * 4] / 255;
+  // Lecture lissée entre quatre pixels : au plus proche, le relief ferait de petites marches
   return (u: number, v: number) => {
-    const x = Math.min(width - 1, Math.max(0, Math.round(u * (width - 1))));
-    const y = Math.min(height - 1, Math.max(0, Math.round((1 - v) * (height - 1))));
-    return data[(y * width + x) * 4] / 255;
+    const x = Math.min(width - 1, Math.max(0, u * (width - 1)));
+    const y = Math.min(height - 1, Math.max(0, (1 - v) * (height - 1)));
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
+    const x1 = Math.min(width - 1, x0 + 1);
+    const y1 = Math.min(height - 1, y0 + 1);
+    const top = at(x0, y0) + (at(x1, y0) - at(x0, y0)) * (x - x0);
+    const bottom = at(x0, y1) + (at(x1, y1) - at(x0, y1)) * (x - x0);
+    return top + (bottom - top) * (y - y0);
   };
+}
+
+// Brume sur le relief : nappe autour d'une ligne de la peinture, seulement sur ce qui est loin (les troncs proches
+// s'y découpent). Deux bruits dérivent en sens contraires ; elle s'efface avant le bout du relief.
+export function mistMaterial(
+  depth: Texture, noise: Texture, time: { value: number }, mist: Decor["atmosphere"]["mist"], color: string,
+  image: { width: number; height: number; extend: number },
+): ShaderMaterial {
+  return new ShaderMaterial({
+    uniforms: {
+      uDepth: { value: depth },
+      uNoise: { value: noise },
+      uTime: time,
+      uColor: { value: new Color(color) },
+      uOpacity: { value: mist.opacity },
+      uRow: { value: mist.row },
+      uSpread: { value: mist.spread },
+      uFrom: { value: mist.from },
+      uBelow: { value: mist.below },
+      uHeight: { value: image.height },
+      uInside: { value: image.width / (image.width + 2 * image.extend) },
+      uAspect: { value: (image.width + 2 * image.extend) / image.height },
+    },
+    vertexShader: "varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 ); }",
+    fragmentShader: /* glsl */ `
+      uniform sampler2D uDepth; uniform sampler2D uNoise; uniform float uTime; uniform vec3 uColor; uniform float uOpacity;
+      uniform float uRow; uniform float uSpread; uniform float uFrom; uniform float uBelow; uniform float uHeight; uniform float uInside; uniform float uAspect;
+      varying vec2 vUv;
+      void main() {
+        float row = ( 1.0 - vUv.y ) * uHeight;
+        float offset = ( row - uRow ) / uSpread; // pas de pow() : son résultat n'est pas défini pour une valeur négative
+        float band = exp( -offset * offset );
+        // Au-dessus du sol, seul ce qui est loin reçoit la brume. Sur le sol, elle s'éteint doucement en descendant
+        // et enveloppe le pied des troncs : la carte de profondeur y dessinerait un bord horizontal net.
+        float ground = smoothstep( uRow - 130.0, uRow + 40.0, row );
+        float far = mix( smoothstep( uFrom, 1.0, texture2D( uDepth, vUv ).r ), smoothstep( uRow + uBelow, uRow, row ), ground );
+        vec2 p = vec2( vUv.x * uAspect, vUv.y );
+        float wide = texture2D( uNoise, p * vec2( 0.9, 2.2 ) + vec2( uTime * 0.010, uTime * 0.002 ) ).r;
+        float fine = texture2D( uNoise, p * vec2( 2.1, 4.6 ) - vec2( uTime * 0.016, uTime * -0.003 ) ).r;
+        float density = smoothstep( 0.3, 0.72, wide * 0.65 + fine * 0.35 );
+        // Hors de la peinture, à peine un voile : plus fort, il formerait des blocs sur la forêt des côtés
+        float outside = abs( vUv.x - 0.5 ) / ( uInside * 0.5 );
+        float sides = 1.0 - 0.75 * smoothstep( 0.72, 1.12, outside );
+        float ends = smoothstep( 0.0, 0.08, vUv.x ) * smoothstep( 1.0, 0.92, vUv.x );
+        gl_FragColor = vec4( uColor, uOpacity * band * far * mix( 0.15, 1.0, density ) * sides * ends );
+      }`,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+  });
 }
 
 // Feuillage peint qui se balance : les UV ondulent horizontalement, davantage vers le haut du plan (`rise`)

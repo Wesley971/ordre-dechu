@@ -39,6 +39,7 @@ export const CONFIG = {
       targetX: 0,
       targetY: 1,
       targetZ: 0.4,
+      parallax: { amplitude: 0.9, speed: 0.35 }, // oscillation de contrôle (touche P) : mètres de chaque côté, radians par seconde
     },
     tiltShift: {
       margin:  70,        // zone nette : des pieds aux têtes, plus cette marge, en pixels CSS

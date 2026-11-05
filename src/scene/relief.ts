@@ -1,28 +1,28 @@
 // relief.ts - La peinture montée en relief, ses côtés et le fondu des bords (MAE-28)
 
 import {
-  Color, Mesh, MeshBasicMaterial, PlaneGeometry, RepeatWrapping, ShaderMaterial,
-  type Group, type Material, type PerspectiveCamera, type Texture,
+  Color, MathUtils, Mesh, MeshBasicMaterial, MirroredRepeatWrapping, PlaneGeometry, RepeatWrapping, ShaderMaterial,
+  type Group, type Material, type PerspectiveCamera, type Texture, type Vector3,
 } from "three";
 import { CONFIG } from "../config.ts";
-import type { Decor } from "../data/decors.ts";
+import type { Decor, ImagePoint } from "../data/decors.ts";
 import { pointAtDepth, type Framing } from "./framing.ts";
 import {
-  computedTexture, glintMaterial, loadDepthMap, loadPainting, swayingMaterial, tileableNoise, type ResourceBin,
+  computedTexture, glintMaterial, loadDataTexture, loadDepthMap, loadPainting, mistMaterial, swayingMaterial, tileableNoise, type ResourceBin,
 } from "./materials.ts";
 
 // Un sommet tous les 10 pixels environ de l'image, assez fin pour suivre la carte de profondeur
 const RELIEF_SEGMENTS = { x: 258, y: 77 };
-// Ordre de dessin : relief, côtés, lueurs, brume (2), rayons (3), lucioles (4), fondu, feuillages, ombres (50)
-const ORDER = { relief: -20, sideFar: -16, sideGlints: -14, sideNear: -12, glints: -10, edgeFade: 25, foreground: 30, edgeFadeFitted: 35, corners: 40 };
+// Ordre de dessin : relief, côtés lointains, lueurs, brume, côtés proches, rayons (3), lucioles (4), fondu, feuillages, ombres (50)
+const ORDER = { relief: -20, sideFar: -16, sideGlints: -14, glints: -10, mist: 2, sideNear: 2.5, edgeFade: 25, foreground: 30, edgeFadeFitted: 35, corners: 40 };
 // Part de la peinture qui se fond dans la brume en haut et en bas, quand elle ne remplit pas la hauteur.
 // Assez pour qu'aucun bord ne se voie, assez peu pour garder la lune (voile léger sur son haut) et les pieds nets.
 const FITTED_FADE = { top: 0.09, bottom: 0.1 };
 
 export interface ReliefView {
   layout(framing: Framing, canvasSize: { width: number; height: number }): void;
-  // Bord de la peinture à l'écran (en coordonnées -1 à 1), pour alléger la brume au-delà
-  edge(): number;
+  // Point du relief à cet endroit de la peinture. Après layout, avec la caméra au repos.
+  surfacePoint(place: ImagePoint): Vector3;
 }
 
 function fullPlane(material: Material, order: number, parent: Group) {
@@ -62,7 +62,8 @@ function edgeFadeMaterial(decor: Decor, noise: Texture, time: { value: number })
         float x = abs( vNdc.x );
         float start = uEdge + 0.55 * ( 1.0 - uEdge );
         float side = smoothstep( start, 1.0, x ) * step( uEdge, x );
-        float sideMist = exp( -pow( ( vNdc.y + 0.15 ) * 1.6, 2.0 ) );
+        float offset = ( vNdc.y + 0.15 ) * 1.6; // pas de pow() : son résultat n'est pas défini pour une valeur négative
+        float sideMist = exp( -offset * offset );
         vec3 sideColor = mix( uShadow, uMist, 0.55 * sideMist );
 
         float above = clamp( ( vNdc.y - uTopInner ) / ( uTop - uTopInner ), 0.0, 1.0 );
@@ -87,9 +88,10 @@ export async function buildRelief(
 ): Promise<ReliefView> {
   const { image, relief, sides } = decor;
   const texture = (url: string) => loadPainting(url, bin);
-  const [wide, sampleDepth, foreground, glints, sideTextures, cornerTextures] = await Promise.all([
+  const [wide, sampleDepth, depthTexture, foreground, glints, sideTextures, cornerTextures] = await Promise.all([
     texture(image.wide),
     loadDepthMap(image.depthMap),
+    loadDataTexture(image.depthMap, bin),
     image.foreground ? texture(image.foreground.file) : null,
     image.glints ? texture(image.glints) : null,
     sides ? Promise.all([sides.far, sides.glints, sides.near].flatMap((s) => [texture(s.left), texture(s.right)])) : null,
@@ -121,6 +123,8 @@ export async function buildRelief(
     }
   }, false));
   noise.wrapS = noise.wrapT = RepeatWrapping;
+  // La brume est posée sur le relief : elle suit la profondeur de la peinture et ne s'en décolle pas
+  addOnRelief(mistMaterial(depthTexture, noise, time, decor.atmosphere.mist, decor.atmosphere.colors.mist, image), ORDER.mist);
   const fade = bin.add(edgeFadeMaterial(decor, noise, time));
   const fadePlane = fullPlane(fade, ORDER.edgeFade, parent);
   bin.add(fadePlane.geometry);
@@ -143,20 +147,22 @@ export async function buildRelief(
     add(plain(nearRight), ORDER.sideNear, false, sides.near.depth);
   }
 
-  // Fougères sombres des coins de l'écran
-  const corners: { mesh: Mesh; width: number; height: number; isLeft: boolean }[] = [];
+  // Fougères sombres des coins de l'écran. L'image se reflète au-delà de son bord extérieur (bord de l'écran) :
+  // la marge qui reste hors champ au repos ne montre ni bord net ni couleurs étirées quand la caméra bouge.
+  const corners: { mesh: Mesh; map: Texture; width: number; height: number; isLeft: boolean }[] = [];
   if (sides?.corners && cornerTextures) {
     const { left, right, amplitude, rise } = sides.corners;
     [{ map: cornerTextures[0], size: left, isLeft: true }, { map: cornerTextures[1], size: right, isLeft: false }].forEach(({ map, size, isLeft }) => {
+      map.wrapS = MirroredRepeatWrapping;
       const material = bin.add(swayingMaterial(map, time, amplitude, rise));
       material.fog = false;
       const mesh = fullPlane(material, ORDER.corners, parent);
       bin.add(mesh.geometry);
-      corners.push({ mesh, width: size.width, height: size.height, isLeft });
+      corners.push({ mesh, map, width: size.width, height: size.height, isLeft });
     });
   }
 
-  const pitch = CONFIG.scene.camera.pitch;
+  const { pitch, fov, parallax } = CONFIG.scene.camera;
   // Plan face à la caméra, qui couvre exactement ce rectangle de l'écran à cette profondeur
   const placeOnScreen = (mesh: Mesh, left: number, right: number, top: number, bottom: number, depth: number) => {
     const topLeft = pointAtDepth(camera, left, top, depth);
@@ -169,20 +175,27 @@ export async function buildRelief(
     mesh.rotation.set(-pitch, 0, 0);
   };
 
-  let edge = 0.5;
+  let currentFraming: Framing | null = null;
+
+  const depthAt = (u: number, v: number) => relief.near + relief.span * sampleDepth(u, v) ** relief.power;
 
   return {
-    edge: () => edge,
+    surfacePoint(place) {
+      if (!currentFraming) throw new Error("Scène peinte : relief pas encore mis en place");
+      const u = (place.col + image.extend) / (image.width + 2 * image.extend);
+      const depth = depthAt(u, 1 - place.row / image.height);
+      return pointAtDepth(camera, currentFraming.colToNdc(place.col), currentFraming.rowToNdc(place.row), depth);
+    },
     // Toujours appelé avec la caméra au repos : c'est depuis elle que la peinture est projetée
     layout(framing, canvasSize) {
+      currentFraming = framing;
       const position = geometry.getAttribute("position");
       const uv = geometry.getAttribute("uv");
       for (let i = 0; i < position.count; i++) {
         const u = uv.getX(i);
         const v = uv.getY(i);
-        const depth = relief.near + relief.span * sampleDepth(u, v) ** relief.power;
         const point = pointAtDepth(
-          camera, framing.colToNdc(-image.extend + u * (image.width + 2 * image.extend)), framing.rowToNdc((1 - v) * image.height), depth,
+          camera, framing.colToNdc(-image.extend + u * (image.width + 2 * image.extend)), framing.rowToNdc((1 - v) * image.height), depthAt(u, v),
         );
         position.setXYZ(i, point.x, point.y, point.z);
       }
@@ -198,7 +211,7 @@ export async function buildRelief(
         }
       }
 
-      edge = Math.min(Math.abs(framing.colToNdc(0)), Math.abs(framing.colToNdc(image.width)));
+      const edge = Math.min(Math.abs(framing.colToNdc(0)), Math.abs(framing.colToNdc(image.width)));
       const top = framing.rowToNdc(0);
       const bottom = framing.rowToNdc(image.height);
       const uniforms = fade.uniforms;
@@ -223,9 +236,17 @@ export async function buildRelief(
           heightPx = (widthPx * corner.height) / corner.width;
         }
         const out = 0.02; // déborde légèrement de l'écran : aucun bord visible
+        const depth = sides?.corners?.depth ?? 14;
         const inner = -1 + (2 * widthPx) / canvasSize.width;
-        const [left, right] = corner.isLeft ? [-1 - out, inner] : [-inner, 1 + out];
-        placeOnScreen(corner.mesh, left, right, -1 + (2 * heightPx) / canvasSize.height, -1 - out, sides?.corners?.depth ?? 7);
+        // Marge hors champ, égale au plus grand déplacement de la caméra vu à cette profondeur
+        const aspect = canvasSize.width / canvasSize.height;
+        const travel = parallax.amplitude / (depth * aspect * Math.tan(MathUtils.degToRad(fov / 2)));
+        const visible = inner + 1 + out;
+        const [left, right] = corner.isLeft ? [-1 - out - travel, inner] : [-inner, 1 + out + travel];
+        // Au repos, la partie visible garde exactement la même échelle
+        corner.map.repeat.x = (visible + travel) / visible;
+        corner.map.offset.x = corner.isLeft ? -travel / visible : 0;
+        placeOnScreen(corner.mesh, left, right, -1 + (2 * heightPx) / canvasSize.height, -1 - out, depth);
       }
     },
   };

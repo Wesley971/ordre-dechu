@@ -1,82 +1,29 @@
-// atmosphere.ts - Brume, rayons de lune et lucioles (MAE-28). Quantités et couleurs : décor de chaque lieu
+// atmosphere.ts - Rayons de lune et lucioles (MAE-28). Quantités et couleurs : décor de chaque lieu. La brume est posée sur le relief (relief.ts).
 
 import {
-  AdditiveBlending, Mesh, MeshBasicMaterial, PlaneGeometry, RepeatWrapping, Vector2, Vector3,
-  type Group, type PerspectiveCamera, type Texture,
+  AdditiveBlending, Mesh, MeshBasicMaterial, PlaneGeometry, Vector3, type Group, type PerspectiveCamera,
 } from "three";
 import { CONFIG } from "../config.ts";
 import type { Decor } from "../data/decors.ts";
 import { depthOf, type Framing } from "./framing.ts";
-import {
-  computedTexture, context2d, pixelTexture, radialTexture, seededRandom, tileableNoise, type ResourceBin,
-} from "./materials.ts";
+import { computedTexture, context2d, pixelTexture, radialTexture, seededRandom, type ResourceBin } from "./materials.ts";
 
-const ORDER = { mist: 2, shafts: 3, fireflies: 4 };
-// as const, ici et pour SHAFTS : tableaux à longueur fixe, chaque case est lue par sa position
-const MIST_LAYERS = [
-  { size: [70, 34], position: [0, 0.12, -6], opacity: 0.32, repeat: [3, 1.5], speed: [0.006, 0.002], seed: 21 },
-  { size: [70, 34], position: [0, 0.3, -7], opacity: 0.22, repeat: [2.2, 1.1], speed: [-0.004, 0.0015], seed: 22 },
-] as const;
+const ORDER = { shafts: 3, fireflies: 4 };
+// as const : tableau à longueur fixe, chaque case est lue par sa position
 const SHAFTS = [[-2.5, -2.5, 2.4, 0.38], [0.8, -3.5, 1.6, 0.34], [3.2, -1.5, 1.1, 0.4]] as const;
+const SHAFT_RECEDE = 2.5;
 // Clairière du combat : la plupart des lucioles restent autour, pour ne pas gêner la lecture des personnages
 const CLEARING = { x: 0.3, z: 0.5, rx: 6.8, rz: 3.7, margin: -2.5 };
 
 export interface AtmosphereView {
-  layout(framing: Framing, imageEdge: number, drawingBuffer: Vector2): void;
+  layout(framing: Framing): void;
   update(t: number): void;
 }
 
 export function buildAtmosphere(decor: Decor, parent: Group, camera: PerspectiveCamera, bin: ResourceBin): AtmosphereView {
   const { atmosphere } = decor;
   const { colors } = atmosphere;
-  const uniformEdge = { value: 0.5 };
-  const uniformResolution = { value: new Vector2(1, 1) };
   let cameraDistance = 1;
-
-  // ─── Brume ───
-  // Nappes posées au sol, dessinées par-dessus le relief sans test de profondeur : elles le traverseraient.
-  // Elles s'allègent vers les côtés pour ne pas noyer la forêt, en commençant bien avant le bord de l'image :
-  // commencée au bord, la transition dessinait une lisière verticale de brume sur les troncs sombres.
-  const edgeMask = bin.add(computedTexture(128, (image) => {
-    for (let y = 0; y < 128; y++) {
-      for (let x = 0; x < 128; x++) {
-        const alpha = Math.round(Math.min(1, Math.min(x, 127 - x) / 40) * Math.min(1, Math.min(y, 127 - y) / 40) * 255);
-        image.data.set([alpha, alpha, alpha, 255], (y * 128 + x) * 4);
-      }
-    }
-  }, false));
-  const mistLayers: { texture: Texture; speed: Vector2 }[] = [];
-  for (const layer of MIST_LAYERS) {
-    const noise = tileableNoise(256, 3, 5, layer.seed);
-    const texture = bin.add(computedTexture(256, (image) => {
-      for (let i = 0; i < 256 * 256; i++) {
-        image.data.set([255, 255, 255, Math.round(Math.max(0, (noise[i] - 0.32) / 0.68) ** 1.6 * 255)], i * 4);
-      }
-    }, false));
-    texture.wrapS = texture.wrapT = RepeatWrapping;
-    texture.repeat.set(layer.repeat[0], layer.repeat[1]);
-    const material = bin.add(new MeshBasicMaterial({
-      color: colors.mist, map: texture, alphaMap: edgeMask, transparent: true,
-      opacity: layer.opacity * atmosphere.mist, depthWrite: false, depthTest: false,
-    }));
-    material.onBeforeCompile = (shader) => {
-      shader.uniforms.uImageEdge = uniformEdge;
-      shader.uniforms.uResolution = uniformResolution;
-      shader.fragmentShader = "uniform float uImageEdge;\nuniform vec2 uResolution;\n" + shader.fragmentShader.replace(
-        "#include <opaque_fragment>",
-        `float sideX = abs( gl_FragCoord.x / uResolution.x * 2.0 - 1.0 );
-        diffuseColor.a *= 1.0 - 0.75 * smoothstep( uImageEdge - 0.35, uImageEdge + 0.12, sideX );
-        #include <opaque_fragment>`,
-      );
-    };
-    material.customProgramCacheKey = () => "mist-sides";
-    const plane = new Mesh(bin.add(new PlaneGeometry(layer.size[0], layer.size[1])), material);
-    plane.rotation.x = -Math.PI / 2;
-    plane.position.set(layer.position[0], layer.position[1], layer.position[2]);
-    plane.renderOrder = ORDER.mist;
-    parent.add(plane);
-    mistLayers.push({ texture, speed: new Vector2(layer.speed[0], layer.speed[1]) });
-  }
 
   // ─── Rayons de lune ───
   const shaftMask = bin.add(computedTexture(64, (image) => {
@@ -87,6 +34,7 @@ export function buildAtmosphere(decor: Decor, parent: Group, camera: Perspective
       }
     }
   }, false));
+  const shaftMeshes: Mesh[] = [];
   const shafts = SHAFTS.map(([x, z, width, tilt]) => {
     const material = bin.add(new MeshBasicMaterial({
       color: colors.moonlight, alphaMap: shaftMask, transparent: true, opacity: atmosphere.shafts.opacity,
@@ -97,6 +45,7 @@ export function buildAtmosphere(decor: Decor, parent: Group, camera: Perspective
     shaft.rotation.z = -tilt;
     shaft.renderOrder = ORDER.shafts;
     parent.add(shaft);
+    shaftMeshes.push(shaft);
     return material;
   });
 
@@ -144,13 +93,17 @@ export function buildAtmosphere(decor: Decor, parent: Group, camera: Perspective
   });
 
   return {
-    layout(framing, imageEdge, drawingBuffer) {
+    layout(framing) {
       cameraDistance = framing.cameraDistance;
-      uniformEdge.value = imageEdge;
-      uniformResolution.value.copy(drawingBuffer);
+      // Rayons reculés vers la forêt peinte et agrandis d'autant : même image au repos, sans glisser sur la lune
+      // quand la caméra bouge. Toujours avec la caméra au repos, comme le relief.
+      shaftMeshes.forEach((shaft, i) => {
+        const [x, z] = SHAFTS[i];
+        shaft.position.set(x, 8, z).sub(camera.position).multiplyScalar(SHAFT_RECEDE).add(camera.position);
+        shaft.scale.setScalar(SHAFT_RECEDE);
+      });
     },
     update(t) {
-      for (const layer of mistLayers) layer.texture.offset.set(layer.speed.x * t, layer.speed.y * t);
       shafts.forEach((material, i) => {
         material.opacity = atmosphere.shafts.opacity + atmosphere.shafts.breath * Math.sin(t * 0.25 + i * 2.1);
       });

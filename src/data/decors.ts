@@ -40,7 +40,10 @@ export interface Decor {
   atmosphere: {
     colors: { background: string; mist: string; moonlight: string; firefly: string; edgeShadow: string; edgeMist: string };
     fog: [number, number];                // distances de début et de fin du brouillard, en mètres
-    mist: number;                         // multiplicateur d'opacité des nappes de brume
+    // Brume sur le relief. row, spread : ligne de la peinture où elle est la plus dense, et son étendue en lignes.
+    // from : valeur de la carte de profondeur à partir de laquelle elle apparaît (ce qui est plus proche reste net).
+    // below : nombre de lignes sous `row` où elle s'éteint sur le sol.
+    mist: { opacity: number; row: number; spread: number; from: number; below: number };
     shafts: { opacity: number; breath: number }; // rayons de lune : opacité et amplitude de leur respiration
     fireflies: number;                    // nombre de lucioles (le Souffle rendu visible, docs/lore.md)
   };
@@ -74,7 +77,7 @@ export const DECORS: Record<DecorId, Decor> = {
       corners: {
         left:  { file: `${LISIERE_DIR}/corner-left.png`,  width: 290, height: 360 },
         right: { file: `${LISIERE_DIR}/corner-right.png`, width: 350, height: 310 },
-        depth: 7, amplitude: 0.012, rise: [0.15, 1],
+        depth: 14, amplitude: 0.012, rise: [0.15, 1],
       },
     },
     atmosphere: {
@@ -83,7 +86,7 @@ export const DECORS: Record<DecorId, Decor> = {
         edgeShadow: "#010b10", edgeMist: "#123845",
       },
       fog: [70, 220],
-      mist: 0.75,
+      mist: { opacity: 0.38, row: 470, spread: 170, from: 0.7, below: 120 },
       shafts: { opacity: 0.09, breath: 0.05 },
       fireflies: 46,
     },

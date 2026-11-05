@@ -20,8 +20,6 @@ import { computeFraming, type Framing } from "./framing.ts";
 import { ResourceBin } from "./materials.ts";
 import { buildRelief, type ReliefView } from "./relief.ts";
 
-const PARALLAX = { amplitude: 0.9, speed: 0.35 };
-
 export type SceneQuality = keyof typeof CONFIG.scene.qualityLevels;
 
 export interface StageMeasure {
@@ -203,9 +201,8 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
     framing = computeFraming({ cssWidth, cssHeight, ratio }, view.decor, view.actors.extent);
     placeCamera(framing.cameraDistance, 0);
     view.relief.layout(framing, { width: cssWidth, height: cssHeight });
-    // La brume mesure sa position en pixels de l'image où elle est dessinée : ceux du décor, pas ceux de l'écran
-    view.atmosphere.layout(framing, view.relief.edge(), new Vector2(composer.readBuffer.width, composer.readBuffer.height));
-    view.actors.layout(framing);
+    view.atmosphere.layout(framing);
+    view.actors.layout(framing, view.relief.surfacePoint);
     if (drift !== 0) {
       placeCamera(framing.cameraDistance, drift);
       view.actors.rescale();
@@ -218,7 +215,8 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
     time.value = t;
     view.actors.update(t, moving);
     view.atmosphere.update(t);
-    const targetDrift = parallax && moving ? Math.sin(t * PARALLAX.speed) * PARALLAX.amplitude : 0;
+    const { amplitude, speed } = cameraConfig.parallax;
+    const targetDrift = parallax && moving ? Math.sin(t * speed) * amplitude : 0;
     if (framing && Math.abs(targetDrift - drift) > 1e-4) {
       drift = targetDrift;
       placeCamera(framing.cameraDistance, drift);
