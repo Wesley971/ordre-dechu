@@ -33,13 +33,20 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: lts/*
+          node-version-file: .nvmrc
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      # Mêmes contrôles que ci.yml : une erreur bloque ici la publication (MAE-23)
+      - name: Lint
+        run: npm run lint
       # Vite compile le TypeScript sans vérifier les types : une erreur de type bloque ici la publication
       - name: Typecheck
         run: npm run typecheck
+      - name: Test
+        run: npm test
+      - name: Battle check
+        run: npm run check:battle -- 2026
       - name: Build
         run: npm run build
       - name: Setup Pages

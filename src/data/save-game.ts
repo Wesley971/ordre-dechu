@@ -16,12 +16,12 @@ export const SaveGame = {
 
   write(checkpoint: string | null) {
     if (!this.enabled || checkpoint === null) return;
-    try { localStorage.setItem(SAVE_KEY, checkpoint); } catch {}
+    try { localStorage.setItem(SAVE_KEY, checkpoint); } catch { /* stockage bloqué ou plein : le jeu continue sans sauvegarde */ }
   },
 
   // Une fin est atteinte : la partie est terminée, « Continuer » disparaît
   clear() {
     if (!this.enabled) return;
-    try { localStorage.removeItem(SAVE_KEY); } catch {}
+    try { localStorage.removeItem(SAVE_KEY); } catch { /* stockage bloqué : rien à effacer */ }
   },
 };

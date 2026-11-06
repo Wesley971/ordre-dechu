@@ -39,7 +39,8 @@ Règle de Wesley du 03/11/2026, pour tous les tickets :
 | `npm run dev` | Serveur de développement : `http://localhost:5173/ordre-dechu/` |
 | `npm run build` | Build de production dans `dist/` |
 | `npm run preview` | Servir `dist/` comme sur GitHub Pages |
-| `npm run typecheck` | Vérifier les types (`tsc --noEmit`), aussi lancé par le déploiement avant le build |
+| `npm run lint` | Vérifier le code avec ESLint (règles recommandées et règles de ce fichier, `eslint.config.js`, MAE-23) |
+| `npm run typecheck` | Vérifier les types (`tsc --noEmit`, TypeScript 7) |
 | `npm test` | Lancer les tests Vitest des règles du combat (dégâts, critiques, jauge ATB), une fois, sans mode surveillance (MAE-22) |
 | `npm run check:battle` | Jouer un combat complet de chaque chapitre sous Node, sans navigateur, avec la vue muette (MAE-21) ; `-- <graine>` pour rejouer la même partie |
 
@@ -57,7 +58,14 @@ http://localhost:5173/ordre-dechu/?chapitre=4&vitesse=4
 - En mode test, la sauvegarde du navigateur (MAE-11) n'est ni lue ni écrite, et « Continuer » est masqué. Pour tester la reprise, placer une sauvegarde (clé `ordre-dechu-save`) puis ouvrir le jeu sans paramètre.
 - Tests automatisés dans un navigateur invisible (headless) : toujours lancé sans le son (`--mute-audio`), pour que le jeu ne s'entende pas pendant les tests (décision de Wesley du 02/11/2026).
 
-Les tests sont dans `src/dev/*.test.ts`, sous Node, sans DOM : hasard par `vi.spyOn` sur `Math.random` (`src/dev/test-helpers.ts`), combat par la vue muette. Pas encore de lint ni de vérification à chaque pull request (MAE-23).
+Les tests sont dans `src/dev/*.test.ts`, sous Node, sans DOM : hasard par `vi.spyOn` sur `Math.random` (`src/dev/test-helpers.ts`), combat par la vue muette.
+
+Vérification automatique (MAE-23) : `.github/workflows/ci.yml` lance lint, types, tests, `check:battle` (graine 2026) et build à chaque push et à chaque pull request ; `deploy.yml` lance les mêmes contrôles avant le build, et une erreur bloque la publication.
+
+Version de Node : `.nvmrc` est la seule source, lue par `ci.yml` et `deploy.yml`, et le PC de Wesley a la même. Changer de version de Node se décide avec Wesley.
+
+Deux TypeScript côte à côte : typescript-eslint ne prend pas encore en charge TypeScript 7, qui n'a pas d'API programmatique. D'après la recommandation de Microsoft, le paquet `typescript` est un alias de TypeScript 6, qui ne sert qu'au lint, et `@typescript/native` un alias de TypeScript 7, qui fournit `tsc` : le jeu est vérifié en TypeScript 7. Retirer ces alias quand typescript-eslint prendra en charge TypeScript 7.
+
 Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm run preview`.
 
 ## Environnements

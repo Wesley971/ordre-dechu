@@ -174,6 +174,8 @@ Musiques choisies par Wesley le 03/11/2026 (MAE-12). Licence de chaque piste rel
 
 [Vitest](https://vitest.dev/) 5.1.0 (dépendance de développement `vitest`), tests des règles du combat : licence MIT, vérifiée le 05/11/2026 sur le paquet installé. Il ajoute 20 paquets au dépôt, 19 sous licence MIT et `expect-type` sous licence Apache-2.0. Aucun de ces paquets n'est publié avec le jeu : ils ne servent qu'à lancer `npm test` (MAE-22).
 
+[ESLint](https://eslint.org/) 10.14.0, `@eslint/js` 10.0.1 et [typescript-eslint](https://typescript-eslint.io/) 8.72.1 (dépendances de développement), vérification du code : licence MIT. `@typescript/typescript6` 6.0.2 (alias `typescript`), utilisé par le lint : licence Apache-2.0. Licences vérifiées le 06/11/2026 dans `package-lock.json`. Ils ajoutent 93 paquets au dépôt : 66 sous licence MIT, 14 Apache-2.0, 6 BSD-2-Clause, 5 ISC, 1 BSD-3-Clause (`esquery`) et 1 BlueOak-1.0.0 (`minimatch`), toutes compatibles avec un usage commercial. Aucun de ces paquets n'est publié avec le jeu : ils ne servent qu'à lancer `npm run lint` (MAE-23).
+
 ## Modèles 3D
 
 Aucun pour l'instant. Chacun sera crédité ici par le ticket qui l'ajoute, avec son auteur, son lien et sa licence. Règle du dépôt : licence autorisant l'usage commercial ; musique en CC0 ou CC-BY uniquement, aucune licence NC.

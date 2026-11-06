@@ -120,14 +120,13 @@ async function playChapter(index: number, chapter: BattleChapter) {
   startAtChapter(index);
   const view = createSilentView(strategy);
   const started = Date.now();
-  let frames = 0;
   const guard = setInterval(() => {
     if (view.frameCount > MAX_FRAMES) throw new Error(`${chapter.title} : combat sans fin après ${MAX_FRAMES} images`);
   }, 200);
 
   try {
     const result = await runBattle(view, chapter);
-    frames = view.frameCount;
+    const frames = view.frameCount;
     checkState(chapter, Battle.actionsDone);
     // L'horloge doit être arrêtée : plus aucune image après la fin
     await new Promise(resolve => setTimeout(resolve, 20));
