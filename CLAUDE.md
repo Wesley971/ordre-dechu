@@ -62,6 +62,8 @@ Les tests sont dans `src/dev/*.test.ts`, sous Node, sans DOM : hasard par `vi.sp
 
 Vérification automatique (MAE-23) : `.github/workflows/ci.yml` lance lint, types, tests, `check:battle` (graine 2026) et build à chaque push et à chaque pull request ; `deploy.yml` lance les mêmes contrôles avant le build, et une erreur bloque la publication.
 
+Vérification obligatoire : un ruleset de GitHub (n° 26702526, Settings > Rules > Rulesets) refuse toute fusion et tout push sur `main` dont le contrôle `verify` de `ci.yml` n'est pas vert, sans exception, y compris pour Wesley. Renommer le job oblige à changer aussi le ruleset. Pour le retirer : `gh api -X DELETE repos/Wesley971/ordre-dechu/rulesets/26702526`.
+
 Version de Node : `.nvmrc` est la seule source, lue par `ci.yml` et `deploy.yml`, et le PC de Wesley a la même. Changer de version de Node se décide avec Wesley.
 
 Deux TypeScript côte à côte : typescript-eslint ne prend pas encore en charge TypeScript 7, qui n'a pas d'API programmatique. D'après la recommandation de Microsoft, le paquet `typescript` est un alias de TypeScript 6, qui ne sert qu'au lint, et `@typescript/native` un alias de TypeScript 7, qui fournit `tsc` : le jeu est vérifié en TypeScript 7. Retirer ces alias quand typescript-eslint prendra en charge TypeScript 7.
