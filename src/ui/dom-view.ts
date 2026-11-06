@@ -1,11 +1,13 @@
 // dom-view.ts - L'affichage du jeu : l'implémentation de GameView (src/game-view.ts) sur la page index.html
 //
 // Assemble les fenêtres et menus (view.ts), le dialogue (dialog.ts), le menu de combat (battle-menu.ts), les bruitages,
-// la musique, les contrôles et la scène (stage.ts) : les combattants et leurs animations. C'est le seul endroit qui
-// relie la logique à la page. Les sons sont joués ici, au même rang quelle que soit la scène.
+// la musique, les contrôles et la scène (stage.ts) : les combattants en DOM, ou dans la scène peinte en 2,5D quand le
+// chapitre déclare un décor (MAE-29, src/scene/battle-stage.ts). C'est le seul endroit qui relie la logique à la page.
+// Les sons sont joués ici, au même rang quelle que soit la scène.
 
 import { CONFIG } from "../config.ts";
-import { ATTACK, GameState } from "../data/game-data.ts";
+import { ATTACK, GameState, type Chapter } from "../data/game-data.ts";
+import { DECORS, type DecorId } from "../data/decors.ts";
 import type { GameView } from "../game-view.ts";
 import type { Hero } from "../party/heroes.ts";
 import { Input } from "../input/input.ts";
@@ -14,17 +16,59 @@ import { Music } from "../audio/music.ts";
 import { Dialog } from "./dialog.ts";
 import { Menu } from "./battle-menu.ts";
 import { pickOption } from "./pick-option.ts";
-import { createDomStage, type Stage } from "./stage.ts";
+import { createDomStage, embersHtml, type Stage } from "./stage.ts";
 import {
   $, wait, pulse, showScreen, setSceneTint, renderPartyWindow, renderEnemyList, renderMenu, updateBattleUI, updateAtbUI,
-  onBattleUiUpdated, showBanner, hideBanner, showMessage, effectVisual, effectSound, popupText, popupClasses, spawnPopup, spawnFx,
+  onBattleUiUpdated, heroFlags, showBanner, hideBanner, showMessage, effectVisual, effectSound, popupText, popupClasses, spawnPopup, spawnFx,
 } from "./view.ts";
 
+// Options du mode test (src/dev/test-mode.ts), toutes neutres hors mode test
+export interface DomViewOptions {
+  domOnly?: boolean; // ?rendu=dom : les chapitres avec décor s'affichent quand même en DOM
+  counter?: boolean; // ?compteur=1 : images/s à l'écran dans la scène peinte
+  expose?: boolean;  // la scène peinte expose ses mesures au bot (window.battleStage)
+}
+
 // Branche les contrôles de la page, une fois, puis rend la vue
-export function createDomView(): GameView {
+export function createDomView(options: DomViewOptions = {}): GameView {
   wirePage();
-  const stage: Stage = createDomStage();
+  const domStage = createDomStage();
+  let stage: Stage = domStage;
+  let painted: { stage: Stage; decorId: DecorId } | null = null;
+  let paintedUnavailable = false; // WebGL absent ou chargement raté : affichage DOM pour toute la session
   onBattleUiUpdated(() => stage.refresh());
+
+  function releasePainted() {
+    if (!painted) return;
+    painted.stage.dispose();
+    painted = null;
+    stage = domStage; // jamais une scène libérée entre les mains de la vue, même le temps d'un chargement
+  }
+
+  // La scène du chapitre : peinte s'il déclare un décor et que la scène se charge, DOM sinon (MAE-29).
+  // Three.js et le décor ne se chargent qu'ici, au début d'un chapitre avec décor.
+  async function selectStage(chapter: Chapter): Promise<Stage> {
+    const decorId = chapter.decor;
+    const wantPainted = decorId !== undefined && !options.domOnly && !paintedUnavailable;
+    if (wantPainted && painted?.decorId === decorId) return painted.stage;
+    releasePainted();
+    if (wantPainted) {
+      try {
+        const { createBattleStage } = await import("../scene/battle-stage.ts");
+        const created = await createBattleStage(DECORS[decorId], {
+          flagsOf: heroFlags, onPick: (c) => Menu.clickTarget(c), anchorHtml: embersHtml,
+          counter: options.counter, expose: options.expose,
+        });
+        painted = { stage: created, decorId };
+        domStage.dispose(); // plus de sprites DOM derrière la scène peinte
+        return created;
+      } catch (error) {
+        console.warn("Scène peinte indisponible, affichage DOM pour cette partie :", error);
+        paintedUnavailable = true;
+      }
+    }
+    return domStage;
+  }
 
   // Fenêtres du bas au repos : liste des ennemis vide, lignes du groupe, menu fermé
   function renderHud(party: Hero[]) {
@@ -37,6 +81,8 @@ export function createDomView(): GameView {
     // — Écrans et histoire —
 
     async showTitle({ startLabel, canRetry, canContinue }) {
+      releasePainted(); // la mémoire graphique est rendue entre deux parties
+      stage = domStage;
       showScreen("intro");
       $("#start-btn").textContent = startLabel;
       $("#retry-btn").hidden = !canRetry;
@@ -50,6 +96,7 @@ export function createDomView(): GameView {
 
     async showChapter(chapter, party) {
       setSceneTint(chapter);
+      stage = await selectStage(chapter);
       await stage.showIdle(party, chapter);
       renderHud(party);
       showScreen("game");
