@@ -68,7 +68,10 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 | `public/licenses/` | Texte des licences à publier avec le jeu (Three.js) |
 | `vite.config.ts` | Configuration de Vite (`base` de GitHub Pages) |
 | `tsconfig.json` | Configuration de TypeScript (mode strict) |
-| `.github/workflows/deploy.yml` | Vérification des types, build et publication sur GitHub Pages à chaque push sur `main` |
+| `eslint.config.js` | Règles d'ESLint, dont la séparation entre logique et affichage |
+| `.nvmrc` | Version de Node, la même sur le PC et sur GitHub |
+| `.github/workflows/ci.yml` | Lint, types, tests, combats sans navigateur et build à chaque push et à chaque pull request |
+| `.github/workflows/deploy.yml` | Mêmes contrôles, build et publication sur GitHub Pages à chaque push sur `main` |
 
 ## 🛠️ Technologies utilisées
 
@@ -78,10 +81,11 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 * [Vite](https://vite.dev/) (serveur de développement et build)
 * [Three.js](https://threejs.org/) (scène peinte en 2,5D, chargée seulement à la demande)
 * [Vitest](https://vitest.dev/) (tests des règles du combat, outil de développement non publié avec le jeu)
+* [ESLint](https://eslint.org/) et [typescript-eslint](https://typescript-eslint.io/) (vérification du code, outils de développement non publiés avec le jeu)
 
 ## 🚀 Lancer le jeu
 
-Il faut [Node.js](https://nodejs.org/) (version LTS). Le jeu ne s'ouvre plus d'un double-clic sur `index.html` : les navigateurs bloquent les modules ES en `file://`.
+Il faut [Node.js](https://nodejs.org/), dans la version indiquée par `.nvmrc`. Le jeu ne s'ouvre plus d'un double-clic sur `index.html` : les navigateurs bloquent les modules ES en `file://`.
 
 ```bash
 git clone https://github.com/Wesley971/ordre-dechu.git
@@ -94,7 +98,7 @@ Puis ouvre l'adresse affichée (`http://localhost:5173/ordre-dechu/`) et choisis
 
 Pour tester la version de production : `npm run build`, puis `npm run preview`.
 
-Pour vérifier les types : `npm run typecheck` (Vite compile le TypeScript sans le vérifier).
+Pour vérifier le code : `npm run lint`. Pour vérifier les types : `npm run typecheck` (Vite compile le TypeScript sans le vérifier).
 
 Pour lancer les tests des règles du combat : `npm test`. Pour jouer un combat de chaque chapitre sans navigateur : `npm run check:battle`.
 
