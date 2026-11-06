@@ -15,9 +15,11 @@ import {
 const RELIEF_SEGMENTS = { x: 258, y: 77 };
 // Ordre de dessin : relief, côtés lointains, lueurs, brume, côtés proches, rayons (3), lucioles (4), fondu, feuillages, ombres (50)
 const ORDER = { relief: -20, sideFar: -16, sideGlints: -14, glints: -10, mist: 2, sideNear: 2.5, edgeFade: 25, foreground: 30, edgeFadeFitted: 35, corners: 40 };
-// Part de la peinture qui se fond dans la brume en haut et en bas, quand elle ne remplit pas la hauteur.
-// Assez pour qu'aucun bord ne se voie, assez peu pour garder la lune (voile léger sur son haut) et les pieds nets.
-const FITTED_FADE = { top: 0.09, bottom: 0.1 };
+// Part de la peinture qui se fond dans la brume en haut et en bas, quand elle ne touche pas ce bord du canvas.
+// Assez pour qu'aucun bord ne se voie, assez peu pour garder la lune (voile léger sur son haut) et les pieds nets :
+// les pieds les plus bas sont à 86 % de la hauteur, le fondu du bas commence sous eux. La frontière du fondu n'est pas
+// droite : sa hauteur varie le long du bord avec le bruit (MAE-29, retour de Wesley sur la ligne au-dessus du HUD).
+const FITTED_FADE = { top: 0.09, bottom: 0.14, wobble: 0.45 };
 
 export interface ReliefView {
   layout(framing: Framing, canvasSize: { width: number; height: number }): void;
@@ -35,8 +37,9 @@ function fullPlane(material: Material, order: number, parent: Group) {
 
 // Fondu vers l'ombre et la brume, en plein écran.
 // - Sur les côtés : seulement au-delà de la peinture, comme dans le labo.
-// - En haut et en bas, quand la peinture ne remplit pas la hauteur : opaque dès le bord de l'image, pour que
-//   rien d'autre ne se voie, avec une brume qui bouge lentement et s'éteint vers l'ombre au bord de l'écran.
+// - En haut ou en bas, quand la peinture ne touche pas ce bord du canvas (écran étroit, ou fenêtres du bas en
+//   combat) : opaque dès le bord de l'image, pour que rien d'autre ne se voie, avec une brume qui bouge lentement
+//   et s'éteint vers l'ombre au bord de l'écran.
 function edgeFadeMaterial(decor: Decor, noise: Texture, time: { value: number }) {
   const { edgeShadow, edgeMist } = decor.atmosphere.colors;
   return new ShaderMaterial({
@@ -44,19 +47,21 @@ function edgeFadeMaterial(decor: Decor, noise: Texture, time: { value: number })
       uEdge: { value: 0.5 },
       uShadow: { value: new Color(edgeShadow) },
       uMist: { value: new Color(edgeMist) },
-      uFitted: { value: 0 },
+      uFadeTop: { value: 0 },
+      uFadeBottom: { value: 0 },
       uTop: { value: 1 },
       uTopInner: { value: 1 },
       uBottom: { value: -1 },
       uBottomInner: { value: -1 },
+      uWobble: { value: FITTED_FADE.wobble },
       uAspect: { value: 1 },
       uNoise: { value: noise },
       uTime: time,
     },
     vertexShader: "varying vec2 vNdc; void main() { vNdc = position.xy * 2.0; gl_Position = vec4( position.xy * 2.0, 0.0, 1.0 ); }",
     fragmentShader: /* glsl */ `
-      uniform float uEdge; uniform vec3 uShadow; uniform vec3 uMist; uniform float uFitted; uniform float uTop;
-      uniform float uTopInner; uniform float uBottom; uniform float uBottomInner; uniform float uAspect;
+      uniform float uEdge; uniform vec3 uShadow; uniform vec3 uMist; uniform float uFadeTop; uniform float uFadeBottom; uniform float uTop;
+      uniform float uTopInner; uniform float uBottom; uniform float uBottomInner; uniform float uWobble; uniform float uAspect;
       uniform sampler2D uNoise; uniform float uTime; varying vec2 vNdc;
       void main() {
         float x = abs( vNdc.x );
@@ -66,9 +71,15 @@ function edgeFadeMaterial(decor: Decor, noise: Texture, time: { value: number })
         float sideMist = exp( -offset * offset );
         vec3 sideColor = mix( uShadow, uMist, 0.55 * sideMist );
 
-        float above = clamp( ( vNdc.y - uTopInner ) / ( uTop - uTopInner ), 0.0, 1.0 );
-        float below = clamp( ( uBottomInner - vNdc.y ) / ( uBottomInner - uBottom ), 0.0, 1.0 );
-        float band = uFitted * smoothstep( 0.0, 1.0, max( above, below ) );
+        // Hauteur du fondu qui varie le long du bord, lentement dans le temps : la frontière n'est jamais une droite.
+        // Le bord de l'image reste toujours entièrement couvert, seul le début du fondu bouge.
+        float wobble = texture2D( uNoise, vec2( vNdc.x * uAspect * 0.35 + uTime * 0.004, 0.37 ) ).r;
+        float ramp = mix( 1.0 - uWobble, 1.0, wobble );
+        float topRamp = ( uTop - uTopInner ) * ramp;
+        float bottomRamp = ( uBottomInner - uBottom ) * ramp;
+        float above = clamp( ( vNdc.y - ( uTop - topRamp ) ) / topRamp, 0.0, 1.0 );
+        float below = clamp( ( ( uBottom + bottomRamp ) - vNdc.y ) / bottomRamp, 0.0, 1.0 );
+        float band = smoothstep( 0.0, 1.0, max( above * uFadeTop, below * uFadeBottom ) );
         float away = max( vNdc.y - uTop, uBottom - vNdc.y ); // distance au bord de l'image, hors de l'image
         vec2 noiseUv = vec2( vNdc.x * uAspect, vNdc.y ) * 0.45;
         float noise = texture2D( uNoise, noiseUv + vec2( uTime * 0.006, uTime * 0.002 ) ).r
@@ -216,19 +227,23 @@ export async function buildRelief(
       const bottom = framing.rowToNdc(image.height);
       const uniforms = fade.uniforms;
       uniforms.uEdge.value = edge;
-      uniforms.uFitted.value = framing.fitted ? 1 : 0;
+      uniforms.uFadeTop.value = framing.fadeTop ? 1 : 0;
+      uniforms.uFadeBottom.value = framing.fadeBottom ? 1 : 0;
       uniforms.uTop.value = top;
       uniforms.uTopInner.value = top - (top - bottom) * FITTED_FADE.top;
       uniforms.uBottom.value = bottom;
       uniforms.uBottomInner.value = bottom + (top - bottom) * FITTED_FADE.bottom;
       uniforms.uAspect.value = canvasSize.width / canvasSize.height;
-      // Peinture rétrécie : le fondu passe devant les feuillages peints, sinon ils s'arrêteraient net au bas de l'image
-      fadePlane.renderOrder = framing.fitted ? ORDER.edgeFadeFitted : ORDER.edgeFade;
+      // Peinture qui ne touche pas un bord : le fondu passe devant les feuillages peints, sinon ils s'arrêteraient net au bas de l'image
+      fadePlane.renderOrder = framing.fadeTop || framing.fadeBottom ? ORDER.edgeFadeFitted : ORDER.edgeFade;
 
-      // Fougères des coins : à l'étroit, elles flotteraient dans la brume sous la peinture
+      // Fougères des coins, seulement quand la peinture touche le bas de l'écran : à l'étroit, elles flotteraient dans la
+      // brume sous la peinture ; au-dessus des fenêtres du bas (MAE-29), leurs bords droits se voyaient sur la brume du fondu
+      const safeBottom = framing.safeBottomNdc;
+      const showCorners = !framing.fitted && !framing.fadeBottom;
       for (const corner of corners) {
-        corner.mesh.visible = !framing.fitted;
-        if (framing.fitted) continue;
+        corner.mesh.visible = showCorners;
+        if (!showCorners) continue;
         let heightPx = 0.3 * canvasSize.height;
         let widthPx = (heightPx * corner.width) / corner.height;
         if (widthPx > 0.13 * canvasSize.width) {
@@ -246,7 +261,7 @@ export async function buildRelief(
         // Au repos, la partie visible garde exactement la même échelle
         corner.map.repeat.x = (visible + travel) / visible;
         corner.map.offset.x = corner.isLeft ? -travel / visible : 0;
-        placeOnScreen(corner.mesh, left, right, -1 + (2 * heightPx) / canvasSize.height, -1 - out, depth);
+        placeOnScreen(corner.mesh, left, right, safeBottom + (2 * heightPx) / canvasSize.height, safeBottom - out, depth);
       }
     },
   };

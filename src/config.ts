@@ -59,6 +59,19 @@ export const CONFIG = {
     },
     decorScaleBelowCssSide: 600, // écran étroit : son plus petit côté est sous cette taille, en pixels CSS
     decorScaleFromRatio:    2,   // forte densité : à partir de cette densité d'écran
+    // Poses du combat dans la scène peinte (MAE-29), en pixels de sprite : les mêmes gestes que les sprites DOM
+    // (style.css, à 3 pixels écran par pixel de sprite). Les durées sont dans timing.
+    battle: {
+      activeStep:  7,    // le héros dont le menu est ouvert s'avance (22 px)
+      actingStep:  16,   // pas en avant pour agir (48 px)
+      lungeBack:   2,    // recul avant le pas (hero-lunge) et recul au coup reçu (hero-recoil)
+      shake:       2,    // tremblement d'un coup reçu (shake)
+      victoryHop:  5,    // saut de victoire (14 px)
+      kneelDip:    2,    // genou à terre : descente (6 px) et tassement
+      kneelScale:  0.92,
+      defeatedSink: 0.12, // vaincu mais pas mort : s'affaisse de cette part de sa hauteur, penché de defeatedTilt
+      defeatedTilt: 8,    // degrés
+    },
   },
 
   revivePct:   0.25, // part des PV rendus par Liéver et la Larme dorée
@@ -86,5 +99,13 @@ export const CONFIG = {
     popup:         1200, // chiffre de dégâts (CSS popup-bounce)
     death:         700,  // disparition d'un ennemi (CSS enemy-dissolve)
     flee:          700,  // sortie de scène du groupe (CSS .fleeing)
+    // Scène peinte (MAE-29) : les durées que les sprites DOM tiennent de style.css seulement
+    appearDelay:   500,  // les ennemis apparaissent après ce délai, jusqu'à la fin de appear (CSS enemy-appear)
+    fall:          400,  // chute d'un héros éteint (CSS hero-fall)
+    slide:         200,  // pas en avant et retour à sa place (CSS .sprite-body transition)
+    victoryHop:    450,  // un saut de victoire, joué quatre fois (CSS victory-hop)
+    kneel:         1400, // respiration du genou à terre (CSS kneel)
+    defeatedPose:  600,  // le Dragon s'affaisse, puis se relève (CSS .sprite.enemy .sprite-img transition)
+    fleeSlide:     600,  // sortie de scène elle-même, dans flee (CSS .fleeing transition)
   },
 };

@@ -187,6 +187,85 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   white-space: nowrap;
 }
 
+/* ─── SCÈNE PEINTE (MAE-29) ────────────────────────────────────────── */
+
+/* Le canvas couvre tout l'écran derrière l'interface ; il apparaît en fondu une fois le décor et le groupe en place */
+#painted-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.4s ease, filter 1.2s ease;
+}
+
+#painted-stage.ready { opacity: 1; }
+#painted-stage.quake { animation: shake 0.4s ease; }
+
+body.game-over #painted-stage { filter: grayscale(1) brightness(0.35); }
+
+/* Les ancres suivent les sprites ; le calque lui-même laisse passer les clics vers la page */
+#actor-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.actor-anchor {
+  position: absolute;
+  pointer-events: auto;
+  cursor: var(--cursor-pointer);
+}
+
+/* La peinture est cadrée dans la scène, qui s'étend du haut de l'écran aux fenêtres du bas, collées en bas */
+body.scene-painted::before { display: none; }
+
+body.scene-painted #game {
+  z-index: 2;
+  justify-content: flex-end;
+  height: 100vh;
+  height: 100dvh;
+  max-height: none;
+  padding-top: 0;
+}
+
+body.scene-painted #battle-scene {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* La colonne couvre tout l'écran : transparente aux clics, sauf les fenêtres du bas et le bandeau,
+   pour que les ancres, dessous, reçoivent le toucher de ciblage */
+body.scene-painted #game { pointer-events: none; }
+body.scene-painted #battle-hud,
+body.scene-painted #battle-banner { pointer-events: auto; }
+
+/* Main de ciblage, bouclier de Garde, trace du coup et braises : comme sur un sprite DOM */
+.actor-anchor.targeted::before      { left: -30px; top: 50%; margin-top: -8px; }
+.actor-anchor.hero.targeted::before { left: auto; right: -30px; scale: -1 1; animation-name: hand-bob-left; }
+.actor-anchor.targeted.all::before  { animation: hand-blink 0.3s steps(1) infinite; }
+.actor-anchor.hero .fx-slash        { scale: -1 1; }
+.actor-anchor.hero.ko .ember        { display: none; }
+
+.actor-anchor.hero.defending::after {
+  content: "";
+  position: absolute;
+  right: -10px;
+  bottom: 0;
+  width: 22px;
+  height: 26px;
+  background: url("/images/shield.svg") center / contain no-repeat;
+  image-rendering: pixelated;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actor-anchor.hero.targeted::before,
+  .actor-anchor.targeted.all::before { animation: none; }
+  #painted-stage.quake { animation: none; }
+}
+
 /* ─── SPRITES ──────────────────────────────────────────────────────── */
 
 .sprite {
