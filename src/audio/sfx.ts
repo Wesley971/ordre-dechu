@@ -36,12 +36,12 @@ export const Sfx: SfxPlayer = {
   enabled: true,
 
   init() {
-    try { this.enabled = localStorage.getItem("ordre-dechu-sound") !== "off"; } catch {}
+    try { this.enabled = localStorage.getItem("ordre-dechu-sound") !== "off"; } catch { /* stockage bloqué : le son reste activé */ }
   },
 
   toggle() {
     this.enabled = !this.enabled;
-    try { localStorage.setItem("ordre-dechu-sound", this.enabled ? "on" : "off"); } catch {}
+    try { localStorage.setItem("ordre-dechu-sound", this.enabled ? "on" : "off"); } catch { /* stockage bloqué : le réglage vaut pour cette visite */ }
     return this.enabled;
   },
 

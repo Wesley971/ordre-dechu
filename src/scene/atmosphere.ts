@@ -73,8 +73,8 @@ export function buildAtmosphere(decor: Decor, parent: Group, camera: Perspective
   const inClearing = (x: number, z: number) =>
     Math.hypot((x - CLEARING.x) / (CLEARING.rx + CLEARING.margin), (z - CLEARING.z) / (CLEARING.rz + CLEARING.margin)) < 1;
   const fireflies = Array.from({ length: atmosphere.fireflies }, () => {
-    let x = 0;
-    let z = 0;
+    let x: number;
+    let z: number;
     do {
       x = range(-14, 14);
       z = range(-9, 5);
