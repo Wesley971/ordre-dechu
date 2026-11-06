@@ -3,8 +3,8 @@
 // La logique (combat, histoire, état de la partie) ne connaît que cette interface : elle lui demande d'afficher,
 // d'animer, de jouer la musique et de poser les questions au joueur. L'affichage, lui, lit librement l'état
 // (GameState, Battle) pour dessiner, mais ne modifie jamais la logique : il lui rend des décisions.
-// Deux implémentations : le DOM (src/ui/dom-view.ts) et une vue muette pour les tests (src/dev/silent-view.ts).
-// La scène peinte en 2,5D (MAE-29) en sera une troisième.
+// Deux implémentations : le DOM (src/ui/dom-view.ts), qui affiche la scène peinte en 2,5D quand le chapitre a un
+// décor (MAE-29, src/scene/battle-stage.ts), et une vue muette pour les tests (src/dev/silent-view.ts).
 
 import type { Ability, Chapter, ItemId, MusicId, Page } from "./data/game-data.ts";
 import type { Hero } from "./party/heroes.ts";
@@ -56,7 +56,9 @@ export interface Hit { target: Combatant; effect: Effect }
 export interface GameView {
   // — Écrans et histoire —
   showTitle(options: TitleOptions): Promise<TitleChoice>;
-  showChapter(chapter: Chapter, party: Hero[]): void;   // scène au repos : le groupe seul, la teinte du lieu
+  // Scène au repos : le groupe seul, dans le lieu du chapitre. Se résout quand la scène est prête à être vue
+  // (la scène peinte charge son décor ici, MAE-29) : l'histoire ne commence qu'ensuite
+  showChapter(chapter: Chapter, party: Hero[]): Promise<void>;
   music(id: MusicId | null): void;                      // null : silence
   tell(telling: Telling): Promise<void>;
   ask<T extends string>(question: Question<T>): Promise<T>;

@@ -42,7 +42,7 @@ export function createSilentView(strategy: SilentStrategy, { frameMs = FRAME_MS 
       view.log.push(`titre : ${options.startLabel}${options.canRetry ? " · Réessayer" : ""}${options.canContinue ? " · Continuer" : ""}`);
       return "start";
     },
-    showChapter(chapter) { view.log.push(`chapitre : ${chapter.title}`); },
+    async showChapter(chapter) { view.log.push(`chapitre : ${chapter.title}`); },
     music(id) { view.log.push(`musique : ${id ?? "silence"}`); },
     async tell({ title, pages }) {
       if (title) view.log.push(`— ${title} —`);
