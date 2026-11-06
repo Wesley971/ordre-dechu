@@ -48,13 +48,14 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 | `src/config.ts` | Constantes de gameplay (vitesse ATB, dégâts, XP par niveau) et toutes les durées |
 | `src/data/game-data.ts` | Héros, souffles, objets, ennemis, chapitres, textes + objet `GameState` |
 | `src/data/decors.ts` | Décors peints en 2,5D : images, relief, places des personnages et ambiance de chaque lieu |
-| `src/scene/` | Scène peinte en 2,5D (Three.js), pas encore branchée sur le jeu : cadrage, relief, brume, lucioles, sprites nets |
-| `src/dev/` | Outils de test en local : mode test, page de contrôle de la scène, vue muette, combats sans navigateur, tests Vitest |
+| `src/scene/` | Scène peinte en 2,5D (Three.js) : cadrage, relief, brume, lucioles, sprites nets et leurs poses ; `battle-stage.ts` la branche sur le combat des chapitres qui ont un décor (le chapitre I aujourd'hui) |
+| `src/dev/` | Outils de test en local : mode test, page de contrôle de la scène, compteur d'images/s, vue muette, combats sans navigateur, tests Vitest |
 | `src/party/heroes.ts` | Création des héros, XP, montées de niveau, récompenses |
 | `src/battle/battle.ts` | Moteur de combat : calculs purs (dégâts, soins, ciblage) et boucle ATB |
 | `src/story/game-flow.ts` | Déroulement de la partie : titre, chapitres, victoire, défaite |
-| `src/ui/dom-view.ts` | Implémentation DOM du contrat : relie la logique à la page, aux sons et aux contrôles |
-| `src/ui/view.ts` | Affichage DOM : scène, fenêtres, chiffres de dégâts, animations |
+| `src/ui/dom-view.ts` | Implémentation du contrat sur la page : relie la logique à la page, aux sons, aux contrôles et à la scène du chapitre (DOM ou peinte) |
+| `src/ui/stage.ts` | La partie « scène » de l'affichage (combattants, poses, animations) : contrat `Stage` et sa version DOM |
+| `src/ui/view.ts` | Affichage DOM : écrans, fenêtres, menus, bandeau, chiffres de dégâts et effets |
 | `src/ui/battle-menu.ts` | Menus de commande et sélection des cibles ; rend l'ordre du joueur à la logique |
 | `src/ui/dialog.ts` | Fenêtre de dialogue avec effet machine à écrire, et questions à choix |
 | `src/ui/pick-option.ts` | Petit menu de choix (titre, dialogues) |
@@ -79,7 +80,7 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 * CSS (style, ambiance RPG, animations)
 * TypeScript strict en modules ES (logique de combat, DOM, interactivité, narration)
 * [Vite](https://vite.dev/) (serveur de développement et build)
-* [Three.js](https://threejs.org/) (scène peinte en 2,5D, chargée seulement à la demande)
+* [Three.js](https://threejs.org/) (scène peinte en 2,5D, chargée seulement au début d'un chapitre qui a un décor)
 * [Vitest](https://vitest.dev/) (tests des règles du combat, outil de développement non publié avec le jeu)
 * [ESLint](https://eslint.org/) et [typescript-eslint](https://typescript-eslint.io/) (vérification du code, outils de développement non publiés avec le jeu)
 
@@ -95,6 +96,8 @@ npm run dev
 ```
 
 Puis ouvre l'adresse affichée (`http://localhost:5173/ordre-dechu/`) et choisis « Nouvelle partie ».
+
+Le chapitre I se joue dans la scène peinte en 2,5D (WebGL, chargée à ce moment-là) ; si le navigateur n'a pas WebGL, le jeu se replie sur l'affichage DOM, comme pour les autres chapitres.
 
 Pour tester la version de production : `npm run build`, puis `npm run preview`.
 
@@ -127,7 +130,7 @@ Tout le jeu (écran titre, combat, dialogues) repose sur un seul Design System, 
 * **Une seule fenêtre** : `.window` (fond sombre dégradé, liseré or, coins à 2 px) sert pour l'écran titre, la scène, les menus, les dialogues et le bouton son
 * **Un seul curseur** : la main dorée `images/hand.svg` désigne l'option ou la cible choisie, partout
 * **Tokens CSS** : couleurs, typographie, espacements, curseurs de souris exposés comme variables `--var`
-* **Composants** : `.window`, `.window-title`, `.menu` / `.menu-item`, `.sprite`, `.party-row`, `.popup`
+* **Composants** : `.window`, `.window-title`, `.menu` / `.menu-item`, `.sprite` (et `.actor-anchor`, son équivalent posé sur la scène peinte), `.party-row`, `.popup`
 
 ## 🎯 Objectif pédagogique
 

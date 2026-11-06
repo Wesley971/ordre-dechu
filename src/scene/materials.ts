@@ -229,7 +229,9 @@ export function swayingMaterial(map: Texture, time: { value: number }, amplitude
   return material;
 }
 
-// Lueurs peintes (fleurs, étincelles) : ajoutées en lumière, chacune palpite à son rythme
+// Lueurs peintes (fleurs, étincelles) : ajoutées en lumière, chacune palpite à son rythme.
+// Le rythme vient d'un bruit lissé entre cellules voisines (interpolation bilinéaire du hasard de chaque cellule) :
+// une lueur à cheval sur deux cellules palpite d'un seul tenant, sans frontière droite ni bande entre elles.
 export function glintMaterial(map: Texture, time: { value: number }): MeshBasicMaterial {
   const material = new MeshBasicMaterial({ map, transparent: true, blending: AdditiveBlending, depthWrite: false, depthTest: false, fog: false });
   material.onBeforeCompile = (shader) => {
@@ -237,12 +239,17 @@ export function glintMaterial(map: Texture, time: { value: number }): MeshBasicM
     shader.fragmentShader = "uniform float uTime;\n" + shader.fragmentShader.replace(
       "#include <map_fragment>",
       `vec4 glowTexel = texture2D( map, vMapUv );
-      vec2 cell = floor( vMapUv * vec2( 180.0, 270.0 ) );
-      float h = fract( sin( dot( cell, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 );
+      vec2 grid = vMapUv * vec2( 180.0, 90.0 );
+      vec2 cell = floor( grid );
+      vec2 f = fract( grid );
+      f = f * f * ( 3.0 - 2.0 * f );
+      #define GLINT_HASH( c ) fract( sin( dot( c, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 )
+      float h = mix( mix( GLINT_HASH( cell ), GLINT_HASH( cell + vec2( 1.0, 0.0 ) ), f.x ),
+                     mix( GLINT_HASH( cell + vec2( 0.0, 1.0 ) ), GLINT_HASH( cell + vec2( 1.0, 1.0 ) ), f.x ), f.y );
       float twinkle = 0.5 + 0.5 * sin( uTime * ( 1.2 + h * 2.2 ) + h * 6.2831 );
       diffuseColor = vec4( glowTexel.rgb * ( 0.35 + 1.1 * twinkle * twinkle ), glowTexel.a );`,
     );
   };
-  material.customProgramCacheKey = () => "painted-glow";
+  material.customProgramCacheKey = () => "painted-glow-smooth";
   return material;
 }

@@ -1,12 +1,15 @@
-// view.ts - Affichage : scène de combat, fenêtres, menus, animations
+// view.ts - Affichage : écrans, fenêtres du bas, menus, bandeau, chiffres et effets
+//
+// Les combattants eux-mêmes (sprites, poses, animations) sont la « scène » : stage.ts en DOM, src/scene/battle-stage.ts
+// en 2,5D (MAE-29). Ce fichier ne joue aucun son : les sons sont dans dom-view.ts, les menus et le dialogue.
 
 import { CONFIG } from "../config.ts";
-import { ATTACK, GameState, HEROES } from "../data/game-data.ts";
+import { GameState } from "../data/game-data.ts";
 import type { Ability, Chapter } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
-import { Sfx, type SoundName } from "../audio/sfx.ts";
+import type { SoundName } from "../audio/sfx.ts";
 import { Battle, isAlive } from "../battle/battle.ts";
-import type { BattleState, Combatant, Effect, Enemy } from "../battle/battle.ts";
+import type { Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
 import type { CommandLevel, ListLevel, MenuController } from "./battle-menu.ts";
 
@@ -19,25 +22,21 @@ export function $(selector: string, root: ParentNode = document) {
 
 export const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
-// Positions (en % de la zone) selon le nombre d'ennemis, et des héros en diagonale
-const FORMATIONS: Record<number, [number, number][]> = {
-  1: [[50, 50]],
-  2: [[65, 30], [38, 70]],
-  3: [[72, 22], [34, 50], [72, 80]],
-};
-const HERO_SLOTS: [number, number][] = [[78, 28], [50, 52], [22, 76]];
+// Ajoute une classe le temps d'une animation
+export async function pulse(el: HTMLElement | null, className: string, duration: number) {
+  if (!el) return wait(duration);
+  el.classList.remove(className);
+  void el.offsetWidth; // force le navigateur à rejouer l'animation
+  el.classList.add(className);
+  await wait(duration);
+  el.classList.remove(className);
+}
 
-// Toile commune des sprites de héros, en pixels de sprite (affichée ×3 sur ordinateur, ×1 sur mobile).
-// Seule déclaration : style.css la reçoit en variables --canvas-w et --canvas-h, comme pour les ennemis (MAE-21)
-const HERO_CANVAS = { w: 47, h: 66 };
-
-// Éléments d'un combattant, absents tant que la scène n'est pas construite
-function spriteEl(c: Combatant)   { return document.querySelector<HTMLElement>(`[data-sprite="${c.id}"]`); }
-function rowEl(c: Combatant)      { return document.querySelector<HTMLElement>(`[data-row="${c.id}"]`); }
-function listItemEl(c: Combatant) { return document.querySelector<HTMLElement>(`[data-item="${c.id}"]`); }
-
-// Sprite d'un combattant présent sur la scène
-function sceneSprite(c: Combatant) { return $(`[data-sprite="${c.id}"]`); }
+// Éléments d'un combattant, absents tant que la scène n'est pas construite.
+// [data-sprite] est le sprite DOM, ou l'ancre posée sur le sprite de la scène peinte.
+export function spriteEl(c: Combatant)   { return document.querySelector<HTMLElement>(`[data-sprite="${c.id}"]`); }
+function rowEl(c: Combatant)             { return document.querySelector<HTMLElement>(`[data-row="${c.id}"]`); }
+function listItemEl(c: Combatant)        { return document.querySelector<HTMLElement>(`[data-item="${c.id}"]`); }
 
 export function showScreen(name: "intro" | "game") {
   $("#intro-screen").hidden = name !== "intro";
@@ -48,81 +47,9 @@ export function setSceneTint(chapter: Chapter) {
   $("#battle-scene").style.setProperty("--scene-tint", chapter.tint || "transparent");
 }
 
-// — Construction de la scène —
+// — Fenêtres du bas —
 
-function createSprite(c: Combatant, [x, y]: [number, number]) {
-  const sprite = document.createElement("div");
-  sprite.className = `sprite ${c.side}${c.boss ? " boss" : ""}`;
-  sprite.dataset.sprite = c.id;
-  sprite.style.left = x + "%";
-  // Hauteur voulue ; style.css la borne pour que le sprite reste entier dans la scène (voir .sprite.hero, .sprite.enemy)
-  sprite.style.setProperty("--slot-y", y + "%");
-  // Pixel art : la taille à l'écran vient de la toile du PNG (voir .sprite.hero et .sprite.enemy dans style.css)
-  const canvas = c.side === "enemy" ? { w: c.canvasWidth, h: c.canvasHeight } : HERO_CANVAS;
-  sprite.style.setProperty("--canvas-w", String(canvas.w));
-  sprite.style.setProperty("--canvas-h", String(canvas.h));
-  sprite.innerHTML = `<div class="sprite-body"><img class="sprite-img" src="${c.image}" alt="${c.name}">${embersHtml(c)}</div>`;
-  sprite.addEventListener("click", () => Menu.clickTarget(c));
-  if (c.side === "hero") {
-    // Un héros déjà éteint quand la scène est construite est posé à terre, sans rejouer sa chute
-    if (!isAlive(c)) sprite.classList.add("ko", "fallen");
-    const img = sprite.querySelector<HTMLImageElement>(".sprite-img");
-    if (img) measureKoLift(sprite, img);
-  }
-  return sprite;
-}
-
-// Couché, le héros pivote autour de ses pieds, tête vers les ennemis : sa colonne opaque la plus à droite devient
-// son point le plus bas. --ko-lift (en pixels de sprite) le remonte de ce qu'il faut pour que ce point touche la ligne de sol.
-function measureKoLift(sprite: HTMLElement, img: HTMLImageElement) {
-  const measure = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx || !canvas.width) return;
-    ctx.drawImage(img, 0, 0);
-    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    for (let x = canvas.width - 1; x >= 0; x--) {
-      for (let y = 0; y < canvas.height; y++) {
-        if (data[(y * canvas.width + x) * 4 + 3]) {
-          sprite.style.setProperty("--ko-lift", String(x + 1 - canvas.width / 2));
-          return;
-        }
-      }
-    }
-  };
-  if (img.complete) measure();
-  else img.addEventListener("load", measure, { once: true });
-}
-
-// Braises qui montent des bords enflammés d'un héros (Elwen), décalées dans le temps
-function embersHtml(c: Combatant) {
-  const embers = HEROES.find(def => def.id === c.id)?.embers || [];
-  return embers.map(([x, y], i) => {
-    const left = (x / HERO_CANVAS.w) * 100, top = (y / HERO_CANVAS.h) * 100;
-    return `<span class="ember" style="left: ${left}%; top: ${top}%; animation-delay: ${-i * 0.37}s"></span>`;
-  }).join("");
-}
-
-// Scène sans combat : le groupe seul, entre deux affrontements
-export function renderIdleScene(party: Hero[]) {
-  $("#enemy-area").replaceChildren();
-  $("#enemy-list").replaceChildren();
-  $("#hero-area").replaceChildren(...party.map((hero, i) => createSprite(hero, HERO_SLOTS[i])));
-  renderPartyWindow(party);
-  renderMenu(Menu);
-}
-
-export function renderBattle(state: BattleState) {
-  renderIdleScene(state.heroes);
-  const slots = FORMATIONS[state.enemies.length];
-  $("#enemy-area").replaceChildren(...state.enemies.map((enemy, i) => createSprite(enemy, slots[i])));
-  renderEnemyList(state.enemies);
-  updateBattleUI();
-}
-
-function renderPartyWindow(party: Hero[]) {
+export function renderPartyWindow(party: Hero[]) {
   const rows = party.map(hero => {
     const row = document.createElement("div");
     row.className = "party-row";
@@ -139,7 +66,7 @@ function renderPartyWindow(party: Hero[]) {
   updateBattleUI();
 }
 
-function renderEnemyList(enemies: Enemy[]) {
+export function renderEnemyList(enemies: Enemy[]) {
   const items = enemies.map(enemy => {
     const li = document.createElement("li");
     li.dataset.item = enemy.id;
@@ -152,23 +79,32 @@ function renderEnemyList(enemies: Enemy[]) {
 
 // — Mise à jour —
 
+// Pose d'un héros d'après l'état du combat : classes des sprites DOM et des lignes du groupe, poses de la scène peinte
+export function heroFlags(hero: Hero) {
+  const alive = isAlive(hero);
+  return {
+    ko: !alive,
+    critical: alive && hero.hp / hero.maxHp < CONFIG.criticalPct,
+    active: Menu.hero === hero,
+    ready: hero.state === "ready",
+    defending: hero.defending,
+  };
+}
+
+// Prévenu après chaque mise à jour : la scène peinte y relit les poses (dom-view.ts)
+let onUpdated: (() => void) | null = null;
+export function onBattleUiUpdated(listener: (() => void) | null) { onUpdated = listener; }
+
 export function updateBattleUI() {
   for (const hero of GameState.party) {
-    const alive = isAlive(hero);
-    const flags = {
-      ko: !alive,
-      critical: alive && hero.hp / hero.maxHp < CONFIG.criticalPct,
-      active: Menu.hero === hero,
-      ready: hero.state === "ready",
-      defending: hero.defending,
-    };
+    const flags = heroFlags(hero);
     const sprite = spriteEl(hero), row = rowEl(hero);
     for (const [flag, on] of Object.entries(flags)) {
       if (sprite) sprite.classList.toggle(flag, on);
       if (row) row.classList.toggle(flag, on);
     }
     // relevé : sa prochaine extinction rejouera la chute
-    if (sprite && alive) sprite.classList.remove("fallen");
+    if (sprite && !flags.ko) sprite.classList.remove("fallen");
     if (row) {
       $(".p-hp b", row).textContent = String(hero.hp);
       $(".p-hp small", row).textContent = "/" + hero.maxHp;
@@ -182,6 +118,7 @@ export function updateBattleUI() {
     item.hidden = !isAlive(enemy);
     $(".e-hp-fill", item).style.width = (enemy.hp / enemy.maxHp) * 100 + "%";
   }
+  onUpdated?.();
 }
 
 export function updateAtbUI(heroes: Hero[]) {
@@ -287,15 +224,15 @@ export function renderMenu(menu: MenuController) {
   updateBattleUI();
 }
 
-// — Messages et animations —
+// — Bandeau —
 
-function showBanner(text: string) {
+export function showBanner(text: string) {
   const banner = $("#battle-banner");
   banner.innerHTML = text;
   banner.hidden = false;
 }
 
-function hideBanner() {
+export function hideBanner() {
   $("#battle-banner").hidden = true;
 }
 
@@ -305,51 +242,15 @@ export async function showMessage(text: string, duration = CONFIG.timing.message
   hideBanner();
 }
 
-// Ajoute une classe le temps d'une animation
-async function pulse(el: HTMLElement | null, className: string, duration: number) {
-  if (!el) return wait(duration);
-  el.classList.remove(className);
-  void el.offsetWidth; // force le navigateur à rejouer l'animation
-  el.classList.add(className);
-  await wait(duration);
-  el.classList.remove(className);
-}
+// — Chiffres et effets, posés sur l'ancre d'un combattant —
 
-export async function playBattleIntro(state: BattleState) {
-  Sfx.play("encounter");
-  document.querySelectorAll<HTMLElement>(".sprite.enemy").forEach(el => pulse(el, "appear", CONFIG.timing.appear));
-  await pulse($("#flash"), "on", CONFIG.timing.flash);
-  const boss = state.enemies.find(e => e.boss);
-  const message = state.chapter?.introMessage ?? (boss ? `${boss.name} se dresse devant le groupe !` : "Des ennemis surgissent !");
-  await showMessage(message, CONFIG.timing.introMessage);
-}
-
-export async function animateActorStart(actor: Combatant, ability: Ability) {
-  const sprite = sceneSprite(actor);
-  if (ability !== ATTACK) showBanner(ability.name);
-  if (actor.side === "hero") {
-    sprite.classList.add("acting");
-    await wait(CONFIG.timing.step);
-  } else {
-    await pulse(sprite, "blink", CONFIG.timing.blink);
-  }
-  if (ability.kind !== "physical") await pulse(sprite, "casting", CONFIG.timing.cast);
-}
-
-export async function animateActorEnd(actor: Combatant) {
-  hideBanner();
-  const sprite = spriteEl(actor);
-  if (sprite) sprite.classList.remove("acting");
-  await wait(CONFIG.timing.step / 2);
-}
-
-function effectVisual(ability: Ability) {
+export function effectVisual(ability: Ability) {
   if (ability.element) return ability.element;
   if (ability.kind === "physical") return "slash";
   return "heal";
 }
 
-function effectSound(effect: Effect, ability: Ability): SoundName {
+export function effectSound(effect: Effect, ability: Ability): SoundName {
   if (effect.type === "miss") return "miss";
   if (effect.type === "none") return "error";
   if (effect.type === "mp")   return "item";
@@ -359,7 +260,7 @@ function effectSound(effect: Effect, ability: Ability): SoundName {
   return effect.crit ? "crit" : "hit";
 }
 
-function popupText(effect: Effect) {
+export function popupText(effect: Effect) {
   switch (effect.type) {
     case "miss": return "Raté";
     case "none": return "Sans effet";
@@ -368,82 +269,21 @@ function popupText(effect: Effect) {
   }
 }
 
-function spawnPopup(sprite: HTMLElement, text: string, className: string) {
+export function popupClasses(effect: Effect) {
+  return [effect.type, effect.crit && "crit", effect.weak && "weak"].filter(Boolean).join(" ");
+}
+
+export function spawnPopup(anchor: HTMLElement, text: string, className: string) {
   const popup = document.createElement("span");
   popup.className = "popup " + className;
   popup.textContent = text;
-  sprite.appendChild(popup);
+  anchor.appendChild(popup);
   setTimeout(() => popup.remove(), CONFIG.timing.popup);
 }
 
-function spawnFx(sprite: HTMLElement, visual: string) {
+export function spawnFx(anchor: HTMLElement, visual: string) {
   const fx = document.createElement("div");
   fx.className = "fx fx-" + visual;
-  sprite.appendChild(fx);
+  anchor.appendChild(fx);
   setTimeout(() => fx.remove(), CONFIG.timing.spellFx);
-}
-
-export function showEffect(target: Combatant, effect: Effect, ability: Ability) {
-  const sprite = spriteEl(target);
-  if (!sprite) return;
-
-  spawnFx(sprite, effectVisual(ability));
-  Sfx.play(effectSound(effect, ability));
-  const classes = [effect.type, effect.crit && "crit", effect.weak && "weak"].filter(Boolean).join(" ");
-  spawnPopup(sprite, popupText(effect), classes);
-
-  if (effect.type === "damage") pulse(sprite, "damaged", CONFIG.timing.hit);
-  if (effect.crit) pulse($("#battle-scene"), "quake", CONFIG.timing.hit);
-}
-
-export function showDefend(hero: Hero) {
-  Sfx.play("defend");
-  const sprite = spriteEl(hero);
-  if (sprite) spawnPopup(sprite, "Garde", "info");
-}
-
-export async function killEnemies(enemies: Enemy[]) {
-  Sfx.play("enemyDie");
-  enemies.forEach(enemy => sceneSprite(enemy).classList.add("dying"));
-  await wait(CONFIG.timing.death);
-  enemies.forEach(enemy => sceneSprite(enemy).classList.add("dead"));
-}
-
-export async function animateEscape() {
-  Sfx.play("run");
-  await showMessage("Le groupe se replie !", CONFIG.timing.escapeMessage);
-  document.querySelectorAll(".sprite.hero").forEach(el => el.classList.add("fleeing"));
-  await wait(CONFIG.timing.flee);
-}
-
-export function victoryPose(party: Hero[]) {
-  party.filter(isAlive).forEach(hero => sceneSprite(hero).classList.add("victory"));
-}
-
-// — Sort du Dragon —
-
-// Vaincu mais pas mort : il reste à terre
-export function showDefeated(enemy: Enemy) {
-  sceneSprite(enemy).classList.add("defeated");
-}
-
-// Épargner : il se relève, apaisé
-export async function animateSpare(enemy: Enemy) {
-  const sprite = sceneSprite(enemy);
-  sprite.classList.remove("defeated");
-  Sfx.play("heal");
-  await pulse(sprite, "casting", CONFIG.timing.cast);
-}
-
-// Achever : le héros s'avance et porte le coup de grâce
-export async function animateFinishingBlow(hero: Hero, enemy: Enemy) {
-  const heroSprite = sceneSprite(hero);
-  heroSprite.classList.add("acting");
-  await wait(CONFIG.timing.step);
-  spawnFx(sceneSprite(enemy), "slash");
-  Sfx.play("crit");
-  pulse($("#battle-scene"), "quake", CONFIG.timing.hit);
-  await killEnemies([enemy]);
-  heroSprite.classList.remove("acting");
-  await wait(CONFIG.timing.step);
 }

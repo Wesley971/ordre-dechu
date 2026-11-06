@@ -1,7 +1,8 @@
 // painted-stage.ts - La scène peinte en 2,5D (MAE-28) : caméra, flou, boucle de rendu, redimensionnement, mémoire
 //
-// Module autonome : il n'importe ni le combat ni l'histoire. Il reçoit un décor et des personnages, et les affiche
-// dans un conteneur. Three.js n'est chargé qu'avec lui : l'importer à la demande, jamais depuis le code de démarrage.
+// Module autonome : il n'importe ni le combat ni l'histoire. Il reçoit un décor, puis une distribution d'acteurs
+// (qui peut changer sans recharger le décor, MAE-29), et les affiche dans un conteneur. Three.js n'est chargé
+// qu'avec lui : l'importer à la demande, jamais depuis le code de démarrage.
 
 import {
   Color, Fog, Group, HalfFloatType, PerspectiveCamera, Scene, Vector2, WebGLRenderTarget, WebGLRenderer,
@@ -16,7 +17,7 @@ import { CONFIG } from "../config.ts";
 import type { Decor } from "../data/decors.ts";
 import { buildActors, type ActorBox, type ActorDef, type ActorsView } from "./actors.ts";
 import { buildAtmosphere, type AtmosphereView } from "./atmosphere.ts";
-import { computeFraming, type Framing } from "./framing.ts";
+import { computeFraming, type Framing, type GroupExtent } from "./framing.ts";
 import { ResourceBin } from "./materials.ts";
 import { buildRelief, type ReliefView } from "./relief.ts";
 
@@ -37,11 +38,24 @@ export interface StageMeasure {
   frame: { calls: number; triangles: number };
 }
 
+// Zone de l'écran où la peinture est cadrée, en pixels CSS depuis le haut du conteneur (null : tout le conteneur)
+export interface SafeAreaCss { top: number; height: number }
+
 export interface PaintedStage {
   // Remplace le décor. Le précédent reste affiché pendant le chargement, puis sa mémoire graphique est libérée.
-  setDecor(decor: Decor, actors: ActorDef[]): Promise<void>;
+  setDecor(decor: Decor): Promise<void>;
+  // Remplace les acteurs, images déjà chargées. extent : étendue du groupe pour le cadrage, fixée pour le chapitre
+  // (héros et ennemis), pour que la caméra ne saute pas quand les ennemis arrivent. Synchrone : prêt dès le retour.
+  setCast(defs: ActorDef[], extent: GroupExtent): ActorsView;
+  setSafeArea(area: SafeAreaCss | null): void;
+  // À chaque image (en mouvement réduit : à chaque redessin) : poses(t) avant que les poses des acteurs soient
+  // appliquées, placed(t) une fois qu'elles le sont, avant le dessin. t en secondes depuis la création.
+  onFrame(listener: { poses?(t: number): void; placed?(t: number): void } | null): void;
+  // En mouvement réduit, la scène ne se redessine que sur demande : à appeler après un changement de pose
+  requestRedraw(): void;
   // Oscillation de la caméra, qui révèle le relief. Outil de contrôle, sans effet en mouvement réduit.
   setParallax(on: boolean): void;
+  readonly reducedMotion: boolean;
   measure(): StageMeasure;
   dispose(): void;
 }
@@ -50,10 +64,16 @@ interface DecorView {
   decor: Decor;
   bin: ResourceBin;
   root: Group;
-  spriteRoot: Group;
   relief: ReliefView;
   atmosphere: AtmosphereView;
+}
+
+interface CastView {
+  bin: ResourceBin;
+  root: Group;
+  spriteRoot: Group;
   actors: ActorsView;
+  extent: GroupExtent;
 }
 
 // Flou de profondeur (tilt-shift) en deux passes, mesuré en pixels CSS : même rendu quel que soit le rapport
@@ -116,7 +136,7 @@ class SpriteOverlayPass extends Pass {
   }
 }
 
-// Lève une erreur si WebGL est absent : il n'y a pas de décor de repli (décision de MAE-1)
+// Lève une erreur si WebGL est absent : c'est à l'appelant de se replier sur l'affichage DOM (dom-view.ts, MAE-29)
 // quality : niveau de CONFIG.scene.qualityLevels, fixé pour toute la vie de la scène (l'anticrénelage se choisit à la création)
 export function createPaintedStage(container: HTMLElement, quality: SceneQuality = CONFIG.scene.defaultQuality): PaintedStage {
   const { camera: cameraConfig, maxPixelRatio, qualityLevels, decorScaleBelowCssSide, decorScaleFromRatio, tiltShift } = CONFIG.scene;
@@ -151,7 +171,10 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const startTime = performance.now();
   let view: DecorView | null = null;
+  let cast: CastView | null = null;
   let framing: Framing | null = null;
+  let safeArea: SafeAreaCss | null = null;
+  let frameListener: { poses?(t: number): void; placed?(t: number): void } | null = null;
   let generation = 0; // numéro du dernier setDecor : un chargement dépassé ne s'installe pas
   let parallax = false;
   let drift = 0;
@@ -168,7 +191,7 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
   }
 
   function updateFocusBand(cssHeight: number) {
-    const range = view?.actors.focusRange();
+    const range = cast?.actors.focusRange();
     if (!range) return;
     for (const pass of [tiltH, tiltV]) {
       pass.uniforms.focus.value = (range.min + range.max) / 2;
@@ -176,8 +199,8 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
     }
   }
 
-  // Toute la mise en place dépend de la taille : recalculée au redimensionnement, à la rotation et au changement de décor.
-  // Toujours avec la caméra au repos, même pendant l'oscillation : la peinture est projetée depuis elle.
+  // Toute la mise en place dépend de la taille : recalculée au redimensionnement, à la rotation, au changement de
+  // décor ou de zone. Toujours avec la caméra au repos, même pendant l'oscillation : la peinture est projetée depuis elle.
   function layout() {
     const cssWidth = container.clientWidth;
     const cssHeight = container.clientHeight;
@@ -198,14 +221,15 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
     camera.aspect = cssWidth / cssHeight;
     if (!view) return;
 
-    framing = computeFraming({ cssWidth, cssHeight, ratio }, view.decor, view.actors.extent);
+    const safe = safeArea ? { top: safeArea.top * ratio, height: Math.max(1, safeArea.height) * ratio } : undefined;
+    framing = computeFraming({ cssWidth, cssHeight, ratio }, view.decor, cast?.extent ?? [], safe);
     placeCamera(framing.cameraDistance, 0);
     view.relief.layout(framing, { width: cssWidth, height: cssHeight });
     view.atmosphere.layout(framing);
-    view.actors.layout(framing, view.relief.surfacePoint);
+    cast?.actors.layout(framing, view.relief.surfacePoint);
     if (drift !== 0) {
       placeCamera(framing.cameraDistance, drift);
-      view.actors.rescale();
+      cast?.actors.rescale();
     }
     updateFocusBand(cssHeight);
   }
@@ -213,16 +237,18 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
   function animate(t: number, moving: boolean) {
     if (!view) return;
     time.value = t;
-    view.actors.update(t, moving);
+    frameListener?.poses?.(t);
+    cast?.actors.update(t, moving);
     view.atmosphere.update(t);
     const { amplitude, speed } = cameraConfig.parallax;
     const targetDrift = parallax && moving ? Math.sin(t * speed) * amplitude : 0;
     if (framing && Math.abs(targetDrift - drift) > 1e-4) {
       drift = targetDrift;
       placeCamera(framing.cameraDistance, drift);
-      view.actors.rescale();
+      cast?.actors.rescale();
       updateFocusBand(container.clientHeight);
     }
+    frameListener?.placed?.(t);
   }
 
   function draw() {
@@ -296,6 +322,11 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
 
   function removeView(old: DecorView) {
     scene.remove(old.root);
+    old.bin.disposeAll();
+  }
+
+  function removeCast(old: CastView) {
+    scene.remove(old.root);
     spriteScene.remove(old.spriteRoot);
     old.bin.disposeAll();
   }
@@ -303,19 +334,15 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
   layout();
 
   return {
-    async setDecor(decor, actorDefs) {
+    async setDecor(decor) {
       const token = ++generation;
       const bin = new ResourceBin();
       const root = new Group();
-      const spriteRoot = new Group();
       let next: DecorView;
       try {
-        const [relief, actors] = await Promise.all([
-          buildRelief(decor, root, camera, bin, time),
-          buildActors(actorDefs, root, spriteRoot, camera, bin),
-        ]);
+        const relief = await buildRelief(decor, root, camera, bin, time);
         const atmosphere = buildAtmosphere(decor, root, camera, bin);
-        next = { decor, bin, root, spriteRoot, relief, atmosphere, actors };
+        next = { decor, bin, root, relief, atmosphere };
       } catch (error) {
         bin.disposeAll(); // ce qui finit de charger ensuite est libéré aussitôt
         throw error;
@@ -329,7 +356,6 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
       view = next;
       if (old) removeView(old);
       scene.add(root);
-      spriteScene.add(spriteRoot);
       const { colors, fog } = decor.atmosphere;
       scene.background = new Color(colors.background);
       scene.fog = new Fog(colors.background, fog[0], fog[1]);
@@ -337,8 +363,48 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
       applyMotionPreference();
     },
 
+    setCast(defs, extent) {
+      const bin = new ResourceBin();
+      const root = new Group();
+      const spriteRoot = new Group();
+      const actors = buildActors(defs, root, spriteRoot, camera, bin);
+      const next: CastView = { bin, root, spriteRoot, actors, extent };
+      if (disposed) {
+        bin.disposeAll();
+        return actors;
+      }
+      const old = cast;
+      cast = next;
+      if (old) removeCast(old);
+      scene.add(root);
+      spriteScene.add(spriteRoot);
+      if (view) refresh();
+      return actors;
+    },
+
+    setSafeArea(area) {
+      const same = (safeArea === null && area === null)
+        || (safeArea !== null && area !== null && safeArea.top === area.top && safeArea.height === area.height);
+      if (same) return;
+      safeArea = area;
+      refresh();
+    },
+
+    onFrame(listener) {
+      frameListener = listener;
+    },
+
+    requestRedraw() {
+      if (disposed || !view) return;
+      if (reducedMotion.matches) drawStill();
+    },
+
     setParallax(on) {
       parallax = on;
+    },
+
+    get reducedMotion() {
+      return reducedMotion.matches;
     },
 
     measure() {
@@ -356,7 +422,7 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
         deviceWidth,
         deviceHeight,
         reducedMotion: reducedMotion.matches,
-        boxes: view?.actors.boxes(deviceWidth, deviceHeight) ?? [],
+        boxes: cast?.actors.boxes(deviceWidth, deviceHeight) ?? [],
         memory: { geometries: memory.geometries, textures: memory.textures, programs: programs?.length ?? 0 },
         frame: { calls: render.calls, triangles: render.triangles },
       };
@@ -371,6 +437,8 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
       reducedMotion.removeEventListener("change", applyMotionPreference);
+      if (cast) removeCast(cast);
+      cast = null;
       if (view) removeView(view);
       view = null;
       tiltH.dispose();

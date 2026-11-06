@@ -61,8 +61,10 @@ export function buildAtmosphere(decor: Decor, parent: Group, camera: Perspective
   core2d.fillRect(3, 1, 1, 2);
   core2d.fillRect(1, 0, 2, 1);
   core2d.fillRect(1, 3, 2, 1);
+  // Sans test de profondeur : une luciole qui dérive derrière une bosse du relief (tronc, feuillage) serait coupée
+  // par une arête droite du maillage. Le Souffle passe devant la peinture, comme les rayons.
   const coreMaterial = bin.add(new MeshBasicMaterial({
-    map: bin.add(pixelTexture(coreCanvas)), transparent: true, blending: AdditiveBlending, depthWrite: false, fog: false,
+    map: bin.add(pixelTexture(coreCanvas)), transparent: true, blending: AdditiveBlending, depthWrite: false, depthTest: false, fog: false,
   }));
   const glowMask = bin.add(radialTexture(64, 2));
   const coreGeometry = bin.add(new PlaneGeometry(4 * CONFIG.scene.spritePixel, 4 * CONFIG.scene.spritePixel));
@@ -82,7 +84,7 @@ export function buildAtmosphere(decor: Decor, parent: Group, camera: Perspective
     const base = new Vector3(x, range(0.3, 2.6), z);
     const glowMaterial = bin.add(new MeshBasicMaterial({
       color: colors.firefly, alphaMap: glowMask, transparent: true, opacity: 0.32,
-      blending: AdditiveBlending, depthWrite: false, fog: false,
+      blending: AdditiveBlending, depthWrite: false, depthTest: false, fog: false,
     }));
     const core = new Mesh(coreGeometry, coreMaterial);
     const glow = new Mesh(glowGeometry, glowMaterial);

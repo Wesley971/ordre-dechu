@@ -16,5 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  startGame(createDomView(), { startChapter: TestMode.startChapter, power: TestMode.power, winBattles: TestMode.winBattles });
+  // En mode test (local), la scène peinte expose ses mesures au bot ; ?rendu=dom la désactive, ?compteur=1 affiche les images/s
+  const view = createDomView({ domOnly: TestMode.domOnly, counter: TestMode.counter, expose: TestMode.active });
+  startGame(view, { startChapter: TestMode.startChapter, power: TestMode.power, winBattles: TestMode.winBattles });
 });

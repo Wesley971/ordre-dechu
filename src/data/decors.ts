@@ -23,6 +23,7 @@ export interface DecorSides {
 }
 
 export interface Decor {
+  id: DecorId;
   image: {
     width: number; height: number; // la peinture elle-même
     extend: number;                // prolongement de `wide` à gauche et à droite de la peinture, en pixels
@@ -35,7 +36,8 @@ export interface Decor {
   relief: { near: number; span: number; power: number };
   // Pieds des personnages sur la peinture. En pixels de l'image et non en mètres : ils restent au même
   // endroit de la peinture quelle que soit la distance de la caméra, donc aussi en portrait.
-  places: { heroes: ImagePoint[]; enemies: ImagePoint[] };
+  // Les héros par identifiant (chacun a sa place dans le lieu), les ennemis dans l'ordre du chapitre.
+  places: { heroes: Record<string, ImagePoint>; enemies: ImagePoint[] };
   sides?: DecorSides;
   atmosphere: {
     colors: { background: string; mist: string; moonlight: string; firefly: string; edgeShadow: string; edgeMist: string };
@@ -56,6 +58,7 @@ const lisiereSide = (oldPixels: number) => (oldPixels * 768) / 740;
 
 export const DECORS: Record<DecorId, Decor> = {
   lisiere: {
+    id: "lisiere",
     image: {
       width: 1376, height: 768, extend: 600,
       wide: `${LISIERE_DIR}/wide.png`,
@@ -64,9 +67,9 @@ export const DECORS: Record<DecorId, Decor> = {
       glints: `${LISIERE_DIR}/glints.png`,
     },
     relief: { near: 9, span: 62, power: 1.4 },
-    // Elwen, Corvin, Maelor, puis les deux Sankri : sur la clairière, de part et d'autre du sentier
+    // Le groupe et les deux Sankri sur la clairière, de part et d'autre du sentier ; Maelor devant
     places: {
-      heroes:  [{ col: 368.3, row: 631.66 }, { col: 482.14, row: 568.66 }, { col: 568.22, row: 656.75 }],
+      heroes:  { elwen: { col: 368.3, row: 631.66 }, corvin: { col: 482.14, row: 568.66 }, maelor: { col: 568.22, row: 656.75 } },
       enemies: [{ col: 858.99, row: 572.84 }, { col: 1013.45, row: 646.54 }],
     },
     sides: {

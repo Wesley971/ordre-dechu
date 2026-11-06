@@ -51,7 +51,7 @@ async function newGame() {
   const testStart = options.startChapter;
   if (testStart !== null) startAtChapter(testStart);
   if (options.power !== null) GameState.power = options.power;
-  view.showChapter(GameState.currentChapter, GameState.party);
+  await view.showChapter(GameState.currentChapter, GameState.party);
 
   if (testStart === null) await view.tell({ title: "Prologue", pages: PROLOGUE });
   await playChapters();
@@ -88,7 +88,7 @@ async function playChapters() {
     const chapter = GameState.currentChapter;
     GameState.saveCheckpoint();
     SaveGame.write(GameState.checkpoint); // une nouvelle partie ne remplace la sauvegarde qu'ici, au chapitre I
-    view.showChapter(chapter, GameState.party);
+    await view.showChapter(chapter, GameState.party);
     view.music(chapter.music);
 
     if (chapter.rest) {
