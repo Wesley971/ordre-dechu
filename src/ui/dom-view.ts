@@ -16,9 +16,9 @@ import { Music } from "../audio/music.ts";
 import { Dialog } from "./dialog.ts";
 import { Menu } from "./battle-menu.ts";
 import { pickOption } from "./pick-option.ts";
-import { createDomStage, embersHtml, type Stage } from "./stage.ts";
+import { createDomStage, embersHtml, overlayHtml, type Stage } from "./stage.ts";
 import {
-  $, wait, pulse, showScreen, setSceneTint, renderPartyWindow, renderEnemyList, renderMenu, updateBattleUI, updateAtbUI,
+  $, wait, pulse, showScreen, setSceneTint, renderPartyWindow, renderMenu, updateBattleUI, updateAtbUI, setBattleRunning,
   onBattleUiUpdated, heroFlags, showBanner, hideBanner, showMessage, effectVisual, effectSound, popupText, popupClasses, spawnPopup, spawnFx,
 } from "./view.ts";
 
@@ -56,7 +56,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
       try {
         const { createBattleStage } = await import("../scene/battle-stage.ts");
         const created = await createBattleStage(DECORS[decorId], {
-          flagsOf: heroFlags, onPick: (c) => Menu.clickTarget(c), anchorHtml: embersHtml,
+          flagsOf: heroFlags, onPick: (c) => Menu.clickTarget(c), anchorHtml: (c) => embersHtml(c) + overlayHtml(c),
           counter: options.counter, expose: options.expose,
         });
         painted = { stage: created, decorId };
@@ -70,9 +70,8 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     return domStage;
   }
 
-  // Fenêtres du bas au repos : liste des ennemis vide, lignes du groupe, menu fermé
+  // Interface au repos : lignes du groupe, menu fermé
   function renderHud(party: Hero[]) {
-    $("#enemy-list").replaceChildren();
     renderPartyWindow(party);
     renderMenu(Menu);
   }
@@ -156,14 +155,18 @@ export function createDomView(options: DomViewOptions = {}): GameView {
         requestAnimationFrame(loop);
       };
       requestAnimationFrame(loop);
-      return () => { running = false; };
+      return () => {
+        running = false;
+        setBattleRunning(false); // la fin du combat : plus de jauge dans le groupe
+        updateBattleUI();
+      };
     },
 
     async startBattle(state) {
       await stage.showIdle(state.heroes, state.chapter ?? GameState.currentChapter);
       renderHud(state.heroes);
       stage.showBattle(state);
-      renderEnemyList(state.enemies);
+      setBattleRunning(true);
       updateBattleUI();
 
       Sfx.play("encounter");

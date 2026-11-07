@@ -4,12 +4,12 @@
 // en 2,5D (MAE-29). Ce fichier ne joue aucun son : les sons sont dans dom-view.ts, les menus et le dialogue.
 
 import { CONFIG } from "../config.ts";
-import { GameState } from "../data/game-data.ts";
+import { GameState, HEROES } from "../data/game-data.ts";
 import type { Ability, Chapter } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import type { SoundName } from "../audio/sfx.ts";
 import { Battle, isAlive } from "../battle/battle.ts";
-import type { Combatant, Effect, Enemy } from "../battle/battle.ts";
+import type { Combatant, Effect } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
 import type { CommandLevel, ListLevel, MenuController } from "./battle-menu.ts";
 
@@ -36,29 +36,29 @@ export async function pulse(el: HTMLElement | null, className: string, duration:
 // [data-sprite] est le sprite DOM, ou l'ancre posée sur le sprite de la scène peinte.
 export function spriteEl(c: Combatant)   { return document.querySelector<HTMLElement>(`[data-sprite="${c.id}"]`); }
 function rowEl(c: Combatant)             { return document.querySelector<HTMLElement>(`[data-row="${c.id}"]`); }
-function listItemEl(c: Combatant)        { return document.querySelector<HTMLElement>(`[data-item="${c.id}"]`); }
 
 export function showScreen(name: "intro" | "game") {
   $("#intro-screen").hidden = name !== "intro";
   $("#game").hidden = name !== "game";
+  document.body.classList.toggle("in-game", name === "game");
 }
 
 export function setSceneTint(chapter: Chapter) {
   $("#battle-scene").style.setProperty("--scene-tint", chapter.tint || "transparent");
 }
 
-// — Fenêtres du bas —
+// — Le groupe —
 
 export function renderPartyWindow(party: Hero[]) {
   const rows = party.map(hero => {
     const row = document.createElement("div");
-    row.className = "party-row";
+    row.className = "od-hero";
     row.dataset.row = hero.id;
     row.innerHTML = `
-      <span class="p-name">${hero.name}</span>
-      <span class="p-hp"><b></b><small></small></span>
-      <span class="p-mp"></span>
-      <span class="p-atb"><span class="atb-fill"></span></span>`;
+      <div class="od-hero-head"><span class="od-hero-name">${hero.name}</span><span class="od-turn"></span></div>
+      <span class="od-bar" role="img"><i class="od-trail"></i><i class="od-fill"></i></span>
+      <span class="od-mp-line" aria-hidden="true"><i></i></span>
+      <div class="od-hero-values"><span class="od-hp"><b></b> <small></small></span><span class="od-mp"></span></div>`;
     row.addEventListener("click", () => Menu.clickTarget(hero));
     return row;
   });
@@ -66,15 +66,28 @@ export function renderPartyWindow(party: Hero[]) {
   updateBattleUI();
 }
 
-export function renderEnemyList(enemies: Enemy[]) {
-  const items = enemies.map(enemy => {
-    const li = document.createElement("li");
-    li.dataset.item = enemy.id;
-    li.innerHTML = `<span>${enemy.name}</span><span class="e-hp"><span class="e-hp-fill"></span></span>`;
-    li.addEventListener("click", () => Menu.clickTarget(enemy));
-    return li;
-  });
-  $("#enemy-list").replaceChildren(...items);
+// Remplit une barre de vie ; le trait clair (od-trail) suit la barre avec du retard, par une transition de style.css
+function setBar(bar: HTMLElement, percent: number, label: string) {
+  $(".od-fill", bar).style.width = percent + "%";
+  $(".od-trail", bar).style.width = percent + "%";
+  bar.setAttribute("aria-label", label);
+}
+
+// Écrit un texte seulement s'il change : la jauge passe ici à chaque image
+function setText(element: HTMLElement, text: string) {
+  if (element.textContent !== text) element.textContent = text;
+}
+
+// La jauge ne s'affiche que pendant un combat
+let battleRunning = false;
+export function setBattleRunning(running: boolean) { battleRunning = running; }
+
+// À droite du nom : « tombé », « prêt », ou la jauge en pourcentage
+function turnLabel(hero: Hero) {
+  const accord = HEROES.find(def => def.id === hero.id)?.feminine ? "e" : "";
+  if (!isAlive(hero)) return "tombé" + accord;
+  if (!battleRunning) return "";
+  return hero.state === "ready" ? "prêt" + accord : `${Math.round(hero.atb)} %`;
 }
 
 // — Mise à jour —
@@ -106,17 +119,21 @@ export function updateBattleUI() {
     // relevé : sa prochaine extinction rejouera la chute
     if (sprite && !flags.ko) sprite.classList.remove("fallen");
     if (row) {
-      $(".p-hp b", row).textContent = String(hero.hp);
-      $(".p-hp small", row).textContent = "/" + hero.maxHp;
-      $(".p-mp", row).textContent = String(hero.mp);
+      setBar($(".od-bar", row), (hero.hp / hero.maxHp) * 100, flags.ko ? `${hero.name} est à terre` : `${hero.hp} PV sur ${hero.maxHp}`);
+      $(".od-mp-line > i", row).style.width = (hero.mp / hero.maxMp) * 100 + "%";
+      $(".od-hp b", row).textContent = String(hero.hp);
+      $(".od-hp small", row).textContent = "/ " + hero.maxHp;
+      $(".od-mp", row).textContent = hero.mp + " PS";
+      setText($(".od-turn", row), turnLabel(hero));
     }
   }
 
   for (const enemy of Battle.enemies) {
-    const item = listItemEl(enemy);
-    if (!item) continue;
-    item.hidden = !isAlive(enemy);
-    $(".e-hp-fill", item).style.width = (enemy.hp / enemy.maxHp) * 100 + "%";
+    const foe = spriteEl(enemy)?.querySelector<HTMLElement>(".od-foe");
+    if (!foe) continue;
+    foe.hidden = !isAlive(enemy);
+    const percent = (enemy.hp / enemy.maxHp) * 100;
+    setBar($(".od-bar", foe), percent, `${enemy.name}, ${Math.round(percent)} % de vie`);
   }
   onUpdated?.();
 }
@@ -124,10 +141,7 @@ export function updateBattleUI() {
 export function updateAtbUI(heroes: Hero[]) {
   for (const hero of heroes) {
     const row = rowEl(hero);
-    if (!row) continue;
-    const fill = $(".atb-fill", row);
-    fill.style.width = hero.atb + "%";
-    fill.classList.toggle("full", isAlive(hero) && hero.state !== "charging");
+    if (row) setText($(".od-turn", row), turnLabel(hero));
   }
 }
 
@@ -180,8 +194,9 @@ export function renderMenu(menu: MenuController) {
   $("#target-hint").hidden = true;
 
   const hero = menu.hero;
+  $("#action-window").hidden = !hero;
+  $("#action-window").setAttribute("aria-label", hero ? `Commandes de ${hero.name}` : "Commandes");
   commandWindow.hidden = !hero;
-  $("#enemy-list").hidden = !!hero;
   listWindow.hidden = true;
   const top = menu.level;
   const [root] = menu.stack;
@@ -190,7 +205,6 @@ export function renderMenu(menu: MenuController) {
   commandWindow.replaceChildren();
   commandWindow.insertAdjacentHTML("beforeend", `<div class="window-title">${hero.name}</div>`);
   commandWindow.appendChild(menuList(root, 0, top === root));
-  if (top !== root) commandWindow.appendChild(backLink());
 
   if (top.type === "list") {
     const entry = top.entries[top.cursor];
@@ -207,12 +221,10 @@ export function renderMenu(menu: MenuController) {
     const targets = menu.targetsOf(top);
     const chosen = top.all ? targets : [targets[top.cursor]];
     for (const c of chosen.filter(Boolean)) {
-      for (const el of [spriteEl(c), rowEl(c), listItemEl(c)]) {
+      for (const el of [spriteEl(c), rowEl(c)]) {
         if (el) el.classList.add("targeted", ...(top.all ? ["all"] : []));
       }
     }
-    // Pendant le ciblage, la liste des ennemis reste visible pour voir les noms
-    $("#enemy-list").hidden = false;
     commandWindow.hidden = true;
     // Nom et aide de la capacité ou de l'objet choisi : au toucher, la liste se ferme aussitôt (MAE-74)
     const help = top.ability.desc ? `<strong>${top.ability.name}</strong> · ${top.ability.desc}` : "";

@@ -34,29 +34,26 @@
   <!-- ── JEU ────────────────────────────────────────────────────── -->
   <main id="game" hidden>
 
-    <!-- Scène : ennemis à gauche, groupe à droite -->
-    <section id="battle-scene" class="window">
-      <div id="battle-banner" class="window" hidden></div>
-      <div id="enemy-area"></div>
-      <div id="hero-area"></div>
+    <!-- Scène en plein écran : les combattants des chapitres sans décor peint (en DOM), le bandeau -->
+    <section id="battle-scene">
+      <div id="battle-banner" hidden></div>
+      <div id="battle-arena">
+        <div id="enemy-area"></div>
+        <div id="hero-area"></div>
+      </div>
     </section>
 
-    <!-- Fenêtres du bas : le groupe à gauche, sous les héros ; ennemis et commandes à droite -->
+    <!-- Interface posée sur la scène (maquette D2, MAE-87) : le groupe en haut à gauche, le menu en bas à gauche -->
     <section id="battle-hud">
-      <div id="party-window" class="window">
-        <div class="party-row party-head">
-          <span>Nom</span><span>PV</span><span>PS</span><span>Temps</span>
-        </div>
-        <div id="party-rows"></div>
-      </div>
+      <section id="party-window" class="hud-plate" aria-label="Le groupe">
+        <div id="party-rows" class="od-hud"></div>
+      </section>
 
-      <div id="action-window" class="window">
-        <ul id="enemy-list"></ul>
+      <nav id="action-window" class="hud-plate" aria-label="Commandes" hidden>
+        <div id="list-window" hidden></div>
         <div id="command-window" hidden></div>
         <div id="target-hint" hidden><div id="target-help" hidden></div>Choisis une cible<br><span>◀ Retour</span></div>
-      </div>
-
-      <div id="list-window" class="window" hidden></div>
+      </nav>
     </section>
 
   </main>

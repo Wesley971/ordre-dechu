@@ -36,6 +36,7 @@ export interface HeroDef {
   growth: Stats;
   spells: Record<number, SpellId[]>;
   embers?: [number, number][]; // points de départ des braises animées, en pixels de sprite (x, y)
+  feminine?: boolean;          // accord de « prêt » et « tombé » dans le groupe
 }
 
 export type ElementName = "fire" | "ice" | "thunder";
@@ -91,6 +92,7 @@ export const HEROES: HeroDef[] = [
   {
     id: "elwen", name: "Elwen", job: "Source", image: "images/elwen.png",
     command: "Source",
+    feminine: true,
     // bords enflammés du drapé
     embers: [[34, 41], [36, 46], [32, 55], [9, 42], [8, 47], [10, 52]],
     stats:  { maxHp: 110, maxMp: 44, atk: 9,  def: 6,  mag: 15, res: 14, spd: 10 },

@@ -141,30 +141,30 @@ body.lock-scroll { overflow: hidden; }
 
 /* ─── ÉCRAN DE JEU ─────────────────────────────────────────────────── */
 
+/* La scène couvre tout l'écran, l'interface se pose dessus (maquette D2, MAE-87). Tout ce qui s'y écrit a sa plaque ou son ombre */
+#game,
+#actor-layer {
+  font-family: var(--font-text);
+  text-shadow: var(--text-ink);
+}
+
 #game {
-  position: relative;
+  position: fixed;
+  inset: 0;
   z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  width: min(960px, 100%);
-  height: 100vh;
-  height: 100dvh;
-  max-height: 780px;
-  padding: var(--space-3) var(--space-4);
 }
 
 /* ─── SCÈNE DE COMBAT ──────────────────────────────────────────────── */
 
 #battle-scene {
   --scene-tint: transparent;
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 220px;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
   background:
+    linear-gradient(0deg, var(--bg-void) 0%, transparent 24%),
+    linear-gradient(90deg, var(--bg-void) 0%, transparent 9%, transparent 91%, var(--bg-void) 100%),
     linear-gradient(var(--scene-tint), var(--scene-tint)),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 30%, rgba(0, 0, 0, 0.55)),
     url("/images/background.png") center 65% / cover;
   transition: filter 1.2s ease;
 }
@@ -172,6 +172,15 @@ body.lock-scroll { overflow: hidden; }
 #battle-scene.quake { animation: shake 0.4s ease; }
 
 body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
+
+/* Chapitres sans décor peint : les combattants jouent à droite du groupe, entre les plaques du haut et du bas */
+#battle-arena {
+  position: absolute;
+  top: 18%;
+  bottom: 26%;
+  left: max(calc(var(--hud-width) + 88px), calc(50% - 640px));
+  width: min(calc(100% - var(--hud-width) - 112px), 1280px);
+}
 
 #hero-area  { position: absolute; left: 0;  top: 0; bottom: 0; width: 40%; }
 #enemy-area { position: absolute; right: 0; top: 0; bottom: 0; width: 60%; }
@@ -218,29 +227,17 @@ body.game-over #painted-stage { filter: grayscale(1) brightness(0.35); }
   cursor: var(--cursor-pointer);
 }
 
-/* La peinture est cadrée dans la scène, qui s'étend du haut de l'écran aux fenêtres du bas, collées en bas */
+/* La peinture est cadrée dans la scène, qui couvre tout l'écran */
 body.scene-painted::before { display: none; }
 
-body.scene-painted #game {
-  z-index: 2;
-  justify-content: flex-end;
-  height: 100vh;
-  height: 100dvh;
-  max-height: none;
-  padding-top: 0;
-}
+body.scene-painted #game { z-index: 2; }
 
-body.scene-painted #battle-scene {
-  background: none;
-  border-color: transparent;
-  box-shadow: none;
-}
+body.scene-painted #battle-scene { background: none; }
 
-/* La colonne couvre tout l'écran : transparente aux clics, sauf les fenêtres du bas et le bandeau,
+/* L'interface est au-dessus de la scène et des ancres : transparente aux clics, sauf ses plaques,
    pour que les ancres, dessous, reçoivent le toucher de ciblage */
-body.scene-painted #game { pointer-events: none; }
-body.scene-painted #battle-hud,
-body.scene-painted #battle-banner { pointer-events: auto; }
+body.scene-painted #game,
+body.scene-painted #battle-scene { pointer-events: none; }
 
 /* Main de ciblage, bouclier de Garde, trace du coup et braises : comme sur un sprite DOM */
 .actor-anchor.targeted::before      { left: -30px; top: 50%; margin-top: -8px; }
@@ -279,7 +276,7 @@ body.scene-painted #battle-banner { pointer-events: auto; }
 /* Pixel art : un pixel de sprite = --px pixels d'écran. La toile du PNG (--canvas-w, --canvas-h, en pixels de sprite)
    est posée par view.ts : HERO_CANVAS pour les héros, ENEMIES pour les ennemis. Même échelle pour tous. */
 .sprite.hero,
-.sprite.enemy      { --px: 3; --size: calc(var(--canvas-w) * 1px * var(--px)); }
+.sprite.enemy      { --px: var(--scene-px, 3); --size: calc(var(--canvas-w) * 1px * var(--px)); }
 
 /* Position verticale bornée (MAE-67) : --slot-y (posé par view.ts) est gardé tant que le sprite tient entier dans la scène ;
    sinon il est ramené contre le bord, ombre au sol comprise (8 px). Dans une scène très basse, deux ennemis peuvent se chevaucher. */
@@ -596,60 +593,225 @@ body.scene-painted #battle-banner { pointer-events: auto; }
   .fx, .fx-thunder, .fx-heal, .fx-slash { animation: none; opacity: 0.5; }
 }
 
-/* ─── FENÊTRES DU BAS ──────────────────────────────────────────────── */
+/* ─── INTERFACE DU COMBAT (maquette D2, MAE-87) ────────────────────── */
 
 #battle-hud {
-  position: relative;
-  flex: none;
-  display: grid;
-  grid-template-columns: 1fr 36%;
-  gap: var(--space-3);
-  height: 184px;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-#action-window,
-#party-window {
+/* Plaque d'ombre bleu-nuit, avec un filet doré en haut et en bas : pas de fenêtre à cadre */
+.hud-plate {
+  position: absolute;
+  left: 0;
+  background: linear-gradient(90deg, rgba(1, 12, 16, 0.88) 0%, rgba(1, 12, 16, 0.8) 70%, rgba(1, 12, 16, 0.55) 100%);
+  pointer-events: auto;
+}
+
+.hud-plate::before,
+.hud-plate::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold-aged) 0%, var(--gold-aged) 60%, transparent 100%);
+}
+.hud-plate::before { top: 0; }
+.hud-plate::after  { bottom: 0; }
+
+#party-window  { top: var(--space-6); padding: 16px 40px 18px 24px; }
+#action-window { bottom: var(--space-6); padding: 14px 64px 16px 24px; }
+
+/* Barres */
+.od-bar {
   position: relative;
+  display: block;
+  height: var(--bar-hp-height);
   overflow: hidden;
-  padding: var(--space-2) var(--space-3);
+  background: var(--bar-track);
+  box-shadow: 0 0 0 1px var(--ink-shadow);
 }
 
-/* Liste des ennemis */
-#enemy-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+.od-bar > i { position: absolute; top: 0; bottom: 0; left: 0; display: block; }
+.od-bar > .od-trail { background: var(--hp-trail); transition: width 0.6s ease-in 0.5s; }
+.od-bar > .od-fill  { background: var(--state-hp); transition: width 0.2s ease-out; }
 
-#enemy-list li {
+.od-mp-line {
+  display: block;
+  height: var(--bar-mp-height);
+  background: var(--bar-track);
+}
+.od-mp-line > i { display: block; height: 100%; background: var(--state-mp); }
+
+/* Le groupe */
+.od-hud { display: grid; gap: var(--space-4); width: var(--hud-width); }
+
+.od-hero {
   position: relative;
-  padding-left: var(--hand-gutter);
+  display: grid;
+  gap: var(--space-1);
+  margin: -6px -12px;
+  padding: 6px 12px;
   cursor: var(--cursor-pointer);
 }
 
-#enemy-list li.targeted::before { left: 0; top: 4px; }
+.od-hero-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); }
 
-.e-hp {
-  display: block;
-  width: min(150px, 100%);
-  height: 3px;
-  margin-top: 2px;
-  background: rgba(0, 0, 0, 0.5);
+.od-hero-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.25;
+  color: var(--text-parchment);
 }
 
-.e-hp-fill {
-  display: block;
-  height: 100%;
-  background: var(--state-hp);
-  transition: width 0.35s ease;
+.od-turn {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
 }
 
-/* « Mouvement réduit » : la barre de PV change d'un coup (MAE-58) */
+.od-hero-values { display: flex; justify-content: space-between; align-items: baseline; }
+.od-hp          { font-size: 22px; line-height: 1.1; }
+.od-hp b        { color: var(--text-light); }
+.od-hp small    { font-size: 18px; color: var(--text-dim); }
+.od-mp          { font-size: 18px; color: var(--state-mp); }
+
+.od-hero.ready .od-turn,
+.od-hero.active .od-hero-name,
+.od-hero.active .od-turn { color: var(--gold-bright); }
+
+.od-hero.critical .od-hp b { color: var(--gold-bright); }
+
+.od-hero.ko .od-hero-name,
+.od-hero.ko .od-turn,
+.od-hero.ko .od-hp b { color: var(--state-ko); }
+.od-hero.ko .od-bar { background: transparent; box-shadow: inset 0 0 0 1px var(--state-ko); }
+.od-hero.ko .od-mp-line { visibility: hidden; }
+
+/* Le tour du héros : le voile doré sur sa ligne */
+.od-hero.active { background: linear-gradient(90deg, rgba(240, 201, 90, 0.16) 0%, rgba(240, 201, 90, 0.06) 70%, rgba(240, 201, 90, 0) 100%); }
+.od-hero.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold-bright) 0%, var(--gold-bright) 50%, transparent 100%);
+}
+
+/* La marque ▼, avec le nom, au-dessus du sprite du héros qui a la main */
+.turn-mark {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  z-index: 6;
+  display: none;
+  justify-items: center;
+  gap: 2px;
+  margin-bottom: var(--space-1);
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  color: var(--gold-bright);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: mark-bob 1.2s ease-in-out infinite;
+}
+.turn-mark-arrow { font-family: var(--font-text); }
+
+.active > .turn-mark { display: grid; }
+.sprite.hero.active > .turn-mark { left: calc(50% + 22px); } /* suit le pas en avant du sprite */
+
+@keyframes mark-bob {
+  50% { translate: 0 4px; }
+}
+
+/* Petite barre de vie au-dessus d'un ennemi ordinaire */
+.od-foe {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  z-index: 6;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  width: var(--foe-width);
+  margin-bottom: var(--space-1);
+  transform: translateX(-50%);
+}
+
+.od-foe-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  color: var(--text-parchment);
+}
+.od-foe .od-bar { width: 100%; height: var(--bar-foe-height); }
+.targeted > .od-foe .od-foe-name { color: var(--gold-bright); }
+
+.dying > .od-foe,
+.defeated > .od-foe { display: none; }
+.appear > .od-foe   { animation: foe-appear 0.6s ease-out both; }
+
+@keyframes foe-appear {
+  from { opacity: 0; }
+}
+
+/* « Mouvement réduit » : la marque reste fixe, les barres changent d'un coup (MAE-58) */
 @media (prefers-reduced-motion: reduce) {
-  .e-hp-fill { transition: none; }
+  .turn-mark { animation: none; }
+  .od-bar > i { transition: none; }
+  .appear > .od-foe { animation: none; }
+}
+
+/* Le menu */
+#command-window .window-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  color: var(--gold-bright);
+}
+
+#action-window .menu { display: grid; }
+
+#action-window .menu-item {
+  gap: var(--space-6);
+  padding: 2px 0 2px calc(var(--rose-bud) + var(--space-2));
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.25;
+  color: var(--text-parchment);
+}
+
+#action-window .menu-item.selected          { color: var(--gold-bright); }
+#action-window .menu-item.disabled          { color: var(--text-dim); }
+
+/* Bouton de rose devant l'option choisie, à la place de la main */
+#action-window .menu-item.selected::before {
+  left: 0;
+  width: var(--rose-bud);
+  height: var(--rose-bud);
+  margin-top: calc(var(--rose-bud) / -2);
+  background: var(--od-rose) center / contain no-repeat;
+  filter: drop-shadow(0 0 1px var(--gold-bright));
+  image-rendering: auto;
+  animation: none;
+}
+
+/* Le bouton du son, sur sa plaque pendant le jeu */
+body.in-game #sound-btn {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: var(--hud-shade);
+  box-shadow: none;
 }
 
 #target-hint {
@@ -710,16 +872,13 @@ body.scene-painted #battle-banner { pointer-events: auto; }
 
 .menu-back:hover, #target-hint:hover span { color: var(--gold-bright); }
 
-/* Liste des souffles / objets : recouvre les fenêtres du bas */
+/* Liste des souffles / objets : prend la place des commandes sur la plaque */
 #list-window {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
 }
+#list-window:not([hidden]) ~ #command-window { display: none; }
 
 #list-window .window-title {
   display: flex;
@@ -734,62 +893,6 @@ body.scene-painted #battle-banner { pointer-events: auto; }
   border-top: 1px solid rgba(139, 105, 20, 0.45);
   font-size: var(--text-sm);
   color: var(--text-parchment);
-}
-
-/* Fenêtre du groupe */
-.party-row {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1.1fr 1.3fr 0.6fr 1.2fr;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-1) 0 var(--space-1) var(--hand-gutter);
-  cursor: var(--cursor-pointer);
-}
-
-.party-head {
-  padding-top: 0;
-  font-size: var(--text-xs);
-  letter-spacing: var(--tracking-wide);
-  color: var(--text-dim);
-  cursor: default;
-}
-
-.party-row.targeted::before { left: 0; top: 50%; margin-top: -8px; }
-
-.p-hp small { font-size: var(--text-sm); color: var(--text-dim); }
-.p-mp       { color: var(--state-mp); }
-
-.party-row.active .p-name   { color: var(--gold-bright); }
-.party-row.critical .p-hp b { color: var(--gold-bright); }
-.party-row.ko .p-name,
-.party-row.ko .p-hp b       { color: var(--state-ko); }
-
-.p-hp b { color: var(--text-light); }
-
-.p-atb {
-  display: block;
-  height: 9px;
-  overflow: hidden;
-  border: 1px solid var(--gold-aged);
-  border-radius: var(--radius);
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.atb-fill {
-  display: block;
-  width: 0;
-  height: 100%;
-  background: var(--atb-charging);
-}
-
-.atb-fill.full {
-  background: var(--atb-full);
-  animation: atb-shine 0.8s steps(2) infinite;
-}
-
-@keyframes atb-shine {
-  50% { filter: brightness(1.35); }
 }
 
 /* ─── DIALOGUES ────────────────────────────────────────────────────── */
@@ -880,23 +983,11 @@ body.scene-painted #battle-banner { pointer-events: auto; }
 @media (max-width: 640px) {
   .logo h1 { font-size: 44px; }
 
-  #game { gap: var(--space-2); max-height: none; padding: var(--space-2); }
-  #battle-scene { min-height: 200px; }
-
-  #battle-hud {
-    grid-template-columns: 1fr;
-    gap: var(--space-2);
-    height: auto;
-  }
-  /* Empilées sur une colonne : ennemis et commandes restent au-dessus du groupe */
-  #action-window { order: -1; min-height: 128px; }
-  #list-window { overflow-y: auto; }
   .menu-grid   { grid-template-columns: 1fr; }
 
   .sprite.hero,
   .sprite.enemy      { --px: 1; }
   #hero-area         { width: 36%; }
 
-  .party-row { gap: var(--space-2); font-size: 16px; }
   #dialog    { top: 60px; font-size: 16px; line-height: 1.6; }
 }

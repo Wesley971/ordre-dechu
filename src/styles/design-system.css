@@ -88,8 +88,6 @@
   --bar-foe-height:  4px;
 
   /* ─── ÉCRAN TITRE : ses fenêtres, inchangées jusqu'à MAE-42 ──────── */
-  --atb-charging: linear-gradient(90deg, #4a3a22, #9c8660); /* jauge en charge : terne */
-  --atb-full:     linear-gradient(90deg, #d08a1c, #ffe07a); /* jauge pleine : or vif */
   --window-bg:     linear-gradient(180deg, #2a1c0f, #150e07 85%);
   --window-border: 2px solid var(--gold-aged);
   --window-shadow:
