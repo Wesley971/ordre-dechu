@@ -4,7 +4,7 @@
 // en 2,5D (MAE-29). Ce fichier ne joue aucun son : les sons sont dans dom-view.ts, les menus et le dialogue.
 
 import { CONFIG } from "../config.ts";
-import { GameState } from "../data/game-data.ts";
+import { ELEMENT_NAMES, GameState, HEROES } from "../data/game-data.ts";
 import type { Ability, Chapter } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import type { SoundName } from "../audio/sfx.ts";
@@ -36,29 +36,29 @@ export async function pulse(el: HTMLElement | null, className: string, duration:
 // [data-sprite] est le sprite DOM, ou l'ancre posée sur le sprite de la scène peinte.
 export function spriteEl(c: Combatant)   { return document.querySelector<HTMLElement>(`[data-sprite="${c.id}"]`); }
 function rowEl(c: Combatant)             { return document.querySelector<HTMLElement>(`[data-row="${c.id}"]`); }
-function listItemEl(c: Combatant)        { return document.querySelector<HTMLElement>(`[data-item="${c.id}"]`); }
 
 export function showScreen(name: "intro" | "game") {
   $("#intro-screen").hidden = name !== "intro";
   $("#game").hidden = name !== "game";
+  document.body.classList.toggle("in-game", name === "game");
 }
 
 export function setSceneTint(chapter: Chapter) {
   $("#battle-scene").style.setProperty("--scene-tint", chapter.tint || "transparent");
 }
 
-// — Fenêtres du bas —
+// — Le groupe —
 
 export function renderPartyWindow(party: Hero[]) {
   const rows = party.map(hero => {
     const row = document.createElement("div");
-    row.className = "party-row";
+    row.className = "od-hero";
     row.dataset.row = hero.id;
     row.innerHTML = `
-      <span class="p-name">${hero.name}</span>
-      <span class="p-hp"><b></b><small></small></span>
-      <span class="p-mp"></span>
-      <span class="p-atb"><span class="atb-fill"></span></span>`;
+      <div class="od-hero-head"><span class="od-hero-name">${hero.name}</span><span class="od-turn"></span></div>
+      <span class="od-bar" role="img"><i class="od-trail"></i><i class="od-fill"></i></span>
+      <span class="od-mp-line" aria-hidden="true"><i></i></span>
+      <div class="od-hero-values"><span class="od-hp"><b></b> <small></small></span><span class="od-mp"></span></div>`;
     row.addEventListener("click", () => Menu.clickTarget(hero));
     return row;
   });
@@ -66,15 +66,45 @@ export function renderPartyWindow(party: Hero[]) {
   updateBattleUI();
 }
 
-export function renderEnemyList(enemies: Enemy[]) {
-  const items = enemies.map(enemy => {
-    const li = document.createElement("li");
-    li.dataset.item = enemy.id;
-    li.innerHTML = `<span>${enemy.name}</span><span class="e-hp"><span class="e-hp-fill"></span></span>`;
-    li.addEventListener("click", () => Menu.clickTarget(enemy));
-    return li;
-  });
-  $("#enemy-list").replaceChildren(...items);
+// Remplit une barre de vie ; le trait clair (od-trail) suit la barre avec du retard, par une transition de style.css
+function setBar(bar: HTMLElement, percent: number, label: string) {
+  $(".od-fill", bar).style.width = percent + "%";
+  $(".od-trail", bar).style.width = percent + "%";
+  bar.setAttribute("aria-label", label);
+}
+
+// Écrit un texte seulement s'il change : la jauge passe ici à chaque image
+function setText(element: HTMLElement, text: string) {
+  if (element.textContent !== text) element.textContent = text;
+}
+
+// Le boss du combat en cours, dont la barre s'affiche en bas au centre (planche G4)
+let shownBoss: Enemy | null = null;
+export function setBossPanel(boss: Enemy | null) {
+  shownBoss = boss;
+  if (boss) $("#boss-panel .od-boss-name").textContent = boss.name;
+}
+
+// La jauge ne s'affiche que pendant un combat
+let battleRunning = false;
+export function setBattleRunning(running: boolean) { battleRunning = running; }
+
+// Héros mis en avant pendant la page de dialogue qui annonce leur nouveau niveau (planche G6)
+let levelUps: { heroId: string; level: number }[] = [];
+export function setLevelUps(list: { heroId: string; level: number }[]) {
+  if (list.length === 0 && levelUps.length === 0) return;
+  levelUps = list;
+  updateBattleUI();
+}
+
+// À droite du nom : « niveau N », « tombé », « prêt », ou la jauge en pourcentage
+function turnLabel(hero: Hero) {
+  const accord = HEROES.find(def => def.id === hero.id)?.feminine ? "e" : "";
+  const levelUp = levelUps.find(entry => entry.heroId === hero.id);
+  if (levelUp) return `niveau ${levelUp.level}`;
+  if (!isAlive(hero)) return "tombé" + accord;
+  if (!battleRunning) return "";
+  return hero.state === "ready" ? "prêt" + accord : `${Math.round(hero.atb)} %`;
 }
 
 // — Mise à jour —
@@ -106,17 +136,29 @@ export function updateBattleUI() {
     // relevé : sa prochaine extinction rejouera la chute
     if (sprite && !flags.ko) sprite.classList.remove("fallen");
     if (row) {
-      $(".p-hp b", row).textContent = String(hero.hp);
-      $(".p-hp small", row).textContent = "/" + hero.maxHp;
-      $(".p-mp", row).textContent = String(hero.mp);
+      row.classList.toggle("leveled", levelUps.some(entry => entry.heroId === hero.id));
+      setBar($(".od-bar", row), (hero.hp / hero.maxHp) * 100, flags.ko ? `${hero.name} est à terre` : `${hero.hp} PV sur ${hero.maxHp}`);
+      $(".od-mp-line > i", row).style.width = (hero.mp / hero.maxMp) * 100 + "%";
+      $(".od-hp b", row).textContent = String(hero.hp);
+      $(".od-hp small", row).textContent = "/ " + hero.maxHp;
+      $(".od-mp", row).textContent = hero.mp + " PS";
+      setText($(".od-turn", row), turnLabel(hero));
     }
   }
 
   for (const enemy of Battle.enemies) {
-    const item = listItemEl(enemy);
-    if (!item) continue;
-    item.hidden = !isAlive(enemy);
-    $(".e-hp-fill", item).style.width = (enemy.hp / enemy.maxHp) * 100 + "%";
+    const foe = spriteEl(enemy)?.querySelector<HTMLElement>(".od-foe");
+    if (!foe) continue;
+    foe.hidden = !isAlive(enemy);
+    const percent = (enemy.hp / enemy.maxHp) * 100;
+    setBar($(".od-bar", foe), percent, `${enemy.name}, ${Math.round(percent)} % de vie`);
+  }
+
+  const bossPanel = $("#boss-panel");
+  bossPanel.hidden = !shownBoss || !isAlive(shownBoss);
+  if (shownBoss) {
+    const percent = (shownBoss.hp / shownBoss.maxHp) * 100;
+    setBar($(".od-bar", bossPanel), percent, `${shownBoss.name}, ${Math.round(percent)} % de vie`);
   }
   onUpdated?.();
 }
@@ -124,27 +166,20 @@ export function updateBattleUI() {
 export function updateAtbUI(heroes: Hero[]) {
   for (const hero of heroes) {
     const row = rowEl(hero);
-    if (!row) continue;
-    const fill = $(".atb-fill", row);
-    fill.style.width = hero.atb + "%";
-    fill.classList.toggle("full", isAlive(hero) && hero.state !== "charging");
+    if (row) setText($(".od-turn", row), turnLabel(hero));
   }
 }
 
 // — Menus —
 
-// Même seuil que le @media de style.css
-export function listColumns() {
-  return window.matchMedia("(max-width: 640px)").matches ? 1 : 2;
-}
-
 function menuList(level: CommandLevel | ListLevel, depth: number, active: boolean) {
   const ul = document.createElement("ul");
-  ul.className = "menu" + (active ? "" : " inactive") + (level.type === "list" ? " menu-grid" : "");
+  ul.className = "menu" + (active ? "" : " inactive");
   level.entries.forEach((entry, i) => {
     const li = document.createElement("li");
     li.className = "menu-item" + (entry.disabled ? " disabled" : "") + (i === level.cursor ? " selected" : "");
-    li.innerHTML = `<span>${entry.label}</span>${entry.detail ? `<span class="detail">${entry.detail}</span>` : ""}`;
+    const element = entry.element ? `<span class="menu-element">· ${entry.element}</span>` : "";
+    li.innerHTML = `<span>${entry.label}</span>${element}${entry.detail ? `<span class="detail">${entry.detail}</span>` : ""}`;
     li.addEventListener("click", () => Menu.clickEntry(depth, i));
     li.addEventListener("mouseenter", () => Menu.hoverEntry(depth, i));
     ul.appendChild(li);
@@ -155,7 +190,7 @@ function menuList(level: CommandLevel | ListLevel, depth: number, active: boolea
 function backLink() {
   const back = document.createElement("div");
   back.className = "menu-back";
-  back.textContent = "◀ Retour";
+  back.textContent = "◀\uFE0E Retour"; // \uFE0E : le triangle en texte, pas en emoji sur iPhone
   back.addEventListener("click", () => Menu.back());
   return back;
 }
@@ -167,10 +202,6 @@ export function updateMenuCursor(menu: MenuController, depth: number) {
   if (level.type === "target") return;
   const container = level.type === "list" ? $("#list-window") : $("#command-window");
   container.querySelectorAll(".menu-item").forEach((li, i) => li.classList.toggle("selected", i === level.cursor));
-  if (level.type === "list") {
-    const entry = level.entries[level.cursor];
-    $(".list-help", container).innerHTML = (entry && entry.help) || "&nbsp;";
-  }
 }
 
 export function renderMenu(menu: MenuController) {
@@ -180,8 +211,10 @@ export function renderMenu(menu: MenuController) {
   $("#target-hint").hidden = true;
 
   const hero = menu.hero;
+  $("#action-window").hidden = !hero;
+  $("#action-window").setAttribute("aria-label", hero ? `Commandes de ${hero.name}` : "Commandes");
+  $("#panel-ps").textContent = hero ? `${hero.mp} PS` : ""; // sur téléphone, les PS du héros qui joue (planche P1)
   commandWindow.hidden = !hero;
-  $("#enemy-list").hidden = !!hero;
   listWindow.hidden = true;
   const top = menu.level;
   const [root] = menu.stack;
@@ -190,15 +223,12 @@ export function renderMenu(menu: MenuController) {
   commandWindow.replaceChildren();
   commandWindow.insertAdjacentHTML("beforeend", `<div class="window-title">${hero.name}</div>`);
   commandWindow.appendChild(menuList(root, 0, top === root));
-  if (top !== root) commandWindow.appendChild(backLink());
 
   if (top.type === "list") {
-    const entry = top.entries[top.cursor];
-    const title = top.kind === "spell" ? `${hero.command} <span>PS ${hero.mp}/${hero.maxMp}</span>` : "Besace";
+    const title = top.kind === "spell" ? hero.command : "Besace";
     listWindow.replaceChildren();
-    listWindow.insertAdjacentHTML("beforeend", `<div class="window-title">${title}</div>`);
+    listWindow.insertAdjacentHTML("beforeend", `<div class="window-title">${hero.name} · ${title}</div>`);
     listWindow.appendChild(menuList(top, menu.stack.length - 1, true));
-    listWindow.insertAdjacentHTML("beforeend", `<div class="list-help">${(entry && entry.help) || "&nbsp;"}</div>`);
     listWindow.appendChild(backLink());
     listWindow.hidden = false;
   }
@@ -207,15 +237,21 @@ export function renderMenu(menu: MenuController) {
     const targets = menu.targetsOf(top);
     const chosen = top.all ? targets : [targets[top.cursor]];
     for (const c of chosen.filter(Boolean)) {
-      for (const el of [spriteEl(c), rowEl(c), listItemEl(c)]) {
+      for (const el of [spriteEl(c), rowEl(c)]) {
         if (el) el.classList.add("targeted", ...(top.all ? ["all"] : []));
       }
     }
-    // Pendant le ciblage, la liste des ennemis reste visible pour voir les noms
-    $("#enemy-list").hidden = false;
     commandWindow.hidden = true;
-    // Nom et aide de la capacité ou de l'objet choisi : au toucher, la liste se ferme aussitôt (MAE-74)
-    const help = top.ability.desc ? `<strong>${top.ability.name}</strong> · ${top.ability.desc}` : "";
+    // Nom, élément, coût et aide de la capacité ou de l'objet choisi : au toucher, la liste se ferme aussitôt (MAE-74, planche G2)
+    const { ability } = top;
+    $("#target-title").textContent = `${hero.name} · Choisir une cible`;
+    const facts = [
+      "element" in ability && ability.element ? ELEMENT_NAMES[ability.element] : "",
+      "mp" in ability && ability.mp ? `${ability.mp} PS` : "",
+    ].filter(Boolean).map(fact => ` · ${fact}`).join("");
+    const help = ability.desc
+      ? `<div class="target-name">${ability.name}<span class="menu-element">${facts}</span></div><div class="target-desc">${ability.desc}</div>`
+      : "";
     $("#target-help").innerHTML = help;
     $("#target-help").hidden = !help;
     $("#target-hint").hidden = false;
@@ -226,9 +262,12 @@ export function renderMenu(menu: MenuController) {
 
 // — Bandeau —
 
-export function showBanner(text: string) {
+// « result » : annonce de fin de combat, plus bas, au-dessus de la bande de dialogue (planches G5 et G7)
+export function showBanner(text: string, kind: "result" | "danger" | "" = "") {
   const banner = $("#battle-banner");
   banner.innerHTML = text;
+  banner.classList.toggle("result", kind !== "");
+  banner.classList.toggle("danger", kind === "danger");
   banner.hidden = false;
 }
 
@@ -265,6 +304,8 @@ export function popupText(effect: Effect) {
     case "miss": return "Raté";
     case "none": return "Sans effet";
     case "mp":   return effect.amount + " PS";
+    case "heal":
+    case "revive": return "+" + effect.amount; // planche G3 : un soin porte toujours le « + »
     default:     return String(effect.amount);
   }
 }
@@ -277,6 +318,8 @@ export function spawnPopup(anchor: HTMLElement, text: string, className: string)
   const popup = document.createElement("span");
   popup.className = "popup " + className;
   popup.textContent = text;
+  // Planche G3 : une faiblesse se dit toujours aussi par le mot, au-dessus du chiffre
+  if (popup.classList.contains("weak")) popup.insertAdjacentHTML("afterbegin", `<span class="popup-word">Faiblesse</span>`);
   anchor.appendChild(popup);
   setTimeout(() => popup.remove(), CONFIG.timing.popup);
 }

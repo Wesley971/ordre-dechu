@@ -1,5 +1,5 @@
 // test-mode.ts - Mode test, en local seulement : départ à un chapitre (?chapitre=N), jeu accéléré (?vitesse=X),
-// pouvoir du Cœur déjà choisi (?pouvoir=pris ou refuse), combats gagnés d'office (?combat=gagne), scène peinte seule
+// pouvoir du Cœur déjà choisi (?pouvoir=pris ou refuse), combats gagnés ou perdus d'office (?combat=gagne ou perdu), scène peinte seule
 // (?scene=lisiere), rendu DOM forcé (?rendu=dom) et compteur d'images/s pendant le jeu (?compteur=1)
 // Le site en ligne sert le même build que `npm run preview` : le mode se décide donc au nom d'hôte, à l'exécution.
 
@@ -16,16 +16,17 @@ const MAX_SPEED = 10;
 // startChapter : index du chapitre de départ (le numéro du titre moins un), null hors mode test
 // power : pouvoir du Cœur posé au départ de la partie, null hors mode test
 // winBattles : chaque ennemi tombe à 0 PV dès le début du combat, pour jouer la suite sans combattre
+// loseBattles : chaque héros tombe à 0 PV dès le début du combat, pour atteindre l'écran de défaite
 // scene : décor à afficher seul, à la place du jeu (MAE-28), null hors mode test
 // sceneQuality : niveau de qualité de cette scène (?qualite=1, 2 ou 3), undefined pour le réglage par défaut
 // domOnly : les chapitres avec décor s'affichent quand même en DOM (MAE-29), pour comparer deux versions du jeu
 // counter : compteur d'images/s à l'écran pendant les chapitres joués dans la scène peinte (MAE-29)
 // active : au moins un paramètre de test valide, vitesse comprise ; la sauvegarde n'est alors ni lue ni écrite (MAE-11)
 export const TestMode: {
-  active: boolean; startChapter: number | null; power: PowerState | null; winBattles: boolean;
+  active: boolean; startChapter: number | null; power: PowerState | null; winBattles: boolean; loseBattles: boolean;
   scene: DecorId | null; sceneQuality: 1 | 2 | 3 | undefined; domOnly: boolean; counter: boolean;
 } = {
-  active: false, startChapter: null, power: null, winBattles: false, scene: null, sceneQuality: undefined, domOnly: false, counter: false,
+  active: false, startChapter: null, power: null, winBattles: false, loseBattles: false, scene: null, sceneQuality: undefined, domOnly: false, counter: false,
 };
 const POWER_PARAM: Record<string, PowerState> = { pris: "taken", refuse: "refused" };
 
@@ -37,16 +38,17 @@ export function setupTestMode() {
   const chapter = readParam(params, "chapitre", 1, CHAPTERS.length, true);
   const speed = readParam(params, "vitesse", 1, MAX_SPEED, false);
   const power = readPower(params);
-  const winBattles = readWinBattles(params);
+  const battleOutcome = readBattleOutcome(params);
   const scene = readScene(params);
   const domOnly = readFlag(params, "rendu", "dom");
   const counter = readFlag(params, "compteur", "1");
-  if (chapter === null && speed === null && power === null && !winBattles && scene === null && !domOnly && !counter) return;
+  if (chapter === null && speed === null && power === null && battleOutcome === null && scene === null && !domOnly && !counter) return;
 
   TestMode.active = true;
   if (chapter !== null) TestMode.startChapter = chapter - 1;
   TestMode.power = power;
-  TestMode.winBattles = winBattles;
+  TestMode.winBattles = battleOutcome === "gagne";
+  TestMode.loseBattles = battleOutcome === "perdu";
   TestMode.scene = scene;
   TestMode.domOnly = domOnly;
   TestMode.counter = counter;
@@ -88,8 +90,12 @@ function readPower(params: URLSearchParams): PowerState | null {
   return null;
 }
 
-function readWinBattles(params: URLSearchParams) {
-  return readFlag(params, "combat", "gagne");
+function readBattleOutcome(params: URLSearchParams) {
+  const raw = params.get("combat");
+  if (raw === null) return null;
+  if (raw === "gagne" || raw === "perdu") return raw;
+  console.warn(`Mode test : « combat=${raw} » ignoré (attendu : gagne ou perdu)`);
+  return null;
 }
 
 // Paramètre à une seule valeur admise : vrai si elle est donnée, faux sinon (signalé dans la console)

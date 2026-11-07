@@ -12,6 +12,7 @@ import type { DecorId } from "./decors.ts";
 export interface PageObject {
   html: string;
   sfx?: SoundName;
+  levelUps?: { heroId: string; level: number }[]; // héros mis en avant dans le groupe pendant cette page
 }
 export type Page = string | PageObject;
 
@@ -36,6 +37,7 @@ export interface HeroDef {
   growth: Stats;
   spells: Record<number, SpellId[]>;
   embers?: [number, number][]; // points de départ des braises animées, en pixels de sprite (x, y)
+  feminine?: boolean;          // accord de « prêt » et « tombé » dans le groupe
 }
 
 export type ElementName = "fire" | "ice" | "thunder";
@@ -91,6 +93,7 @@ export const HEROES: HeroDef[] = [
   {
     id: "elwen", name: "Elwen", job: "Source", image: "images/elwen.png",
     command: "Source",
+    feminine: true,
     // bords enflammés du drapé
     embers: [[34, 41], [36, 46], [32, 55], [9, 42], [8, 47], [10, 52]],
     stats:  { maxHp: 110, maxMp: 44, atk: 9,  def: 6,  mag: 15, res: 14, spd: 10 },
@@ -644,7 +647,7 @@ export function endingOf(power: PowerState | null, dragonSpared: boolean | null)
 }
 
 export const GAME_OVER: Page[] = [
-  "Le Val Ténébreux referme ses brumes sur le groupe.<br><br>" +
+  "<em>Le Val Ténébreux referme ses brumes sur le groupe.</em><br><br>" +
   "L'Ordre Déchu retombe dans l'oubli... pour cette fois.",
 ];
 

@@ -13,6 +13,52 @@ const group: GroupExtent = [
 ];
 const rows = CONFIG.scene.screenHeightInSpritePixels;
 
+describe("téléphone en portrait : scène entre le groupe et le panneau (MAE-87)", () => {
+  const placed: GroupExtent = [
+    ...Object.values(decor.places.heroes).map((place) => ({ col: place.col, row: place.row, spriteWidth: 47 })),
+    ...decor.places.enemies.map((place) => ({ col: place.col, row: place.row, spriteWidth: 77 })),
+  ];
+
+  it.each([[414, 715], [390, 844], [375, 667]])("en %i × %i, deux pixels réels par pixel de sprite, et tout le monde à l'écran", (cssWidth, cssHeight) => {
+    const ratio = 2;
+    const framing = computeFraming({ cssWidth, cssHeight, ratio }, decor, placed, { top: 124 * ratio, height: (cssHeight - 124 - 272) * ratio });
+    expect(framing.spritePixel).toBe(2);
+    for (const actor of placed) {
+      const x = ((1 + framing.colToNdc(actor.col)) / 2) * cssWidth * ratio;
+      const half = (actor.spriteWidth / 2) * framing.spritePixel;
+      expect(x - half).toBeGreaterThanOrEqual(0);
+      expect(x + half).toBeLessThanOrEqual(cssWidth * ratio);
+    }
+  });
+});
+
+describe("dégagement de la bande et des plaques (MAE-87)", () => {
+  const placed: GroupExtent = [
+    ...Object.values(decor.places.heroes).map((place) => ({ col: place.col, row: place.row, spriteWidth: 47 })),
+    ...decor.places.enemies.map((place) => ({ col: place.col, row: place.row, spriteWidth: 77 })),
+  ];
+  const size = { cssWidth: 1280, cssHeight: 720, ratio: 1 };
+  const clear = { top: 0, height: 720, clearBottom: 184, clearLeft: 384 };
+  const screenY = (ndc: number) => (1 - ndc) * 360;
+  const screenX = (ndc: number) => (1 + ndc) * 640;
+
+  it("garde les pieds au-dessus de la bande et les sprites à droite des plaques, sans changer leur taille", () => {
+    const framing = computeFraming(size, decor, placed, clear);
+    expect(framing.spritePixel).toBe(computeFraming(size, decor, placed).spritePixel);
+    for (const actor of placed) expect(screenY(framing.rowToNdc(actor.row ?? 0))).toBeLessThanOrEqual(720 - 184 + 0.5);
+    const left = Math.min(...placed.map((actor) => screenX(framing.colToNdc(actor.col)) - (actor.spriteWidth / 2) * framing.spritePixel));
+    expect(left).toBeGreaterThanOrEqual(384 - 0.5);
+  });
+
+  it("ne bouge rien quand il y a déjà la place", () => {
+    const big = { cssWidth: 3440, cssHeight: 1600, ratio: 1 };
+    const moved = computeFraming(big, decor, placed, { top: 0, height: 1600, clearBottom: 184, clearLeft: 384 });
+    const still = computeFraming(big, decor, placed, { top: 0, height: 1600 });
+    expect(moved.rowToNdc(500)).toBeCloseTo(still.rowToNdc(500));
+    expect(moved.colToNdc(500)).toBeCloseTo(still.colToNdc(500));
+  });
+});
+
 describe("cadrage sans zone : tout le canvas", () => {
   it("prend un pixel de sprite entier d'après la hauteur et remplit la hauteur", () => {
     const framing = computeFraming({ cssWidth: 1600, cssHeight: 900, ratio: 1 }, decor, group);

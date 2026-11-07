@@ -91,7 +91,13 @@ export function gainXp(hero: Hero, xp: number) {
   hero.level = newLevel;
   hero.spells.push(...learned);
 
-  return { level: newLevel, learned: learned.map(id => ({ name: SPELLS[id].name, desc: SPELLS[id].desc })) };
+  return {
+    level: newLevel,
+    learned: learned.map(id => {
+      const spell = SPELLS[id];
+      return { name: spell.name, desc: spell.desc, mp: spell.mp, element: "element" in spell ? spell.element : undefined };
+    }),
+  };
 }
 
 // Récompenses de fin de combat : XP pour chaque héros debout, Couronnes et objets pour le groupe

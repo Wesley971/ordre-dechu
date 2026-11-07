@@ -11,14 +11,14 @@ import type { HeroOrder, OrderContext, OrderRequest } from "../game-view.ts";
 import { Input, type Action } from "../input/input.ts";
 import { Sfx } from "../audio/sfx.ts";
 import { isAlive, groupOf, targetCandidates, type Combatant } from "../battle/battle.ts";
-import { renderMenu, updateMenuCursor, listColumns } from "./view.ts";
+import { renderMenu, updateMenuCursor } from "./view.ts";
 
 // Le menu est une pile de niveaux : commande → liste (souffle / objets) → cible
 
 export interface MenuEntry {
   label: string;
+  element?: string; // l'élément d'une capacité, entre son nom et son coût (planche G1)
   detail?: string;
-  help?: string;
   disabled?: boolean;
   select?: () => void; // absent pour « Besace vide »
 }
@@ -48,10 +48,8 @@ function commandEntries(hero: Hero): MenuEntry[] {
 function spellEntries(hero: Hero): MenuEntry[] {
   return hero.spells.map(id => {
     const spell = SPELLS[id];
-    // L'élément s'affiche entre le nom et le coût (« Tocsin · Foudre · 5 PS »)
-    const element = "element" in spell && spell.element ? `${ELEMENT_NAMES[spell.element]} · ` : "";
     return {
-      label: spell.name, detail: `${element}${spell.mp} PS`, help: spell.desc,
+      label: spell.name, element: "element" in spell && spell.element ? ELEMENT_NAMES[spell.element] : undefined, detail: `${spell.mp} PS`,
       disabled: hero.mp < spell.mp || targetCandidates(hero, spell.target).length === 0,
       select: () => Menu.chooseTarget(spell),
     };
@@ -65,7 +63,7 @@ function itemEntries(hero: Hero): MenuEntry[] {
     .map(([id, quantity]) => {
       const item = ITEMS[id];
       return {
-        label: item.name, detail: `×${quantity}`, help: item.desc,
+        label: item.name, detail: `×${quantity}`,
         disabled: targetCandidates(hero, item.target).length === 0,
         select: () => Menu.chooseTarget(item, id),
       };
@@ -193,7 +191,6 @@ export const Menu: MenuController = {
     if (level.type === "target") return this.handleTarget(level, action);
 
     const count = level.entries.length;
-    const columns = level.type === "list" ? listColumns() : 1;
     const move = (delta: number) => {
       level.cursor = (level.cursor + delta + count) % count;
       Sfx.play("cursor");
@@ -201,10 +198,8 @@ export const Menu: MenuController = {
     };
 
     switch (action) {
-      case "up":      move(-columns); break;
-      case "down":    move(columns); break;
-      case "left":    if (columns > 1) move(-1); break;
-      case "right":   if (columns > 1) move(1); break;
+      case "up":      move(-1); break;
+      case "down":    move(1); break;
       case "confirm": this.select(level.cursor); break;
       case "cancel":  this.back(); break;
     }

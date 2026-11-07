@@ -10,15 +10,14 @@ import { ATTACK, GameState, type Chapter } from "../data/game-data.ts";
 import { DECORS, type DecorId } from "../data/decors.ts";
 import type { GameView } from "../game-view.ts";
 import type { Hero } from "../party/heroes.ts";
-import { Input } from "../input/input.ts";
 import { Sfx } from "../audio/sfx.ts";
 import { Music } from "../audio/music.ts";
 import { Dialog } from "./dialog.ts";
 import { Menu } from "./battle-menu.ts";
 import { pickOption } from "./pick-option.ts";
-import { createDomStage, embersHtml, type Stage } from "./stage.ts";
+import { createDomStage, embersHtml, overlayHtml, type Stage } from "./stage.ts";
 import {
-  $, wait, pulse, showScreen, setSceneTint, renderPartyWindow, renderEnemyList, renderMenu, updateBattleUI, updateAtbUI,
+  $, wait, pulse, showScreen, setSceneTint, renderPartyWindow, renderMenu, updateBattleUI, updateAtbUI, setBattleRunning, setBossPanel,
   onBattleUiUpdated, heroFlags, showBanner, hideBanner, showMessage, effectVisual, effectSound, popupText, popupClasses, spawnPopup, spawnFx,
 } from "./view.ts";
 
@@ -56,7 +55,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
       try {
         const { createBattleStage } = await import("../scene/battle-stage.ts");
         const created = await createBattleStage(DECORS[decorId], {
-          flagsOf: heroFlags, onPick: (c) => Menu.clickTarget(c), anchorHtml: embersHtml,
+          flagsOf: heroFlags, onPick: (c) => Menu.clickTarget(c), anchorHtml: (c) => embersHtml(c) + overlayHtml(c),
           counter: options.counter, expose: options.expose,
         });
         painted = { stage: created, decorId };
@@ -70,9 +69,16 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     return domStage;
   }
 
-  // Fenêtres du bas au repos : liste des ennemis vide, lignes du groupe, menu fermé
+  // Retour à l'écran titre : la mémoire graphique est rendue entre deux parties
+  function leaveBattleScreen() {
+    releasePainted();
+    stage = domStage;
+    showScreen("intro");
+  }
+
+  // Interface au repos : lignes du groupe, menu fermé
   function renderHud(party: Hero[]) {
-    $("#enemy-list").replaceChildren();
+    setBossPanel(null);
     renderPartyWindow(party);
     renderMenu(Menu);
   }
@@ -81,20 +87,31 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     // — Écrans et histoire —
 
     async showTitle({ startLabel, canRetry, canContinue }) {
-      releasePainted(); // la mémoire graphique est rendue entre deux parties
-      stage = domStage;
-      showScreen("intro");
+      // Après une défaite, les choix se posent dans la bande, sur la scène éteinte (planche G7) :
+      // l'écran de jeu reste affiché, et la scène n'est libérée qu'une fois le choix fait
+      const defeat = canRetry;
+      document.body.classList.toggle("defeat-choice", defeat);
+      if (defeat) $("#intro-screen").hidden = false;
+      else leaveBattleScreen();
       $("#start-btn").textContent = startLabel;
       $("#retry-btn").hidden = !canRetry;
       $("#continue-btn").hidden = !canContinue;
       const buttons = [...document.querySelectorAll<HTMLElement>(".title-option")].filter(button => !button.hidden);
       const chosen = buttons[await pickOption(buttons)];
+      if (defeat) {
+        document.body.classList.remove("defeat-choice", "game-over");
+        $("#dialog").hidden = true;
+        hideBanner();
+        leaveBattleScreen();
+      }
       if (chosen.id === "retry-btn") return "retry";
       if (chosen.id === "continue-btn") return "continue";
       return "start";
     },
 
     async showChapter(chapter, party) {
+      Dialog.reset();
+      hideBanner();
       setSceneTint(chapter);
       stage = await selectStage(chapter);
       await stage.showIdle(party, chapter);
@@ -107,20 +124,25 @@ export function createDomView(options: DomViewOptions = {}): GameView {
       else Music.play(id);
     },
 
-    tell: (telling) => Dialog.show(telling),
+    async tell(telling) {
+      await Dialog.show(telling);
+      hideBanner(); // l'annonce de la victoire reste le temps des récompenses
+    },
     ask: (question) => Dialog.choose(question),
     refresh: updateBattleUI,
 
-    celebrate(party) {
+    celebrate(party, title) {
       Sfx.play("victory");
       stage.victory(party);
+      showBanner(title, "result");
     },
 
     async showDefeat(telling) {
       Sfx.play("gameOver");
       document.body.classList.add("game-over");
-      await Dialog.show(telling);
-      document.body.classList.remove("game-over");
+      // Le mot « Défaite » est dans le bandeau, pas répété dans la bande (planche G7) ; game-over reste jusqu'au choix (showTitle)
+      showBanner(telling.title ?? "", "danger");
+      await Dialog.show({ pages: telling.pages }, { hold: true });
     },
 
     // Épargner : il se relève, apaisé
@@ -156,14 +178,20 @@ export function createDomView(options: DomViewOptions = {}): GameView {
         requestAnimationFrame(loop);
       };
       requestAnimationFrame(loop);
-      return () => { running = false; };
+      return () => {
+        running = false;
+        setBattleRunning(false); // la fin du combat : plus de jauge dans le groupe
+        updateBattleUI();
+      };
     },
 
     async startBattle(state) {
+      Dialog.reset(); // la bande garde la scène en cours : le combat en commence une autre
       await stage.showIdle(state.heroes, state.chapter ?? GameState.currentChapter);
       renderHud(state.heroes);
       stage.showBattle(state);
-      renderEnemyList(state.enemies);
+      setBattleRunning(true);
+      setBossPanel(state.enemies.find(enemy => enemy.boss) ?? null);
       updateBattleUI();
 
       Sfx.play("encounter");
@@ -230,10 +258,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
 }
 
 function wirePage() {
-  // Un clic dans la fenêtre de dialogue vaut « Valider », sauf pendant un choix (il faut cliquer une option)
-  $("#dialog").addEventListener("click", () => {
-    if ($("#dialog-choices").hidden) Input.emit("confirm");
-  });
+  Dialog.wire();
   $("#target-hint").addEventListener("click", () => Menu.back());
 
   const soundButton = $("#sound-btn");
