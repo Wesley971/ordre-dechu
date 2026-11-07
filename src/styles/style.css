@@ -150,8 +150,14 @@ body.lock-scroll { overflow: hidden; }
 
 /* ─── SCÈNE DE COMBAT ──────────────────────────────────────────────── */
 
-/* Propriété déclarée : le navigateur la calcule en pixels, et la scène peinte peut la lire quelle que soit la taille de l'écran */
+/* Propriétés déclarées : le navigateur les calcule en pixels, et la scène peinte peut les lire quelle que soit la taille de l'écran */
 @property --scene-clear-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --scene-clear-left {
   syntax: "<length>";
   inherits: false;
   initial-value: 0px;
@@ -683,23 +689,23 @@ body.scene-painted #battle-scene { pointer-events: none; }
 
 .od-hero-name {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: var(--hud-text);
   line-height: 1.25;
   color: var(--text-parchment);
 }
 
 .od-turn {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--hud-text-sm);
   letter-spacing: 0.04em;
   color: var(--text-dim);
 }
 
 .od-hero-values { display: flex; justify-content: space-between; align-items: baseline; }
-.od-hp          { font-size: 22px; line-height: 1.1; }
+.od-hp          { font-size: var(--hud-text-lg); line-height: 1.1; }
 .od-hp b        { color: var(--text-light); }
-.od-hp small    { font-size: 18px; color: var(--text-dim); }
-.od-mp          { font-size: 18px; color: var(--state-mp); }
+.od-hp small    { font-size: var(--hud-text-sm); color: var(--text-dim); }
+.od-mp          { font-size: var(--hud-text-sm); color: var(--state-mp); }
 
 .od-hero.ready .od-turn,
 .od-hero.active .od-hero-name,
@@ -891,7 +897,7 @@ body.scene-painted #battle-scene { pointer-events: none; }
 /* Le menu */
 #action-window .window-title {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--hud-text-sm);
   letter-spacing: 0.04em;
   color: var(--gold-bright);
 }
@@ -903,12 +909,12 @@ body.scene-painted #battle-scene { pointer-events: none; }
   gap: var(--space-6);
   padding: 2px 0 2px calc(var(--rose-bud) + var(--space-2));
   font-family: var(--font-display);
-  font-size: 20px;
   line-height: 1.25;
   color: var(--text-parchment);
 }
 
-#dialog .menu-item { font-size: var(--band-choice); }
+#action-window .menu-item { font-size: var(--hud-text); }
+#dialog .menu-item        { font-size: var(--band-choice); }
 
 #action-window .menu-item.selected,
 #dialog .menu-item.selected                 { color: var(--gold-bright); }
@@ -918,12 +924,12 @@ body.scene-painted #battle-scene { pointer-events: none; }
 #action-window .menu-item .menu-element { margin-right: auto; margin-left: calc(var(--space-2) - var(--space-6)); }
 .menu-element {
   font-family: var(--font-text);
-  font-size: 18px;
+  font-size: var(--hud-text-sm);
   color: var(--text-dim);
 }
 #action-window .detail {
   font-family: var(--font-text);
-  font-size: 18px;
+  font-size: var(--hud-text-sm);
   color: var(--text-dim);
 }
 
@@ -931,16 +937,16 @@ body.scene-painted #battle-scene { pointer-events: none; }
   display: block;
   padding-left: calc(var(--rose-bud) + var(--space-2));
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--hud-text-sm);
   letter-spacing: 0.04em;
   color: var(--text-dim);
   cursor: var(--cursor-pointer);
 }
 #action-window .menu-back:hover { color: var(--gold-bright); }
 
-/* Plaque : 280 px de contenu, 24 et 64 px de marges ; --plate-width garde les sprites à sa droite */
+/* Plaque : le contenu, 24 et 64 px de marges, et 16 px de plus : --plate-width garde les sprites à sa droite */
 #list-window,
-#target-hint { width: 280px; }
+#target-hint { width: calc(var(--plate-width) - 104px); }
 
 #target-hint {
   display: grid;
@@ -951,14 +957,14 @@ body.scene-painted #battle-scene { pointer-events: none; }
 
 .target-name {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: var(--hud-text-lg);
   color: var(--text-light);
 }
 .target-name .menu-element { margin-left: var(--space-2); }
 
 .target-desc {
   margin-top: 6px;
-  font-size: 20px;
+  font-size: var(--hud-text);
   line-height: 1.4;
   color: var(--text-parchment);
 }
@@ -1226,6 +1232,7 @@ body.defeat-choice .title-option.selected::before {
     --band-height:  var(--panel-height);
     --band-text:    19px;
     --band-choice:  20px;
+    --hud-text:     20px;
     --foe-width:    80px;
   }
 

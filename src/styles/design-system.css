@@ -84,8 +84,14 @@
   --band-height:     clamp(176px, 24vh, 320px);
   --band-text:       clamp(20px, calc(14.5px + 0.75vh), 24px);
   --band-choice:     var(--band-text);
-  --plate-width:     384px; /* sous-menu et ciblage, avec une marge : les sprites restent à sa droite */
-  --hud-width:       240px;
+  /* Les plaques grandissent comme la bande à partir de 720 de haut (24 px et 288, 460 px de large en 1267), sauf sur un écran
+     plus étroit que le 16:9 : leur place y manquerait. Le téléphone a ses propres valeurs (style.css). */
+  --hud-unit:        min(1vh, 0.5625vw);
+  --hud-text:        clamp(20px, calc(14.5px + 0.75 * var(--hud-unit)), 24px); /* noms et menu */
+  --hud-text-sm:     calc(var(--hud-text) * 0.9);
+  --hud-text-lg:     calc(var(--hud-text) * 1.1);
+  --plate-width:     clamp(384px, calc(283.9px + 13.9 * var(--hud-unit)), 460px); /* sous-menu et ciblage, avec une marge : les sprites restent à sa droite */
+  --hud-width:       clamp(240px, calc(176.6px + 8.8 * var(--hud-unit)), 288px);
   --boss-width:      560px;
   --foe-width:       120px;
   --bar-hp-height:   6px;

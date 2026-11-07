@@ -51,21 +51,27 @@ describe("dégagement de la bande et des plaques (MAE-87)", () => {
   });
 
   // La bande suit la hauteur de l'écran : --band-height, plus 8 px de marge (--scene-clear-bottom, style.css)
+  // Les plaques aussi : --plate-width (--scene-clear-left, style.css)
   it.each([
-    [3440, 1267, 1, 312.08],
-    [1920, 1080, 1, 267.2],
-    [1600, 900, 1, 224],
-    [1536, 864, 1.25, 215.36],
-    [1280, 720, 1, 184],
-  ])("en %i × %i à %d, les pieds restent au-dessus de la bande, sans changer la taille des sprites", (cssWidth, cssHeight, ratio, clearCss) => {
+    [3440, 1267, 1, 312.08, 460],
+    [1920, 1080, 1, 267.2, 434],
+    [1600, 900, 1, 224, 409],
+    [1536, 864, 1.25, 215.36, 404],
+    [1280, 720, 1, 184, 384],
+  ])("en %i × %i à %d, les pieds restent au-dessus de la bande et les sprites à droite des plaques, sans changer leur taille", (cssWidth, cssHeight, ratio, clearCss, plateCss) => {
     const screen = { cssWidth, cssHeight, ratio };
+    const deviceWidth = cssWidth * ratio;
     const deviceHeight = cssHeight * ratio;
-    const area = { top: 0, height: deviceHeight, clearBottom: clearCss * ratio, clearLeft: 384 * ratio };
+    const area = { top: 0, height: deviceHeight, clearBottom: clearCss * ratio, clearLeft: plateCss * ratio };
     const framing = computeFraming(screen, decor, placed, area);
     expect(framing.spritePixel).toBe(computeFraming(screen, decor, placed).spritePixel);
     for (const actor of placed) {
       const feet = ((1 - framing.rowToNdc(actor.row ?? 0)) / 2) * deviceHeight;
       expect(feet).toBeLessThanOrEqual(deviceHeight - clearCss * ratio + 0.5);
+      const center = ((1 + framing.colToNdc(actor.col)) / 2) * deviceWidth;
+      const half = (actor.spriteWidth / 2) * framing.spritePixel;
+      expect(center - half).toBeGreaterThanOrEqual(plateCss * ratio - 0.5);
+      expect(center + half).toBeLessThanOrEqual(deviceWidth);
     }
   });
 
