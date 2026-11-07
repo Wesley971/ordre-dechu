@@ -53,8 +53,8 @@ export function actorDefs(decor: Decor, members: CastMember[], images: Map<strin
 // Étendue du groupe pour le cadrage : fixée pour tout le chapitre, qu'il y ait ou non des ennemis en scène
 export function castExtent(decor: Decor, members: CastMember[], images: Map<string, HTMLImageElement>): GroupExtent {
   let enemies = 0;
-  return members.map((member) => ({
-    col: placeOf(decor, member, member.side === "enemy" ? enemies++ : 0).col,
-    spriteWidth: imageOf(images, member).width,
-  }));
+  return members.map((member) => {
+    const { col, row } = placeOf(decor, member, member.side === "enemy" ? enemies++ : 0);
+    return { col, row, spriteWidth: imageOf(images, member).width };
+  });
 }

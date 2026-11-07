@@ -39,7 +39,7 @@ export interface StageMeasure {
 }
 
 // Zone de l'écran où la peinture est cadrée, en pixels CSS depuis le haut du conteneur (null : tout le conteneur)
-export interface SafeAreaCss { top: number; height: number }
+export interface SafeAreaCss { top: number; height: number; clearBottom?: number; clearLeft?: number }
 
 export interface PaintedStage {
   // Remplace le décor. Le précédent reste affiché pendant le chargement, puis sa mémoire graphique est libérée.
@@ -221,7 +221,10 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
     camera.aspect = cssWidth / cssHeight;
     if (!view) return;
 
-    const safe = safeArea ? { top: safeArea.top * ratio, height: Math.max(1, safeArea.height) * ratio } : undefined;
+    const safe = safeArea ? {
+      top: safeArea.top * ratio, height: Math.max(1, safeArea.height) * ratio,
+      clearBottom: (safeArea.clearBottom ?? 0) * ratio, clearLeft: (safeArea.clearLeft ?? 0) * ratio,
+    } : undefined;
     framing = computeFraming({ cssWidth, cssHeight, ratio }, view.decor, cast?.extent ?? [], safe);
     placeCamera(framing.cameraDistance, 0);
     view.relief.layout(framing, { width: cssWidth, height: cssHeight });
@@ -384,7 +387,8 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
 
     setSafeArea(area) {
       const same = (safeArea === null && area === null)
-        || (safeArea !== null && area !== null && safeArea.top === area.top && safeArea.height === area.height);
+        || (safeArea !== null && area !== null && safeArea.top === area.top && safeArea.height === area.height
+          && safeArea.clearBottom === area.clearBottom && safeArea.clearLeft === area.clearLeft);
       if (same) return;
       safeArea = area;
       refresh();

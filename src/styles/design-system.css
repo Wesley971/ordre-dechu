@@ -80,6 +80,7 @@
 
   /* ─── MESURES DE L'INTERFACE ─────────────────────────────────────── */
   --band-height:     176px; /* bande de dialogue : un titre et 4 lignes */
+  --plate-width:     384px; /* sous-menu et ciblage, avec une marge : les sprites restent à sa droite */
   --hud-width:       240px;
   --boss-width:      560px;
   --foe-width:       120px;

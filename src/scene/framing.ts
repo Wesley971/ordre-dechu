@@ -6,8 +6,10 @@
 // Écran assez large : k suit la hauteur et la peinture remplit toute la hauteur de la zone.
 // Écran étroit : k suit la largeur, et la peinture rétrécit dans la même proportion que les sprites pour
 // garder leur taille relative. Elle ne remplit plus la hauteur : la brume et l'ombre comblent le haut et le bas.
-// La zone (MAE-29) : en combat, la peinture est cadrée au-dessus des fenêtres du bas, dans le rectangle de la scène ;
-// le canvas, lui, couvre tout l'écran, et la brume et l'ombre comblent ce qui dépasse.
+// La zone (MAE-29) : en combat, la peinture est cadrée dans le rectangle de la scène ; le canvas, lui, couvre tout l'écran,
+// et la brume et l'ombre comblent ce qui dépasse.
+// Le dégagement (MAE-87) : sans changer de taille, la peinture glisse pour que les personnages restent au-dessus de la
+// bande de dialogue et à droite des plaques. Il ne dépend que de l'écran : la peinture ne bouge plus ensuite.
 
 import { MathUtils, Vector3, type PerspectiveCamera } from "three";
 import { CONFIG } from "../config.ts";
@@ -15,9 +17,10 @@ import type { Decor } from "../data/decors.ts";
 
 export interface ScreenSize { cssWidth: number; cssHeight: number; ratio: number }
 // Zone où la peinture est cadrée, en pixels réels du canvas, depuis son haut. Absente : tout le canvas.
-export interface SafeArea { top: number; height: number }
-// Chaque personnage : colonne de ses pieds sur la peinture et largeur de son sprite. Vide si la scène est sans personnage.
-export type GroupExtent = { col: number; spriteWidth: number }[];
+// clearBottom, clearLeft : place à laisser libre de personnages, depuis le bas et depuis la gauche du canvas.
+export interface SafeArea { top: number; height: number; clearBottom?: number; clearLeft?: number }
+// Chaque personnage : place de ses pieds sur la peinture et largeur de son sprite. Vide si la scène est sans personnage.
+export type GroupExtent = { col: number; row?: number; spriteWidth: number }[];
 
 export interface Framing {
   spritePixel: number;    // k : pixels écran réels par pixel de sprite
@@ -60,8 +63,25 @@ export function computeFraming(size: ScreenSize, decor: Decor, group: GroupExten
     }
   }
 
-  // Centre vertical de la zone, en coordonnées d'écran normalisées : la peinture s'y centre
-  const centerNdc = 1 - (2 * (safeTop + safeHeight / 2)) / deviceHeight;
+  const scale = imageHeight / height; // pixels réels par pixel de la peinture
+
+  // Glissement vers la droite, sans jamais pousser un personnage hors de l'écran
+  const clearLeft = safe?.clearLeft ?? 0;
+  if (clearLeft > 0 && group.length > 0) {
+    const edge = (actor: GroupExtent[number], side: -1 | 1) => deviceWidth / 2 + (actor.col - centerCol) * scale + side * (actor.spriteWidth / 2) * spritePixel;
+    const left = Math.min(...group.map((actor) => edge(actor, -1)));
+    const right = Math.max(...group.map((actor) => edge(actor, 1)));
+    const slide = Math.min(Math.max(0, clearLeft - left), Math.max(0, deviceWidth - right));
+    centerCol -= slide / scale;
+  }
+
+  // Centre vertical de la zone, en coordonnées d'écran normalisées : la peinture s'y centre.
+  // Glissement vers le haut si des pieds tomberaient dans la place à laisser libre en bas
+  const clearBottom = safe?.clearBottom ?? 0;
+  const rows = group.flatMap((actor) => (actor.row === undefined ? [] : [actor.row]));
+  const lowestFeet = rows.length > 0 ? safeTop + safeHeight / 2 + (Math.max(...rows) / height - 0.5) * imageHeight : 0;
+  const lift = clearBottom > 0 ? Math.max(0, lowestFeet - (deviceHeight - clearBottom)) : 0;
+  const centerNdc = 1 - (2 * (safeTop + safeHeight / 2 - lift)) / deviceHeight;
   const rowToNdc = (row: number) => centerNdc + (0.5 - row / height) * 2 * (imageHeight / deviceHeight);
 
   return {
@@ -71,7 +91,7 @@ export function computeFraming(size: ScreenSize, decor: Decor, group: GroupExten
     fadeTop: rowToNdc(0) < 1 - EDGE_EPSILON,
     fadeBottom: rowToNdc(height) > -1 + EDGE_EPSILON,
     safeBottomNdc: 1 - (2 * (safeTop + safeHeight)) / deviceHeight,
-    colToNdc: (col) => (col - centerCol) * (imageHeight / height) * (2 / deviceWidth),
+    colToNdc: (col) => (col - centerCol) * scale * (2 / deviceWidth),
     rowToNdc,
   };
 }

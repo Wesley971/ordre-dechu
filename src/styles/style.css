@@ -152,6 +152,9 @@ body.lock-scroll { overflow: hidden; }
 
 #battle-scene {
   --scene-tint: transparent;
+  /* Place à laisser libre de personnages (lue par la scène peinte) : au-dessus de la bande, à droite des plaques de sous-menu */
+  --scene-clear-bottom: 184px; /* --band-height et une marge ; une valeur simple, que le code peut lire */
+  --scene-clear-left: var(--plate-width);
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -171,9 +174,9 @@ body.game-over #battle-scene { filter: grayscale(0.85) brightness(0.6); }
 #battle-arena {
   position: absolute;
   top: 18%;
-  bottom: 26%;
-  left: max(calc(var(--hud-width) + 88px), calc(50% - 640px));
-  width: min(calc(100% - var(--hud-width) - 112px), 1280px);
+  bottom: max(26%, calc(var(--band-height) + var(--space-2)));
+  left: max(var(--plate-width), calc(50% - 640px));
+  width: min(calc(100% - var(--plate-width) - var(--space-6)), 1280px);
 }
 
 #hero-area  { position: absolute; left: 0;  top: 0; bottom: 0; width: 40%; }
@@ -923,6 +926,7 @@ body.scene-painted #battle-scene { pointer-events: none; }
 }
 #action-window .menu-back:hover { color: var(--gold-bright); }
 
+/* Plaque : 280 px de contenu, 24 et 64 px de marges ; --plate-width garde les sprites à sa droite */
 #list-window,
 #target-hint { width: 280px; }
 

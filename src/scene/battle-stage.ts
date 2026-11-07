@@ -87,18 +87,21 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
   let images = new Map<string, HTMLImageElement>();
   let members: CastMember[] = [];
   let extent: ReturnType<typeof castExtent> = [];
-  let lastSafe = { top: -1, height: -1 };
+  let lastSafe = { top: -1, height: -1, clearBottom: 0, clearLeft: 0 };
   let stopCounter: (() => void) | null = null;
 
-  // — Zone de cadrage : le rectangle de la scène, au-dessus des fenêtres du bas —
+  // — Zone de cadrage : le rectangle de la scène, et la place à laisser libre pour la bande et les plaques (style.css) —
 
   function syncSafeArea() {
     if (!sceneBox) return;
     const rect = sceneBox.getBoundingClientRect();
     if (rect.height === 0) return; // écran de jeu masqué : on garde la dernière zone connue
-    if (rect.top === lastSafe.top && rect.height === lastSafe.height) return;
-    lastSafe = { top: rect.top, height: rect.height };
-    stage.setSafeArea({ top: rect.top, height: rect.height });
+    const style = getComputedStyle(sceneBox);
+    const clearBottom = parseFloat(style.getPropertyValue("--scene-clear-bottom")) || 0;
+    const clearLeft = parseFloat(style.getPropertyValue("--scene-clear-left")) || 0;
+    if (rect.top === lastSafe.top && rect.height === lastSafe.height && clearBottom === lastSafe.clearBottom && clearLeft === lastSafe.clearLeft) return;
+    lastSafe = { top: rect.top, height: rect.height, clearBottom, clearLeft };
+    stage.setSafeArea(lastSafe);
   }
   const resizeObserver = new ResizeObserver(syncSafeArea);
   if (sceneBox) resizeObserver.observe(sceneBox);
