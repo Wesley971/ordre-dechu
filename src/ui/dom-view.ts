@@ -18,7 +18,7 @@ import { Menu } from "./battle-menu.ts";
 import { pickOption } from "./pick-option.ts";
 import { createDomStage, embersHtml, overlayHtml, type Stage } from "./stage.ts";
 import {
-  $, wait, pulse, showScreen, setSceneTint, renderPartyWindow, renderMenu, updateBattleUI, updateAtbUI, setBattleRunning,
+  $, wait, pulse, showScreen, setSceneTint, renderPartyWindow, renderMenu, updateBattleUI, updateAtbUI, setBattleRunning, setBossPanel,
   onBattleUiUpdated, heroFlags, showBanner, hideBanner, showMessage, effectVisual, effectSound, popupText, popupClasses, spawnPopup, spawnFx,
 } from "./view.ts";
 
@@ -72,6 +72,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
 
   // Interface au repos : lignes du groupe, menu fermé
   function renderHud(party: Hero[]) {
+    setBossPanel(null);
     renderPartyWindow(party);
     renderMenu(Menu);
   }
@@ -167,6 +168,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
       renderHud(state.heroes);
       stage.showBattle(state);
       setBattleRunning(true);
+      setBossPanel(state.enemies.find(enemy => enemy.boss) ?? null);
       updateBattleUI();
 
       Sfx.play("encounter");

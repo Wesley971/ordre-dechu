@@ -34,17 +34,24 @@
   <!-- ── JEU ────────────────────────────────────────────────────── -->
   <main id="game" hidden>
 
-    <!-- Scène en plein écran : les combattants des chapitres sans décor peint (en DOM), le bandeau -->
+    <!-- Scène en plein écran : les combattants des chapitres sans décor peint (en DOM) -->
     <section id="battle-scene">
-      <div id="battle-banner" hidden></div>
       <div id="battle-arena">
         <div id="enemy-area"></div>
         <div id="hero-area"></div>
       </div>
     </section>
 
-    <!-- Interface posée sur la scène (maquette D2, MAE-87) : le groupe en haut à gauche, le menu en bas à gauche -->
+    <div id="battle-banner" hidden></div>
+
+    <!-- Interface posée sur la scène (maquette D2, MAE-87) : le groupe en haut à gauche, le menu en bas à gauche,
+         la barre du boss en bas au centre -->
     <section id="battle-hud">
+      <div id="boss-panel" class="od-boss" hidden>
+        <span class="od-boss-name"></span>
+        <span class="od-boss-track"><span class="od-bar" role="img"><i class="od-trail"></i><i class="od-fill"></i></span></span>
+      </div>
+
       <section id="party-window" class="hud-plate" aria-label="Le groupe">
         <div id="party-rows" class="od-hud"></div>
       </section>

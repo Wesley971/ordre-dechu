@@ -9,7 +9,7 @@ import type { Ability, Chapter } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import type { SoundName } from "../audio/sfx.ts";
 import { Battle, isAlive } from "../battle/battle.ts";
-import type { Combatant, Effect } from "../battle/battle.ts";
+import type { Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
 import type { CommandLevel, ListLevel, MenuController } from "./battle-menu.ts";
 
@@ -78,6 +78,13 @@ function setText(element: HTMLElement, text: string) {
   if (element.textContent !== text) element.textContent = text;
 }
 
+// Le boss du combat en cours, dont la barre s'affiche en bas au centre (planche G4)
+let shownBoss: Enemy | null = null;
+export function setBossPanel(boss: Enemy | null) {
+  shownBoss = boss;
+  if (boss) $("#boss-panel .od-boss-name").textContent = boss.name;
+}
+
 // La jauge ne s'affiche que pendant un combat
 let battleRunning = false;
 export function setBattleRunning(running: boolean) { battleRunning = running; }
@@ -134,6 +141,13 @@ export function updateBattleUI() {
     foe.hidden = !isAlive(enemy);
     const percent = (enemy.hp / enemy.maxHp) * 100;
     setBar($(".od-bar", foe), percent, `${enemy.name}, ${Math.round(percent)} % de vie`);
+  }
+
+  const bossPanel = $("#boss-panel");
+  bossPanel.hidden = !shownBoss || !isAlive(shownBoss);
+  if (shownBoss) {
+    const percent = (shownBoss.hp / shownBoss.maxHp) * 100;
+    setBar($(".od-bar", bossPanel), percent, `${shownBoss.name}, ${Math.round(percent)} % de vie`);
   }
   onUpdated?.();
 }
