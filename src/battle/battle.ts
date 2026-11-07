@@ -230,10 +230,11 @@ function allCombatants(): Combatant[] {
 
 export interface BattleOptions {
   winBattles?: boolean; // mode test (?combat=gagne) : les ennemis tombent d'office, la suite se joue normalement
+  loseBattles?: boolean; // mode test (?combat=perdu) : les héros tombent d'office, pour atteindre la défaite
 }
 
 // Joue un combat complet ; renvoie "victory", "defeat", "escape" ou "truce"
-export async function runBattle(gameView: GameView, chapter: BattleChapter, { winBattles = false }: BattleOptions = {}) {
+export async function runBattle(gameView: GameView, chapter: BattleChapter, { winBattles = false, loseBattles = false }: BattleOptions = {}) {
   view = gameView;
   Object.assign(Battle, {
     heroes: GameState.party, enemies: createEnemies(chapter.enemies), chapter,
@@ -251,6 +252,11 @@ export async function runBattle(gameView: GameView, chapter: BattleChapter, { wi
   if (winBattles) {
     for (const enemy of Battle.enemies) enemy.hp = 0;
     await handleKnockouts(Battle.enemies);
+    checkBattleEnd();
+  }
+  if (loseBattles) {
+    for (const hero of Battle.heroes) hero.hp = 0;
+    await handleKnockouts(Battle.heroes);
     checkBattleEnd();
   }
   Battle.busy = false;

@@ -1,41 +1,111 @@
 /*
  * L'Ordre Déchu — Design System
  * design-system.css : tokens (couleurs, typographie, espacements) et styles de base
- * Polices : Cinzel Decorative pour le logo, DotGothic16 pour tout le reste
+ * Valeurs du combat et de ses dialogues : tokens.json du Design System (MAE-84).
+ * Polices, hébergées dans public/fonts (MAE-87) : IM Fell English et IM Fell English SC pour le combat et les
+ * dialogues ; l'écran titre et ses fenêtres gardent Cinzel Decorative et DotGothic16, en attendant MAE-42 et MAE-49.
  */
 
-@import url("https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@900&family=DotGothic16&display=swap");
+@font-face {
+  font-family: "IM Fell English";
+  src: url("/fonts/im-fell-english-regular.woff2") format("woff2");
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IM Fell English";
+  src: url("/fonts/im-fell-english-italic.woff2") format("woff2");
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IM Fell English SC";
+  src: url("/fonts/im-fell-english-sc-regular.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cinzel Decorative";
+  src: url("/fonts/cinzel-decorative-black.ttf") format("truetype");
+  font-weight: 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DotGothic16";
+  src: url("/fonts/dotgothic16-regular.woff2") format("woff2");
+  font-display: swap;
+}
 
 :root {
 
   /* ─── FONDS (du plus sombre au plus clair) ───────────────────────── */
-  --bg-void:   #0d0a07;   /* fond de page */
-  --bg-deep:   #150e07;   /* bas des fenêtres */
-  --bg-raised: #2a1c0f;   /* haut des fenêtres */
+  --bg-void:    #071820;  /* fond de la scène */
+  --bg-deep:    #00171f;
+  --bg-raised:  #2a1c0f;  /* fond des barres */
+  --scene-glow: #0d3c4b;
+  --hud-shade:  rgba(1, 12, 16, 0.72);
+  --bar-track:  var(--bg-raised);
 
   /* ─── OR : bordures et accents ───────────────────────────────────── */
+  --gold-deep:   #5c4512;
   --gold-aged:   #8b6914; /* bordures, séparateurs */
   --gold-title:  #c9a84c; /* titres, libellés, noms qui parlent */
   --gold-bright: #f0c95a; /* surbrillance : héros actif, PV critiques, mots importants */
+  --gold-glow:   rgba(139, 105, 20, 0.5);
 
   /* ─── TEXTE ──────────────────────────────────────────────────────── */
   --text-light:     #f1e4c3; /* texte principal */
   --text-parchment: #d4b483; /* texte secondaire, messages du jeu */
-  --text-dim:       #9a7d55; /* en-têtes, options indisponibles */
-  --text-shadow:    2px 2px 0 #000;
+  --text-dim:       #a8895e; /* en-têtes, options indisponibles */
+  --text-shadow:    2px 2px 0 #000; /* écran titre */
+  --text-ink:       0 1px 2px #000000, 0 0 8px rgba(0, 0, 0, 0.9); /* texte posé sur le décor */
+  --ink-shadow:     #000000;
 
   /* ─── ÉTATS DE COMBAT ────────────────────────────────────────────── */
-  --state-hp:   #b3241f;  /* barre de PV des ennemis */
-  --state-ko:   #e0564b;  /* héros éteint */
+  --state-hp:   #c83a30;  /* barres de PV */
+  --hp-trail:   var(--text-parchment); /* PV qui viennent d'être perdus */
+  --state-ko:   #e8645a;  /* héros éteint */
   --state-heal: #8fd68a;  /* soins */
   --state-mp:   #8fb8e0;  /* PS */
   --state-weak: #f0913a;  /* faiblesse élémentaire */
 
-  --atb-charging: linear-gradient(90deg, #4a3a22, #9c8660); /* jauge en charge : terne */
-  --atb-full:     linear-gradient(90deg, #d08a1c, #ffe07a); /* jauge pleine : or vif */
+  /* ─── ORNEMENTS ──────────────────────────────────────────────────── */
+  --od-rose: url("/images/ui/rose.svg");
+  --od-vine: url("/images/ui/vine.svg");
+  --rose-bud:   12px;
+  --rose-boss:  20px;
 
-  /* ─── FENÊTRES ───────────────────────────────────────────────────── */
-  --window-bg:     linear-gradient(180deg, var(--bg-raised), var(--bg-deep) 85%);
+  /* ─── MESURES DE L'INTERFACE ─────────────────────────────────────── */
+  /* Bande de dialogue : un quart de la hauteur de l'écran, et son texte qui grandit un peu avec elle (20 px en 720 de haut, 24 px en 1267).
+     Le plancher garde un titre et 4 lignes ; le téléphone a ses propres valeurs (style.css). */
+  --band-height:     clamp(176px, 24vh, 320px);
+  --band-text:       clamp(20px, calc(14.5px + 0.75vh), 24px);
+  --band-choice:     var(--band-text);
+  /* Zone de jeu : un cadre central au format 16:9 où se place l'interface, la peinture remplissant tout l'écran autour.
+     Sur un écran 16:9 ou moins large, c'est tout l'écran. */
+  --zone-width:      min(100vw, calc(100vh * 16 / 9));
+  --zone-left:       calc((100vw - var(--zone-width)) / 2);
+
+  /* Les plaques grandissent comme la bande à partir de 720 de haut (24 px et 288, 460 px de large en 1267), sauf sur un écran
+     plus étroit que le 16:9 : leur place y manquerait. Le téléphone a ses propres valeurs (style.css). */
+  --hud-unit:        min(1vh, 0.5625vw);
+  --hud-text:        clamp(20px, calc(14.5px + 0.75 * var(--hud-unit)), 24px); /* noms et menu */
+  --hud-text-sm:     calc(var(--hud-text) * 0.9);
+  --hud-text-lg:     calc(var(--hud-text) * 1.1);
+  --plate-width:     clamp(384px, calc(283.9px + 13.9 * var(--hud-unit)), 460px); /* sous-menu et ciblage, avec une marge : les sprites restent à sa droite */
+  --hud-width:       clamp(240px, calc(176.6px + 8.8 * var(--hud-unit)), 288px);
+  --boss-width:      560px;
+  --foe-width:       120px;
+  --bar-hp-height:   6px;
+  --bar-mp-height:   2px;
+  --bar-boss-height: 8px;
+  --bar-foe-height:  4px;
+
+  /* ─── ÉCRAN TITRE : ses fenêtres, inchangées jusqu'à MAE-42 ──────── */
+  --window-bg:     linear-gradient(180deg, #2a1c0f, #150e07 85%);
   --window-border: 2px solid var(--gold-aged);
   --window-shadow:
     0 0 0 1px #000,                         /* liseré noir extérieur */
@@ -45,8 +115,10 @@
   --radius: 2px;          /* rayon unique, jamais plus */
 
   /* ─── TYPOGRAPHIE ────────────────────────────────────────────────── */
-  --font-display: "Cinzel Decorative", Georgia, serif;   /* logo uniquement */
-  --font-ui:      "DotGothic16", "Courier New", monospace;
+  --font-display: "IM Fell English SC", Georgia, serif;  /* noms, menus, bandeaux */
+  --font-text:    "IM Fell English", Georgia, serif;     /* chiffres, dialogues */
+  --font-logo:    "Cinzel Decorative", Georgia, serif;   /* logo de l'écran titre */
+  --font-ui:      "DotGothic16", "Courier New", monospace; /* reste de l'écran titre */
 
   --text-xs:   13px;  /* en-têtes de colonnes, aides, « Retour » */
   --text-sm:   15px;  /* titres de fenêtres, descriptions */
@@ -75,8 +147,11 @@
 
 /* ─── STYLES DE BASE ─────────────────────────────────────────────────── */
 
+/* Couleurs d'origine de l'écran titre, sous l'image de fond et sur son texte discret */
+#intro-screen { --text-dim: #9a7d55; }
+
 body {
-  background-color: var(--bg-void);
+  background-color: #0d0a07;
   color: var(--text-light);
   font-family: var(--font-ui);
   font-size: var(--text-base);

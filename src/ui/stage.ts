@@ -59,7 +59,7 @@ function createSprite(c: Combatant, [x, y]: [number, number]) {
   const canvas = c.side === "enemy" ? { w: c.canvasWidth, h: c.canvasHeight } : HERO_CANVAS;
   sprite.style.setProperty("--canvas-w", String(canvas.w));
   sprite.style.setProperty("--canvas-h", String(canvas.h));
-  sprite.innerHTML = `<div class="sprite-body"><img class="sprite-img" src="${c.image}" alt="${c.name}">${embersHtml(c)}</div>`;
+  sprite.innerHTML = `<div class="sprite-body"><img class="sprite-img" src="${c.image}" alt="${c.name}">${embersHtml(c)}</div>${overlayHtml(c)}`;
   sprite.addEventListener("click", () => Menu.clickTarget(c));
   if (c.side === "hero") {
     // Un héros déjà éteint quand la scène est construite est posé à terre, sans rejouer sa chute
@@ -99,8 +99,38 @@ export function embersHtml(c: Combatant) {
   }).join("");
 }
 
+// Ce qui se pose au-dessus d'un combattant, dans les deux scènes (maquette D2, MAE-87) : son nom et la marque ▼, montrés
+// quand c'est son tour ; pour un ennemi ordinaire, son nom et sa petite barre de vie, tenue à jour par updateBattleUI
+export function overlayHtml(c: Combatant) {
+  const mark = `<span class="turn-mark" aria-hidden="true"><span>${c.name}</span><span class="turn-mark-arrow">▼</span></span>`;
+  if (c.side === "hero") return mark;
+  if (c.boss) return "";
+  return `<div class="od-foe"><span class="od-foe-name">${c.name}</span><span class="od-bar" role="img"><i class="od-trail"></i><i class="od-fill"></i></span></div>`;
+}
+
+// Un pixel de sprite fait un nombre entier de pixels réels, avec la même règle que la scène peinte (framing.ts) :
+// --scene-px, en pixels CSS, vaut donc k / devicePixelRatio
+function syncPixelScale() {
+  const ratio = window.devicePixelRatio || 1;
+  const k = Math.max(1, Math.round((window.innerHeight * ratio) / CONFIG.scene.screenHeightInSpritePixels));
+  $("#battle-scene").style.setProperty("--scene-px", String(k / ratio));
+}
+
+// Chaque sprite commence sur un pixel réel : sinon le pixel art afficherait des rangées irrégulières
+function snapSprites() {
+  const ratio = window.devicePixelRatio || 1;
+  for (const sprite of document.querySelectorAll<HTMLElement>(".sprite")) {
+    sprite.style.translate = "";
+    const { left, top } = sprite.getBoundingClientRect();
+    sprite.style.translate = `${Math.round(left * ratio) / ratio - left}px ${Math.round(top * ratio) / ratio - top}px`;
+  }
+}
+
 // La scène DOM : les sprites dans #hero-area et #enemy-area, animés par les classes de style.css
 export function createDomStage(): Stage {
+  syncPixelScale();
+  window.addEventListener("resize", () => { syncPixelScale(); snapSprites(); });
+
   return {
     async showIdle(party) {
       $("#enemy-area").replaceChildren();
@@ -116,8 +146,8 @@ export function createDomStage(): Stage {
       document.querySelectorAll<HTMLElement>(".sprite.enemy").forEach(el => pulse(el, "appear", CONFIG.timing.appear));
     },
 
-    // Les classes d'état sont posées par updateBattleUI (view.ts) sur chaque [data-sprite] : rien de plus ici
-    refresh() {},
+    // Les classes d'état sont posées par updateBattleUI (view.ts) sur chaque [data-sprite] : reste à recaler les sprites
+    refresh: snapSprites,
 
     anchor: spriteEl,
 
