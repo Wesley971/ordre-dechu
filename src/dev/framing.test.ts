@@ -50,6 +50,25 @@ describe("dégagement de la bande et des plaques (MAE-87)", () => {
     expect(left).toBeGreaterThanOrEqual(384 - 0.5);
   });
 
+  // La bande suit la hauteur de l'écran : --band-height, plus 8 px de marge (--scene-clear-bottom, style.css)
+  it.each([
+    [3440, 1267, 1, 312.08],
+    [1920, 1080, 1, 267.2],
+    [1600, 900, 1, 224],
+    [1536, 864, 1.25, 215.36],
+    [1280, 720, 1, 184],
+  ])("en %i × %i à %d, les pieds restent au-dessus de la bande, sans changer la taille des sprites", (cssWidth, cssHeight, ratio, clearCss) => {
+    const screen = { cssWidth, cssHeight, ratio };
+    const deviceHeight = cssHeight * ratio;
+    const area = { top: 0, height: deviceHeight, clearBottom: clearCss * ratio, clearLeft: 384 * ratio };
+    const framing = computeFraming(screen, decor, placed, area);
+    expect(framing.spritePixel).toBe(computeFraming(screen, decor, placed).spritePixel);
+    for (const actor of placed) {
+      const feet = ((1 - framing.rowToNdc(actor.row ?? 0)) / 2) * deviceHeight;
+      expect(feet).toBeLessThanOrEqual(deviceHeight - clearCss * ratio + 0.5);
+    }
+  });
+
   it("ne bouge rien quand il y a déjà la place", () => {
     const big = { cssWidth: 3440, cssHeight: 1600, ratio: 1 };
     const moved = computeFraming(big, decor, placed, { top: 0, height: 1600, clearBottom: 184, clearLeft: 384 });

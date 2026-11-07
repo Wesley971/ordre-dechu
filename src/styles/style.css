@@ -150,10 +150,17 @@ body.lock-scroll { overflow: hidden; }
 
 /* ─── SCÈNE DE COMBAT ──────────────────────────────────────────────── */
 
+/* Propriété déclarée : le navigateur la calcule en pixels, et la scène peinte peut la lire quelle que soit la taille de l'écran */
+@property --scene-clear-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 #battle-scene {
   --scene-tint: transparent;
   /* Place à laisser libre de personnages (lue par la scène peinte) : au-dessus de la bande, à droite des plaques de sous-menu */
-  --scene-clear-bottom: 184px; /* --band-height et une marge ; une valeur simple, que le code peut lire */
+  --scene-clear-bottom: calc(var(--band-height) + var(--space-2));
   --scene-clear-left: var(--plate-width);
   position: absolute;
   inset: 0;
@@ -901,6 +908,8 @@ body.scene-painted #battle-scene { pointer-events: none; }
   color: var(--text-parchment);
 }
 
+#dialog .menu-item { font-size: var(--band-choice); }
+
 #action-window .menu-item.selected,
 #dialog .menu-item.selected                 { color: var(--gold-bright); }
 #action-window .menu-item.disabled          { color: var(--text-dim); }
@@ -1006,8 +1015,8 @@ body.in-game #sound-btn {
 
 /* ─── DIALOGUES ────────────────────────────────────────────────────── */
 
-/* La bande d'ombre en bas de l'écran, de hauteur fixe (planches G5 à G7, tous les dialogues ; fragments et choix : MAE-51) :
-   titre et choix restent en place, seul le texte défile */
+/* La bande d'ombre en bas de l'écran, dont la hauteur suit celle de l'écran et non le texte (planches G5 à G7, tous les dialogues ;
+   fragments et choix : MAE-51) : titre et choix restent en place, seul le texte défile */
 #dialog {
   position: fixed;
   right: 0;
@@ -1017,10 +1026,10 @@ body.in-game #sound-btn {
   display: flex;
   flex-direction: column;
   height: var(--band-height);
-  padding: 18px 120px 12px;
+  padding: clamp(14px, 1.9vh, 24px) 120px clamp(10px, 1.3vh, 16px);
   background: linear-gradient(0deg, rgba(1, 12, 16, 0.96) 0%, rgba(1, 12, 16, 0.9) 85%, rgba(1, 12, 16, 0.6) 100%);
   font-family: var(--font-text);
-  font-size: 19px;
+  font-size: var(--band-text);
   line-height: 1.5;
   text-shadow: var(--text-ink);
   cursor: var(--cursor-pointer);
@@ -1063,7 +1072,7 @@ body.in-game #sound-btn {
   flex: none;
   margin-bottom: 2px;
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: var(--band-text);
   letter-spacing: 0;
   color: var(--gold-title);
 }
@@ -1145,7 +1154,7 @@ body.defeat-choice .title-option {
   width: auto;
   padding: 2px 0 2px calc(var(--rose-bud) + var(--space-2));
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: var(--band-choice);
   line-height: 1.25;
   color: var(--text-parchment);
 }
@@ -1215,6 +1224,8 @@ body.defeat-choice .title-option.selected::before {
     --party-height: 124px;
     --panel-height: 272px;
     --band-height:  var(--panel-height);
+    --band-text:    19px;
+    --band-choice:  20px;
     --foe-width:    80px;
   }
 

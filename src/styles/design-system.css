@@ -79,7 +79,11 @@
   --rose-boss:  20px;
 
   /* ─── MESURES DE L'INTERFACE ─────────────────────────────────────── */
-  --band-height:     176px; /* bande de dialogue : un titre et 4 lignes */
+  /* Bande de dialogue : un quart de la hauteur de l'écran, et son texte qui grandit un peu avec elle (20 px en 720 de haut, 24 px en 1267).
+     Le plancher garde un titre et 4 lignes ; le téléphone a ses propres valeurs (style.css). */
+  --band-height:     clamp(176px, 24vh, 320px);
+  --band-text:       clamp(20px, calc(14.5px + 0.75vh), 24px);
+  --band-choice:     var(--band-text);
   --plate-width:     384px; /* sous-menu et ciblage, avec une marge : les sprites restent à sa droite */
   --hud-width:       240px;
   --boss-width:      560px;
