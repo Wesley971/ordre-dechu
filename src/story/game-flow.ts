@@ -16,10 +16,11 @@ export interface GameOptions {
   startChapter: number | null; // index du chapitre de départ, sans prologue
   power: PowerState | null;    // pouvoir du Cœur déjà choisi au départ
   winBattles: boolean;         // chaque combat est gagné d'office
+  loseBattles: boolean;        // chaque combat est perdu d'office
 }
 
 let view: GameView = noView();
-let options: GameOptions = { startChapter: null, power: null, winBattles: false };
+let options: GameOptions = { startChapter: null, power: null, winBattles: false, loseBattles: false };
 
 // Point d'entrée : la partie commence à l'écran titre
 export function startGame(gameView: GameView, gameOptions: GameOptions) {
@@ -101,7 +102,7 @@ async function playChapters() {
 
     await view.tell({ title: chapter.title, pages: chapter.story });
     view.music(chapter.battleMusic ?? "battle");
-    const result = await runBattle(view, chapter, { winBattles: options.winBattles });
+    const result = await runBattle(view, chapter, { winBattles: options.winBattles, loseBattles: options.loseBattles });
 
     if (result === "defeat") return gameOver();
     const spareable = Battle.enemies.find(enemy => enemy.spareable);
