@@ -2,7 +2,6 @@
 // bas avec un fondu, et l'on peut remonter pour relire la scène en cours. #dialog-text ne contient que la page en cours.
 // L'effet lettre par lettre et le journal de toute l'histoire sont à MAE-51.
 
-import { CONFIG } from "../config.ts";
 import type { PageObject } from "../data/game-data.ts";
 import type { Question, Telling } from "../game-view.ts";
 import { Input } from "../input/input.ts";
@@ -38,14 +37,14 @@ function revealPage() {
 }
 
 interface DialogWindow {
-  onConfirm: (() => void) | null; // réaction à « Valider » : finir le fondu, lire la suite ou passer à la page suivante
+  onConfirm: (() => void) | null; // réaction à « Valider » : lire la suite de la page, ou passer à la suivante
   wire(): void;
   reset(): void;
   open(title: string): void;
   close(): void;
   show(telling: Telling, options?: { hold?: boolean }): Promise<void>;
   choose<T extends string>(question: Question<T>): Promise<T>;
-  type(html: string): Promise<void>;
+  type(html: string): void;
   readRest(): Promise<void>;
   waitForNext(): Promise<void>;
 }
@@ -104,7 +103,7 @@ export const Dialog: DialogWindow = {
       const { html, sfx, levelUps = [] }: PageObject = typeof page === "string" ? { html: page } : page;
       if (sfx) Sfx.play(sfx);
       setLevelUps(levelUps);
-      await this.type(html);
+      this.type(html);
       await this.readRest();
       await this.waitForNext();
     }
@@ -116,7 +115,7 @@ export const Dialog: DialogWindow = {
   // Pose une question ; options : [{ id, label }] · renvoie l'id de l'option choisie
   async choose({ title = "", text, options }) {
     this.open(title);
-    await this.type(text);
+    this.type(text);
 
     const list = $("#dialog-choices");
     const items = options.map(option => {
@@ -135,7 +134,8 @@ export const Dialog: DialogWindow = {
     return options[index].id;
   },
 
-  // La page précédente rejoint l'historique, la nouvelle apparaît en fondu ; « Valider » finit le fondu
+  // La page précédente rejoint l'historique, la nouvelle apparaît avec un fondu. Le fondu n'est qu'un effet visuel :
+  // la page est là tout de suite, sans minuterie, pour qu'un appui ne puisse pas tomber entre deux états et sauter une page
   type(html) {
     const text = $("#dialog-text");
     if (text.innerHTML) {
@@ -151,17 +151,6 @@ export const Dialog: DialogWindow = {
     $("#dialog-next").hidden = true;
     $("#dialog-more").hidden = true;
     revealPage();
-
-    return new Promise(resolve => {
-      const finish = () => {
-        clearTimeout(timer);
-        text.classList.remove("appearing");
-        this.onConfirm = null;
-        resolve();
-      };
-      const timer = setTimeout(finish, reducedMotion() ? 0 : CONFIG.timing.dialogFade);
-      this.onConfirm = finish;
-    });
   },
 
   // Une page plus haute que la bande se lit par étapes : « Valider » la fait défiler, sans changer de page,
