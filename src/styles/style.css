@@ -870,7 +870,8 @@ body.scene-painted #battle-scene { pointer-events: none; }
   .turn-mark,
   .sprite.targeted::before,
   .actor-anchor.targeted::before { animation: none; }
-  .od-bar > i { transition: none; }
+  .od-bar > .od-trail,
+  .od-bar > .od-fill { transition: none; }
   .appear > .od-foe { animation: none; }
 }
 
