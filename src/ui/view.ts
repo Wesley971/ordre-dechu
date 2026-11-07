@@ -275,6 +275,8 @@ export function popupText(effect: Effect) {
     case "miss": return "Raté";
     case "none": return "Sans effet";
     case "mp":   return effect.amount + " PS";
+    case "heal":
+    case "revive": return "+" + effect.amount; // planche G3 : un soin porte toujours le « + »
     default:     return String(effect.amount);
   }
 }
@@ -287,6 +289,8 @@ export function spawnPopup(anchor: HTMLElement, text: string, className: string)
   const popup = document.createElement("span");
   popup.className = "popup " + className;
   popup.textContent = text;
+  // Planche G3 : une faiblesse se dit toujours aussi par le mot, au-dessus du chiffre
+  if (popup.classList.contains("weak")) popup.insertAdjacentHTML("afterbegin", `<span class="popup-word">Faiblesse</span>`);
   anchor.appendChild(popup);
   setTimeout(() => popup.remove(), CONFIG.timing.popup);
 }
