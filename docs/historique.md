@@ -1,6 +1,6 @@
 # Chronique de L'Ordre Déchu
 
-Comment mon jeu est né, et ce qu'il est devenu. Première ligne de code le 12 avril 2025, dernière mise à jour de cette page le 6 novembre 2026.
+Comment mon jeu est né, et ce qu'il est devenu. Première ligne de code le 12 avril 2025, dernière mise à jour de cette page le 7 novembre 2026.
 
 Les captures viennent de l'historique Git : je suis revenu à chaque étape, j'ai lancé le jeu, j'ai pris la photo. Elles sont dans `docs/historique/`. Le jeu est jouable ici : https://wesley971.github.io/ordre-dechu/
 
@@ -178,6 +178,7 @@ Chaque fusion (PR) de `main` ajoute une ligne en bas de la période en cours. Le
 - 4 novembre : moteur de la scène peinte en 2,5D, pas encore branché sur le jeu, à voir en mode test avec `?scene=lisiere` (#37).
 - 5 novembre : décor peint de la Lisière terminé, avec brume sur le relief, sprites qui restent sur le sol quand la caméra bouge et côtés sans doublon, toujours à voir en mode test (#38). Logique du jeu séparée de l'affichage derrière une interface unique, combat jouable sous Node sans navigateur, toile des héros déclarée une seule fois, rien ne change pour les joueurs (#39). Tests Vitest des dégâts, des critiques et de la jauge ATB, lancés par `npm test`, et README remis à jour (#40).
 - 6 novembre : lint, types, tests, combats sans navigateur et build vérifiés à chaque pull request et avant chaque publication, Node 26 fixé dans `.nvmrc`, rien ne change pour les joueurs (#41). Vérification obligatoire avant toute fusion sur `main` (#43). Le chapitre I se joue dans la scène peinte en 2,5D, l'interface restant par-dessus, avec repli sur l'affichage DOM sans WebGL (#44).
+- 7 novembre : nouvelle interface du combat d'après les maquettes : plaques d'ombre au lieu des fenêtres brunes, polices du jeu hébergées avec lui, marque ▼ au-dessus du héros qui joue, barre du boss, victoire et défaite dans une bande d'ombre en bas, téléphone en portrait avec le groupe en haut et le menu en bas, et zone de jeu 16:9 sur les écrans très larges (#45).
 
 ---
 
