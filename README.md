@@ -125,12 +125,12 @@ Le code a d'abord été refactorisé en 5 chantiers (extraction de fonctions, é
 
 Tout le jeu (écran titre, combat, dialogues) repose sur un seul Design System, défini dans `src/styles/design-system.css` :
 
-* **Polices** : [Cinzel Decorative](https://fonts.google.com/specimen/Cinzel+Decorative) pour le logo uniquement, [DotGothic16](https://fonts.google.com/specimen/DotGothic16) pour tout le reste
-* **Palette** : noirs profonds, ors vieillis et texte parchemin ; des couleurs d'état réservées au combat (PV, PS, soins, faiblesses, héros éteint)
-* **Une seule fenêtre** : `.window` (fond sombre dégradé, liseré or, coins à 2 px) sert pour l'écran titre, la scène, les menus, les dialogues et le bouton son
-* **Un seul curseur** : la main dorée `images/hand.svg` désigne l'option ou la cible choisie, partout
+* **Polices**, hébergées dans `public/fonts/` : IM Fell English et IM Fell English SC pour le combat et les dialogues ; Cinzel Decorative et DotGothic16 pour l'écran titre
+* **Palette** : nuit bleue, ors vieillis et texte parchemin ; des couleurs d'état réservées au combat (PV, PS, soins, faiblesses, héros éteint)
+* **Pas de fenêtre en combat** : le texte se pose sur le décor, protégé par une plaque d'ombre (`.hud-plate`) ou une bande d'ombre (`#dialog`). Seul l'écran titre garde sa fenêtre `.window`
+* **Marques** : un bouton de rose devant l'option choisie, une marque ▼ sur le héros qui a la main et sur la cible ; la main dorée `images/hand.svg` reste à l'écran titre
 * **Tokens CSS** : couleurs, typographie, espacements, curseurs de souris exposés comme variables `--var`
-* **Composants** : `.window`, `.window-title`, `.menu` / `.menu-item`, `.sprite` (et `.actor-anchor`, son équivalent posé sur la scène peinte), `.party-row`, `.popup`
+* **Composants** : `.hud-plate`, `.od-hero`, `.od-foe`, `.od-boss`, `.od-bar`, `.menu` / `.menu-item`, `.sprite` (et `.actor-anchor`, son équivalent posé sur la scène peinte), `.popup`
 
 ## 🎯 Objectif pédagogique
 

@@ -11,7 +11,8 @@ RPG au tour par tour (combat ATB) en TypeScript strict, modules ES, build Vite, 
 
 ## Méthode
 Règle de Wesley du 03/11/2026, pour tous les tickets :
-- Avant la fusion, ce sont les tests automatiques de Claude (bot, comparaisons mot pour mot, débordements) qui vérifient. Wesley valide sur le rapport de Claude et l'avis de claude.ai ; il ne joue plus lui-même avant chaque fusion.
+- Avant la fusion, ce sont les tests automatiques de Claude (bot, comparaisons mot pour mot, débordements) qui vérifient les règles du combat. Wesley valide sur le rapport de Claude et l'avis de claude.ai ; il ne joue plus lui-même pour tester ces règles.
+- Le jugement visuel reste à Wesley : un changement qui se voit (interface, images, scène) est regardé à l'œil par Wesley une fois avant la fusion, sur son PC et son iPhone 11 si le ticket le demande (précision du 07/11/2026, MAE-87).
 - Après la mise en ligne, des testeurs humains jouent sur le site, à vitesse normale. Un problème qu'ils trouvent devient un nouveau ticket.
 - Un ticket passe en Done après la fusion, le déploiement et le contrôle en ligne de Claude, comme avant.
 
@@ -63,7 +64,11 @@ http://localhost:5173/ordre-dechu/?chapitre=4&vitesse=4
 
 Les tests sont dans `src/dev/*.test.ts`, sous Node, sans DOM : hasard par `vi.spyOn` sur `Math.random` (`src/dev/test-helpers.ts`), combat par la vue muette.
 
-Scène peinte en combat (MAE-29) : un chapitre qui déclare un décor (`decor` dans `CHAPTERS`, le chapitre I aujourd'hui) se joue dans la scène peinte en 2,5D ; les autres gardent le rendu DOM. Three.js et le décor se chargent au début de ce chapitre (`GameView.showChapter` est asynchrone), et si WebGL manque ou si le chargement échoue, le jeu se replie sur le DOM pour la partie. La scène couvre tout l'écran derrière l'interface DOM (menus, jauges, HUD, dialogue), la peinture est cadrée dans le rectangle de `#battle-scene`, au-dessus des fenêtres du bas. Sur chaque combattant, une ancre DOM (`.actor-anchor[data-sprite]`) suit le sprite : chiffres, effets, main de ciblage, bouclier et toucher de ciblage passent par elle. La partie « scène » de l'affichage est le contrat `Stage` (`src/ui/stage.ts`), avec deux versions : DOM (`stage.ts`) et peinte (`src/scene/battle-stage.ts`) ; `dom-view.ts` choisit par chapitre et joue les sons au même rang pour les deux. L'interface sera redessinée pour la scène dans MAE-50 ; les vraies animations et les effets des capacités viendront avec MAE-30 et MAE-31.
+Scène peinte en combat (MAE-29) : un chapitre qui déclare un décor (`decor` dans `CHAPTERS`, le chapitre I aujourd'hui) se joue dans la scène peinte en 2,5D ; les autres gardent le rendu DOM. Three.js et le décor se chargent au début de ce chapitre (`GameView.showChapter` est asynchrone), et si WebGL manque ou si le chargement échoue, le jeu se replie sur le DOM pour la partie. La scène couvre tout l'écran derrière l'interface DOM, et la peinture est cadrée dans le rectangle de `#battle-scene`, lui aussi en plein écran. Sur chaque combattant, une ancre DOM (`.actor-anchor[data-sprite]`) suit le sprite : chiffres, effets, marques ▼, barre de vie, bouclier et toucher de ciblage passent par elle. La partie « scène » de l'affichage est le contrat `Stage` (`src/ui/stage.ts`), avec deux versions : DOM (`stage.ts`) et peinte (`src/scene/battle-stage.ts`) ; `dom-view.ts` choisit par chapitre et joue les sons au même rang pour les deux. Les vraies animations et les effets des capacités viendront avec MAE-30 et MAE-31.
+
+Interface du combat (MAE-87), d'après les planches D2 et G1 à G7 : le groupe en haut à gauche et le menu en bas à gauche, sur des plaques d'ombre (`.hud-plate`), une marque ▼ qui suit le sprite (`overlayHtml`, `src/ui/stage.ts`), la barre du boss en bas au centre, et tous les dialogues dans une bande d'ombre en bas (le dessin des fragments de mémoire et des choix reste à MAE-51). Dans les deux scènes, un pixel de sprite fait un nombre entier de pixels réels. L'écran titre garde son ancien style et ses polices jusqu'à MAE-42 et MAE-49. Le téléphone n'a pas encore sa mise en page, en attente d'une maquette.
+
+Polices : toutes hébergées dans `public/fonts/`, avec leur licence dans `public/licenses/`, aucune chargée depuis Internet (`src/styles/design-system.css`).
 
 Vérification automatique (MAE-23) : `.github/workflows/ci.yml` lance lint, types, tests, `check:battle` (graine 2026) et build à chaque push et à chaque pull request ; `deploy.yml` lance les mêmes contrôles avant le build, et une erreur bloque la publication.
 
