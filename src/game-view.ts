@@ -63,7 +63,7 @@ export interface GameView {
   tell(telling: Telling): Promise<void>;
   ask<T extends string>(question: Question<T>): Promise<T>;
   refresh(): void;                                      // PV, PS, états changés hors animation
-  celebrate(party: Hero[]): void;                       // pose de victoire et fanfare
+  celebrate(party: Hero[], title: string): void;        // pose de victoire, fanfare et annonce (« Victoire ! », « Alliance »)
   showDefeat(telling: Telling): Promise<void>;          // la scène s'éteint, puis les pages de la défaite
   animateSpare(enemy: Enemy): Promise<void>;            // un ennemi à terre se relève, apaisé
   animateFinishingBlow(hero: Hero, enemy: Enemy): Promise<void>;

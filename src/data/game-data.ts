@@ -12,6 +12,7 @@ import type { DecorId } from "./decors.ts";
 export interface PageObject {
   html: string;
   sfx?: SoundName;
+  levelUps?: { heroId: string; level: number }[]; // héros mis en avant dans le groupe pendant cette page
 }
 export type Page = string | PageObject;
 

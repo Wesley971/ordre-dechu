@@ -3,7 +3,7 @@
 // Tout passe par la vue reçue dans startGame (GameView, src/game-view.ts) : aucun DOM, aucun son ici.
 
 import {
-  CHAPTERS, ENEMIES, PROLOGUE, POWER_CHOICE, DRAGON_FATE, ENDINGS, GAME_OVER, GameState, endingOf, isValidCheckpoint,
+  CHAPTERS, ELEMENT_NAMES, ENEMIES, PROLOGUE, POWER_CHOICE, DRAGON_FATE, ENDINGS, GAME_OVER, GameState, endingOf, isValidCheckpoint,
 } from "../data/game-data.ts";
 import type { FateId, Page, PowerChoiceId, PowerState } from "../data/game-data.ts";
 import { SaveGame } from "../data/save-game.ts";
@@ -191,7 +191,7 @@ function standUpParty() {
 }
 
 async function celebrateVictory(title = "Victoire !") {
-  view.celebrate(GameState.party);
+  view.celebrate(GameState.party, title);
   const rewards = grantRewards(Battle.enemies);
   view.refresh();
   const pages = formatRewards(rewards);
@@ -209,8 +209,15 @@ function formatRewards({ xp, gil, drops, levelUps }: Rewards) {
   if (levelUps.length) {
     const lines = levelUps.map(({ hero, level, learned }) =>
       `<strong>${hero.name}</strong> passe au niveau ${level} !` +
-      learned.map(spell => `<br>${hero.name} apprend <strong>${spell.name}</strong> !<br>${spell.desc}`).join(""));
-    pages.push({ html: lines.join("<br>"), sfx: "levelUp" });
+      learned.map(spell => {
+        // Élément et coût après le nom, puis l'aide de la capacité (planche G6)
+        const facts = [spell.element && ELEMENT_NAMES[spell.element], `${spell.mp} PS`].filter(Boolean).join(" · ");
+        return `<br>${hero.name} apprend <strong>${spell.name}</strong> <span class="page-detail">· ${facts}</span><br><em>${spell.desc}</em>`;
+      }).join(""));
+    pages.push({
+      html: lines.join("<br>"), sfx: "levelUp",
+      levelUps: levelUps.map(({ hero, level }) => ({ heroId: hero.id, level })),
+    });
   }
   return pages;
 }

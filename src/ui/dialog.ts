@@ -6,7 +6,7 @@ import type { Question, Telling } from "../game-view.ts";
 import { Input } from "../input/input.ts";
 import { Sfx } from "../audio/sfx.ts";
 import { pickOption } from "./pick-option.ts";
-import { $ } from "./view.ts";
+import { $, setLevelUps } from "./view.ts";
 // Une page est une chaîne HTML, ou { html, sfx } pour jouer un son à l'ouverture de la page
 
 interface DialogWindow {
@@ -40,11 +40,13 @@ export const Dialog: DialogWindow = {
   async show({ title = "", pages }) {
     this.open(title);
     for (const page of pages) {
-      const { html, sfx }: PageObject = typeof page === "string" ? { html: page } : page;
+      const { html, sfx, levelUps = [] }: PageObject = typeof page === "string" ? { html: page } : page;
       if (sfx) Sfx.play(sfx);
+      setLevelUps(levelUps);
       await this.type(html);
       await this.waitForNext();
     }
+    setLevelUps([]);
     this.close();
   },
 

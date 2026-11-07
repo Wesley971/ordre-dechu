@@ -95,6 +95,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     },
 
     async showChapter(chapter, party) {
+      hideBanner();
       setSceneTint(chapter);
       stage = await selectStage(chapter);
       await stage.showIdle(party, chapter);
@@ -107,13 +108,17 @@ export function createDomView(options: DomViewOptions = {}): GameView {
       else Music.play(id);
     },
 
-    tell: (telling) => Dialog.show(telling),
+    async tell(telling) {
+      await Dialog.show(telling);
+      hideBanner(); // l'annonce de la victoire reste le temps des récompenses
+    },
     ask: (question) => Dialog.choose(question),
     refresh: updateBattleUI,
 
-    celebrate(party) {
+    celebrate(party, title) {
       Sfx.play("victory");
       stage.victory(party);
+      showBanner(title, "result");
     },
 
     async showDefeat(telling) {

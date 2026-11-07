@@ -89,9 +89,19 @@ export function setBossPanel(boss: Enemy | null) {
 let battleRunning = false;
 export function setBattleRunning(running: boolean) { battleRunning = running; }
 
-// À droite du nom : « tombé », « prêt », ou la jauge en pourcentage
+// Héros mis en avant pendant la page de dialogue qui annonce leur nouveau niveau (planche G6)
+let levelUps: { heroId: string; level: number }[] = [];
+export function setLevelUps(list: { heroId: string; level: number }[]) {
+  if (list.length === 0 && levelUps.length === 0) return;
+  levelUps = list;
+  updateBattleUI();
+}
+
+// À droite du nom : « niveau N », « tombé », « prêt », ou la jauge en pourcentage
 function turnLabel(hero: Hero) {
   const accord = HEROES.find(def => def.id === hero.id)?.feminine ? "e" : "";
+  const levelUp = levelUps.find(entry => entry.heroId === hero.id);
+  if (levelUp) return `niveau ${levelUp.level}`;
   if (!isAlive(hero)) return "tombé" + accord;
   if (!battleRunning) return "";
   return hero.state === "ready" ? "prêt" + accord : `${Math.round(hero.atb)} %`;
@@ -126,6 +136,7 @@ export function updateBattleUI() {
     // relevé : sa prochaine extinction rejouera la chute
     if (sprite && !flags.ko) sprite.classList.remove("fallen");
     if (row) {
+      row.classList.toggle("leveled", levelUps.some(entry => entry.heroId === hero.id));
       setBar($(".od-bar", row), (hero.hp / hero.maxHp) * 100, flags.ko ? `${hero.name} est à terre` : `${hero.hp} PV sur ${hero.maxHp}`);
       $(".od-mp-line > i", row).style.width = (hero.mp / hero.maxMp) * 100 + "%";
       $(".od-hp b", row).textContent = String(hero.hp);
@@ -250,9 +261,12 @@ export function renderMenu(menu: MenuController) {
 
 // — Bandeau —
 
-export function showBanner(text: string) {
+// « result » : annonce de fin de combat, plus bas, au-dessus de la bande de dialogue (planches G5 et G7)
+export function showBanner(text: string, kind: "result" | "danger" | "" = "") {
   const banner = $("#battle-banner");
   banner.innerHTML = text;
+  banner.classList.toggle("result", kind !== "");
+  banner.classList.toggle("danger", kind === "danger");
   banner.hidden = false;
 }
 

@@ -201,6 +201,9 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
   transform: translateX(-50%);
 }
 
+#battle-banner.result { top: 23%; }
+#battle-banner.danger { color: var(--state-ko); }
+
 #battle-banner::before,
 #battle-banner::after {
   content: "";
@@ -690,7 +693,9 @@ body.scene-painted #battle-scene { pointer-events: none; }
 
 .od-hero.ready .od-turn,
 .od-hero.active .od-hero-name,
-.od-hero.active .od-turn { color: var(--gold-bright); }
+.od-hero.active .od-turn,
+.od-hero.leveled .od-hero-name,
+.od-hero.leveled .od-turn { color: var(--gold-bright); }
 
 .od-hero.critical .od-hp b { color: var(--gold-bright); }
 
@@ -700,9 +705,11 @@ body.scene-painted #battle-scene { pointer-events: none; }
 .od-hero.ko .od-bar { background: transparent; box-shadow: inset 0 0 0 1px var(--state-ko); }
 .od-hero.ko .od-mp-line { visibility: hidden; }
 
-/* Le tour du héros : le voile doré sur sa ligne */
-.od-hero.active { background: linear-gradient(90deg, rgba(240, 201, 90, 0.16) 0%, rgba(240, 201, 90, 0.06) 70%, rgba(240, 201, 90, 0) 100%); }
-.od-hero.active::after {
+/* Le tour du héros, ou son nouveau niveau : le voile doré sur sa ligne */
+.od-hero.active,
+.od-hero.leveled { background: linear-gradient(90deg, rgba(240, 201, 90, 0.16) 0%, rgba(240, 201, 90, 0.06) 70%, rgba(240, 201, 90, 0) 100%); }
+.od-hero.active::after,
+.od-hero.leveled::after {
   content: "";
   position: absolute;
   left: 0;
@@ -877,7 +884,8 @@ body.scene-painted #battle-scene { pointer-events: none; }
 
 #action-window .menu { display: grid; }
 
-#action-window .menu-item {
+#action-window .menu-item,
+#dialog .menu-item {
   gap: var(--space-6);
   padding: 2px 0 2px calc(var(--rose-bud) + var(--space-2));
   font-family: var(--font-display);
@@ -886,7 +894,8 @@ body.scene-painted #battle-scene { pointer-events: none; }
   color: var(--text-parchment);
 }
 
-#action-window .menu-item.selected          { color: var(--gold-bright); }
+#action-window .menu-item.selected,
+#dialog .menu-item.selected                 { color: var(--gold-bright); }
 #action-window .menu-item.disabled          { color: var(--text-dim); }
 
 /* Sous-menus et ciblage (planches G1 et G2) : l'élément entre le nom et le coût */
@@ -938,7 +947,8 @@ body.scene-painted #battle-scene { pointer-events: none; }
 }
 
 /* Bouton de rose devant l'option choisie, à la place de la main */
-#action-window .menu-item.selected::before {
+#action-window .menu-item.selected::before,
+#dialog .menu-item.selected::before {
   left: 0;
   width: var(--rose-bud);
   height: var(--rose-bud);
@@ -988,32 +998,56 @@ body.in-game #sound-btn {
 
 /* ─── DIALOGUES ────────────────────────────────────────────────────── */
 
+/* La bande d'ombre en bas de l'écran (planches G5 à G7, tous les dialogues ; fragments et choix : MAE-51) */
 #dialog {
   position: fixed;
-  top: var(--space-4);
-  left: 50%;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 20;
-  transform: translateX(-50%);
-  width: min(720px, calc(100% - 2 * var(--space-4)));
-  min-height: 120px;
-  padding: var(--space-3) var(--space-6) var(--space-6);
-  line-height: 1.75;
+  padding: 48px 120px 32px;
+  background: linear-gradient(0deg, rgba(1, 12, 16, 0.94) 0%, rgba(1, 12, 16, 0.86) 70%, rgba(1, 12, 16, 0) 100%);
+  font-family: var(--font-text);
+  font-size: 20px;
+  line-height: 1.6;
+  text-shadow: var(--text-ink);
   cursor: var(--cursor-pointer);
 }
 
-#dialog .window-title { margin-bottom: var(--space-1); }
-#dialog-choices        { margin-top: var(--space-2); }
+#dialog::before {
+  content: "";
+  position: absolute;
+  top: 28px;
+  right: 8%;
+  left: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--gold-aged) 15%, var(--gold-aged) 85%, transparent 100%);
+}
+
+#dialog .window-title {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0;
+  color: var(--gold-title);
+}
+
+#dialog-text            { max-width: 40em; }
+#dialog em              { font-style: italic; color: var(--text-parchment); }
+#dialog .page-detail    { color: var(--text-dim); }
+#dialog-choices         { margin-top: var(--space-3); }
 
 #dialog-next {
   position: absolute;
-  right: var(--space-4);
-  bottom: var(--space-1);
-  font-size: var(--text-sm);
-  animation: next-bob 0.6s steps(2) infinite;
+  right: var(--space-8);
+  bottom: var(--space-4);
+  font-size: 18px;
+  color: var(--gold-title);
+  animation: next-pulse 1.2s ease-in-out infinite;
 }
 
-@keyframes next-bob {
-  100% { translate: 0 3px; }
+@keyframes next-pulse {
+  50% { opacity: 0.35; }
 }
 
 /* « Mouvement réduit » : la flèche reste fixe (MAE-58) */
