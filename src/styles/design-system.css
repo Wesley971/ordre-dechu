@@ -79,6 +79,7 @@
   --rose-boss:  20px;
 
   /* ─── MESURES DE L'INTERFACE ─────────────────────────────────────── */
+  --band-height:     176px; /* bande de dialogue : un titre et 4 lignes */
   --hud-width:       240px;
   --boss-width:      560px;
   --foe-width:       120px;

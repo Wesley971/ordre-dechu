@@ -999,26 +999,53 @@ body.in-game #sound-btn {
 
 /* ─── DIALOGUES ────────────────────────────────────────────────────── */
 
-/* La bande d'ombre en bas de l'écran (planches G5 à G7, tous les dialogues ; fragments et choix : MAE-51) */
+/* La bande d'ombre en bas de l'écran, de hauteur fixe (planches G5 à G7, tous les dialogues ; fragments et choix : MAE-51) :
+   titre et choix restent en place, seul le texte défile */
 #dialog {
   position: fixed;
   right: 0;
   bottom: 0;
   left: 0;
   z-index: 20;
-  padding: 48px 120px 32px;
-  background: linear-gradient(0deg, rgba(1, 12, 16, 0.94) 0%, rgba(1, 12, 16, 0.86) 70%, rgba(1, 12, 16, 0) 100%);
+  display: flex;
+  flex-direction: column;
+  height: var(--band-height);
+  padding: 18px 120px 12px;
+  background: linear-gradient(0deg, rgba(1, 12, 16, 0.96) 0%, rgba(1, 12, 16, 0.9) 85%, rgba(1, 12, 16, 0.6) 100%);
   font-family: var(--font-text);
-  font-size: 20px;
-  line-height: 1.6;
+  font-size: 19px;
+  line-height: 1.5;
   text-shadow: var(--text-ink);
   cursor: var(--cursor-pointer);
+}
+
+/* Les anciennes pages montent et s'effacent en haut de la bande */
+#dialog-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  touch-action: pan-y;
+}
+#dialog-scroll::-webkit-scrollbar { display: none; }
+#dialog-scroll.scrolled {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 24px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 24px);
+}
+
+.dialog-past { margin-bottom: var(--space-1); }
+
+#dialog-text.appearing { animation: page-appear 0.35s ease-out; }
+
+@keyframes page-appear {
+  from { opacity: 0; }
 }
 
 #dialog::before {
   content: "";
   position: absolute;
-  top: 28px;
+  top: 8px;
   right: 8%;
   left: 8%;
   height: 1px;
@@ -1026,22 +1053,33 @@ body.in-game #sound-btn {
 }
 
 #dialog .window-title {
-  margin-bottom: var(--space-2);
+  flex: none;
+  margin-bottom: 2px;
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 19px;
   letter-spacing: 0;
   color: var(--gold-title);
 }
 
-#dialog-text            { max-width: 40em; }
+#dialog-text,
+.dialog-past            { max-width: 64em; }
 #dialog em              { font-style: italic; color: var(--text-parchment); }
 #dialog .page-detail    { color: var(--text-dim); }
-#dialog-choices         { margin-top: var(--space-3); }
 
+/* Les choix, toujours visibles sous le texte */
+#dialog-choices {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-8);
+  margin-top: var(--space-1);
+}
+
+#dialog-more,
 #dialog-next {
   position: absolute;
   right: var(--space-8);
-  bottom: var(--space-4);
+  bottom: var(--space-3);
   font-size: 18px;
   color: var(--gold-title);
   animation: next-pulse 1.2s ease-in-out infinite;
@@ -1051,9 +1089,11 @@ body.in-game #sound-btn {
   50% { opacity: 0.35; }
 }
 
-/* « Mouvement réduit » : la flèche reste fixe (MAE-58) */
+/* « Mouvement réduit » : la flèche reste fixe, le texte apparaît sans animation (MAE-58) */
 @media (prefers-reduced-motion: reduce) {
-  #dialog-next { animation: none; }
+  #dialog-more,
+  #dialog-next,
+  #dialog-text.appearing { animation: none; }
 }
 
 .speaker { color: var(--gold-title); }
@@ -1066,11 +1106,11 @@ body.game-over .od-foe,
 body.game-over .turn-mark,
 body.game-over #boss-panel { display: none; }
 
-body.defeat-choice #dialog { padding-bottom: 88px; }
+body.defeat-choice #dialog { padding-bottom: 44px; }
 
 body.defeat-choice #intro-screen {
   position: fixed;
-  bottom: var(--space-8);
+  bottom: var(--space-2);
   left: 120px;
   z-index: 21;
   display: block;

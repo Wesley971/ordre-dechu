@@ -10,7 +10,6 @@ import { ATTACK, GameState, type Chapter } from "../data/game-data.ts";
 import { DECORS, type DecorId } from "../data/decors.ts";
 import type { GameView } from "../game-view.ts";
 import type { Hero } from "../party/heroes.ts";
-import { Input } from "../input/input.ts";
 import { Sfx } from "../audio/sfx.ts";
 import { Music } from "../audio/music.ts";
 import { Dialog } from "./dialog.ts";
@@ -111,6 +110,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     },
 
     async showChapter(chapter, party) {
+      Dialog.reset();
       hideBanner();
       setSceneTint(chapter);
       stage = await selectStage(chapter);
@@ -186,6 +186,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     },
 
     async startBattle(state) {
+      Dialog.reset(); // la bande garde la scène en cours : le combat en commence une autre
       await stage.showIdle(state.heroes, state.chapter ?? GameState.currentChapter);
       renderHud(state.heroes);
       stage.showBattle(state);
@@ -257,10 +258,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
 }
 
 function wirePage() {
-  // Un clic dans la fenêtre de dialogue vaut « Valider », sauf pendant un choix (il faut cliquer une option)
-  $("#dialog").addEventListener("click", () => {
-    if ($("#dialog-choices").hidden && !document.body.classList.contains("defeat-choice")) Input.emit("confirm");
-  });
+  Dialog.wire();
   $("#target-hint").addEventListener("click", () => Menu.back());
 
   const soundButton = $("#sound-btn");

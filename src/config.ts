@@ -84,7 +84,7 @@ export const CONFIG = {
 
   // Durées en millisecondes. Celles marquées (CSS) doivent suivre l'animation du même nom dans style.css
   timing: {
-    typewriter:    22,   // délai entre deux lettres des dialogues
+    dialogFade:    350,  // fondu d'une page de dialogue qui apparaît
     message:       1000, // bandeau d'annonce (nom de la capacité, repli...)
     introMessage:  900,  // « Des ennemis surgissent ! »
     escapeMessage: 500,  // « Le groupe se replie ! »
