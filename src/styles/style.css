@@ -167,7 +167,7 @@ body.lock-scroll { overflow: hidden; }
   --scene-tint: transparent;
   /* Place à laisser libre de personnages (lue par la scène peinte) : au-dessus de la bande, à droite des plaques de sous-menu */
   --scene-clear-bottom: calc(var(--band-height) + var(--space-2));
-  --scene-clear-left: var(--plate-width);
+  --scene-clear-left: calc(var(--zone-left) + var(--plate-width));
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -188,8 +188,8 @@ body.game-over #battle-scene { filter: grayscale(0.85) brightness(0.6); }
   position: absolute;
   top: 18%;
   bottom: max(26%, calc(var(--band-height) + var(--space-2)));
-  left: max(var(--plate-width), calc(50% - 640px));
-  width: min(calc(100% - var(--plate-width) - var(--space-6)), 1280px);
+  left: max(calc(var(--zone-left) + var(--plate-width)), calc(50% - 640px));
+  width: min(calc(var(--zone-width) - var(--plate-width) - var(--space-6)), 1280px);
 }
 
 #hero-area  { position: absolute; left: 0;  top: 0; bottom: 0; width: 40%; }
@@ -632,7 +632,7 @@ body.scene-painted #battle-scene { pointer-events: none; }
 /* Plaque d'ombre bleu-nuit, avec un filet doré en haut et en bas : pas de fenêtre à cadre */
 .hud-plate {
   position: absolute;
-  left: 0;
+  left: var(--zone-left);
   background: linear-gradient(90deg, rgba(1, 12, 16, 0.88) 0%, rgba(1, 12, 16, 0.8) 70%, rgba(1, 12, 16, 0.55) 100%);
   pointer-events: auto;
 }
@@ -1032,7 +1032,7 @@ body.in-game #sound-btn {
   display: flex;
   flex-direction: column;
   height: var(--band-height);
-  padding: clamp(14px, 1.9vh, 24px) 120px clamp(10px, 1.3vh, 16px);
+  padding: clamp(14px, 1.9vh, 24px) calc(var(--zone-left) + 120px) clamp(10px, 1.3vh, 16px); /* l'ombre sur toute la largeur, le texte dans la zone */
   background: linear-gradient(0deg, rgba(1, 12, 16, 0.96) 0%, rgba(1, 12, 16, 0.9) 85%, rgba(1, 12, 16, 0.6) 100%);
   font-family: var(--font-text);
   font-size: var(--band-text);
@@ -1100,7 +1100,7 @@ body.in-game #sound-btn {
 #dialog-more,
 #dialog-next {
   position: absolute;
-  right: var(--space-8);
+  right: calc(var(--zone-left) + var(--space-8));
   bottom: var(--space-3);
   font-size: 18px;
   color: var(--gold-title);
@@ -1133,7 +1133,7 @@ body.defeat-choice #dialog { padding-bottom: 44px; }
 body.defeat-choice #intro-screen {
   position: fixed;
   bottom: var(--space-2);
-  left: 120px;
+  left: calc(var(--zone-left) + 120px);
   z-index: 21;
   display: block;
   width: auto;
@@ -1233,6 +1233,8 @@ body.defeat-choice .title-option.selected::before {
     --band-text:    19px;
     --band-choice:  20px;
     --hud-text:     20px;
+    --zone-width:   100vw;
+    --zone-left:    0px;
     --foe-width:    80px;
   }
 

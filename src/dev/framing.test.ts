@@ -75,6 +75,23 @@ describe("dégagement de la bande et des plaques (MAE-87)", () => {
     }
   });
 
+  // Zone de jeu 16:9, centrée : la plaque commence à son bord gauche, et les combattants restent dedans sans toucher à la caméra
+  it.each([
+    [3440, 1267, 460],
+    [3440, 1440, 460],
+    [2560, 1080, 434],
+  ])("en %i × %i, les sprites restent dans la zone centrale, à droite des plaques", (cssWidth, cssHeight, plate) => {
+    const zone = (cssHeight * 16) / 9;
+    const zoneLeft = (cssWidth - zone) / 2;
+    const framing = computeFraming({ cssWidth, cssHeight, ratio: 1 }, decor, placed, { top: 0, height: cssHeight, clearBottom: 0.24 * cssHeight + 8, clearLeft: zoneLeft + plate });
+    for (const actor of placed) {
+      const half = (actor.spriteWidth / 2) * framing.spritePixel;
+      const center = ((1 + framing.colToNdc(actor.col)) / 2) * cssWidth;
+      expect(center - half).toBeGreaterThanOrEqual(zoneLeft + plate - 0.5);
+      expect(center + half).toBeLessThanOrEqual(zoneLeft + zone);
+    }
+  });
+
   it("ne bouge rien quand il y a déjà la place", () => {
     const big = { cssWidth: 3440, cssHeight: 1600, ratio: 1 };
     const moved = computeFraming(big, decor, placed, { top: 0, height: 1600, clearBottom: 184, clearLeft: 384 });

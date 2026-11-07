@@ -84,6 +84,11 @@
   --band-height:     clamp(176px, 24vh, 320px);
   --band-text:       clamp(20px, calc(14.5px + 0.75vh), 24px);
   --band-choice:     var(--band-text);
+  /* Zone de jeu : un cadre central au format 16:9 où se place l'interface, la peinture remplissant tout l'écran autour.
+     Sur un écran 16:9 ou moins large, c'est tout l'écran. */
+  --zone-width:      min(100vw, calc(100vh * 16 / 9));
+  --zone-left:       calc((100vw - var(--zone-width)) / 2);
+
   /* Les plaques grandissent comme la bande à partir de 720 de haut (24 px et 288, 460 px de large en 1267), sauf sur un écran
      plus étroit que le 16:9 : leur place y manquerait. Le téléphone a ses propres valeurs (style.css). */
   --hud-unit:        min(1vh, 0.5625vw);
