@@ -49,9 +49,8 @@ body.lock-scroll { overflow: hidden; }
   color: var(--gold-title);
 }
 
-/* Curseur en forme de main */
-.menu-item.selected::before,
-.targeted::before {
+/* Curseur en forme de main, à l'écran titre (ailleurs : le bouton de rose) */
+.menu-item.selected::before {
   content: "";
   position: absolute;
   z-index: 6;
@@ -66,14 +65,9 @@ body.lock-scroll { overflow: hidden; }
   100% { translate: 3px 0; }
 }
 
-@keyframes hand-blink {
-  50% { opacity: 0; }
-}
-
-/* « Mouvement réduit » : la main reste fixe (MAE-58 ; mains des héros et cible « tous » : section Sprites) */
+/* « Mouvement réduit » : la main reste fixe (MAE-58) */
 @media (prefers-reduced-motion: reduce) {
-  .menu-item.selected::before,
-  .targeted::before { animation: none; }
+  .menu-item.selected::before { animation: none; }
 }
 
 /* ─── ÉCRAN TITRE ──────────────────────────────────────────────────── */
@@ -239,10 +233,7 @@ body.scene-painted #battle-scene { background: none; }
 body.scene-painted #game,
 body.scene-painted #battle-scene { pointer-events: none; }
 
-/* Main de ciblage, bouclier de Garde, trace du coup et braises : comme sur un sprite DOM */
-.actor-anchor.targeted::before      { left: -30px; top: 50%; margin-top: -8px; }
-.actor-anchor.hero.targeted::before { left: auto; right: -30px; scale: -1 1; animation-name: hand-bob-left; }
-.actor-anchor.targeted.all::before  { animation: hand-blink 0.3s steps(1) infinite; }
+/* Bouclier de Garde, trace du coup et braises : comme sur un sprite DOM */
 .actor-anchor.hero .fx-slash        { scale: -1 1; }
 .actor-anchor.hero.ko .ember        { display: none; }
 
@@ -258,8 +249,6 @@ body.scene-painted #battle-scene { pointer-events: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .actor-anchor.hero.targeted::before,
-  .actor-anchor.targeted.all::before { animation: none; }
   #painted-stage.quake { animation: none; }
 }
 
@@ -317,15 +306,6 @@ body.scene-painted #battle-scene { pointer-events: none; }
 .sprite:nth-child(2) .sprite-img { animation-delay: -0.9s; }
 .sprite:nth-child(3) .sprite-img { animation-delay: -1.8s; }
 
-.sprite.targeted::before     { left: -30px; top: 50%; margin-top: -8px; }
-/* Sur un héros, la main se place à sa droite, tournée vers lui : à gauche, elle sortirait de la scène */
-.sprite.hero.targeted::before { left: auto; right: -30px; scale: -1 1; animation-name: hand-bob-left; }
-.sprite.targeted.all::before { animation: hand-blink 0.3s steps(1) infinite; }
-
-@keyframes hand-bob-left {
-  100% { translate: -3px 0; }
-}
-
 @keyframes float {
   50% { transform: translateY(-4px); }
 }
@@ -335,12 +315,9 @@ body.scene-painted #battle-scene { pointer-events: none; }
   75% { transform: translateX(5px); }
 }
 
-/* « Mouvement réduit » : le héros passe d'un coup à sa place (pas en avant), la main de ciblage reste fixe,
-   y compris sur un héros et sur la cible « tous » (MAE-58) */
+/* « Mouvement réduit » : le héros passe d'un coup à sa place (pas en avant) (MAE-58) */
 @media (prefers-reduced-motion: reduce) {
   .sprite-body { transition: none; }
-  .sprite.hero.targeted::before,
-  .sprite.targeted.all::before { animation: none; }
 }
 
 /* Héros et ennemis en pixel art : pixels nets, sans flottement */
@@ -732,6 +709,37 @@ body.scene-painted #battle-scene { pointer-events: none; }
   50% { translate: 0 4px; }
 }
 
+/* La marque ▼ sur la cible : au-dessus de la barre d'un ennemi, au-dessus du nom d'un héros qui a la main ;
+   elle clignote quand toute une équipe est visée (planche G2) */
+.sprite.targeted::before,
+.actor-anchor.targeted::before {
+  content: "▼";
+  position: absolute;
+  bottom: calc(100% + var(--space-1));
+  left: 50%;
+  z-index: 6;
+  font-family: var(--font-text);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--gold-bright);
+  text-shadow: var(--text-ink);
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: mark-bob 1.2s ease-in-out infinite;
+}
+.sprite.enemy.targeted::before,
+.actor-anchor.enemy.targeted::before { bottom: calc(100% + 34px); }
+.sprite.hero.active.targeted::before,
+.actor-anchor.hero.active.targeted::before { bottom: calc(100% + 52px); }
+.sprite.targeted.all::before,
+.actor-anchor.targeted.all::before { animation: mark-blink 0.6s steps(1) infinite; }
+
+@keyframes mark-blink {
+  50% { opacity: 0; }
+}
+
+.od-hero.targeted .od-hero-name { color: var(--gold-bright); }
+
 /* Petite barre de vie au-dessus d'un ennemi ordinaire */
 .od-foe {
   position: absolute;
@@ -766,13 +774,15 @@ body.scene-painted #battle-scene { pointer-events: none; }
 
 /* « Mouvement réduit » : la marque reste fixe, les barres changent d'un coup (MAE-58) */
 @media (prefers-reduced-motion: reduce) {
-  .turn-mark { animation: none; }
+  .turn-mark,
+  .sprite.targeted::before,
+  .actor-anchor.targeted::before { animation: none; }
   .od-bar > i { transition: none; }
   .appear > .od-foe { animation: none; }
 }
 
 /* Le menu */
-#command-window .window-title {
+#action-window .window-title {
   font-family: var(--font-display);
   font-size: 18px;
   letter-spacing: 0.04em;
@@ -792,6 +802,54 @@ body.scene-painted #battle-scene { pointer-events: none; }
 
 #action-window .menu-item.selected          { color: var(--gold-bright); }
 #action-window .menu-item.disabled          { color: var(--text-dim); }
+
+/* Sous-menus et ciblage (planches G1 et G2) : l'élément entre le nom et le coût */
+#action-window .menu-item .menu-element { margin-right: auto; margin-left: calc(var(--space-2) - var(--space-6)); }
+.menu-element {
+  font-family: var(--font-text);
+  font-size: 18px;
+  color: var(--text-dim);
+}
+#action-window .detail {
+  font-family: var(--font-text);
+  font-size: 18px;
+  color: var(--text-dim);
+}
+
+#action-window .menu-back {
+  display: block;
+  padding-left: calc(var(--rose-bud) + var(--space-2));
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  cursor: var(--cursor-pointer);
+}
+#action-window .menu-back:hover { color: var(--gold-bright); }
+
+#list-window,
+#target-hint { width: 280px; }
+
+#target-hint {
+  display: grid;
+  gap: 6px;
+  cursor: var(--cursor-pointer);
+}
+#target-hint .menu-back { padding-left: 0; }
+
+.target-name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--text-light);
+}
+.target-name .menu-element { margin-left: var(--space-2); }
+
+.target-desc {
+  margin-top: 6px;
+  font-size: 20px;
+  line-height: 1.4;
+  color: var(--text-parchment);
+}
 
 /* Bouton de rose devant l'option choisie, à la place de la main */
 #action-window .menu-item.selected::before {
@@ -813,25 +871,6 @@ body.in-game #sound-btn {
   background: var(--hud-shade);
   box-shadow: none;
 }
-
-#target-hint {
-  position: absolute;
-  right: var(--space-3);
-  bottom: var(--space-2);
-  font-size: var(--text-xs);
-  text-align: right;
-  color: var(--text-dim);
-  cursor: var(--cursor-pointer);
-}
-
-#target-hint span { color: var(--text-light); }
-
-/* Nom et aide de la capacité ou de l'objet en cours de ciblage (MAE-74, à reprendre en maquette : MAE-15) */
-#target-help {
-  margin-bottom: var(--space-1);
-  color: var(--text-parchment);
-}
-#target-help strong { font-weight: normal; color: var(--gold-title); }
 
 /* Menus (écran titre et combat) */
 .menu {
@@ -857,43 +896,9 @@ body.in-game #sound-btn {
 .menu-item .detail          { color: var(--text-dim); }
 .menu.inactive .menu-item.selected::before { animation: none; opacity: 0.55; }
 
-.menu-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: var(--space-8);
-}
-
-.menu-back {
-  margin-top: var(--space-1);
-  font-size: var(--text-xs);
-  color: var(--text-dim);
-  cursor: var(--cursor-pointer);
-}
-
-.menu-back:hover, #target-hint:hover span { color: var(--gold-bright); }
-
 /* Liste des souffles / objets : prend la place des commandes sur la plaque */
-#list-window {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
+#list-window { display: grid; gap: 2px; }
 #list-window:not([hidden]) ~ #command-window { display: none; }
-
-#list-window .window-title {
-  display: flex;
-  justify-content: space-between;
-}
-
-#list-window .window-title span { color: var(--state-mp); }
-
-.list-help {
-  margin-top: auto;
-  padding-top: var(--space-2);
-  border-top: 1px solid rgba(139, 105, 20, 0.45);
-  font-size: var(--text-sm);
-  color: var(--text-parchment);
-}
 
 /* ─── DIALOGUES ────────────────────────────────────────────────────── */
 
@@ -979,11 +984,9 @@ body.in-game #sound-btn {
 
 /* ─── RESPONSIVE ───────────────────────────────────────────────────── */
 
-/* Même seuil que listColumns() dans ui.js */
 @media (max-width: 640px) {
   .logo h1 { font-size: 44px; }
 
-  .menu-grid   { grid-template-columns: 1fr; }
 
   .sprite.hero,
   .sprite.enemy      { --px: 1; }

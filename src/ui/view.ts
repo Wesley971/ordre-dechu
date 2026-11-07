@@ -4,7 +4,7 @@
 // en 2,5D (MAE-29). Ce fichier ne joue aucun son : les sons sont dans dom-view.ts, les menus et le dialogue.
 
 import { CONFIG } from "../config.ts";
-import { GameState, HEROES } from "../data/game-data.ts";
+import { ELEMENT_NAMES, GameState, HEROES } from "../data/game-data.ts";
 import type { Ability, Chapter } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import type { SoundName } from "../audio/sfx.ts";
@@ -147,18 +147,14 @@ export function updateAtbUI(heroes: Hero[]) {
 
 // — Menus —
 
-// Même seuil que le @media de style.css
-export function listColumns() {
-  return window.matchMedia("(max-width: 640px)").matches ? 1 : 2;
-}
-
 function menuList(level: CommandLevel | ListLevel, depth: number, active: boolean) {
   const ul = document.createElement("ul");
-  ul.className = "menu" + (active ? "" : " inactive") + (level.type === "list" ? " menu-grid" : "");
+  ul.className = "menu" + (active ? "" : " inactive");
   level.entries.forEach((entry, i) => {
     const li = document.createElement("li");
     li.className = "menu-item" + (entry.disabled ? " disabled" : "") + (i === level.cursor ? " selected" : "");
-    li.innerHTML = `<span>${entry.label}</span>${entry.detail ? `<span class="detail">${entry.detail}</span>` : ""}`;
+    const element = entry.element ? `<span class="menu-element">· ${entry.element}</span>` : "";
+    li.innerHTML = `<span>${entry.label}</span>${element}${entry.detail ? `<span class="detail">${entry.detail}</span>` : ""}`;
     li.addEventListener("click", () => Menu.clickEntry(depth, i));
     li.addEventListener("mouseenter", () => Menu.hoverEntry(depth, i));
     ul.appendChild(li);
@@ -169,7 +165,7 @@ function menuList(level: CommandLevel | ListLevel, depth: number, active: boolea
 function backLink() {
   const back = document.createElement("div");
   back.className = "menu-back";
-  back.textContent = "◀ Retour";
+  back.textContent = "◀\uFE0E Retour"; // \uFE0E : le triangle en texte, pas en emoji sur iPhone
   back.addEventListener("click", () => Menu.back());
   return back;
 }
@@ -181,10 +177,6 @@ export function updateMenuCursor(menu: MenuController, depth: number) {
   if (level.type === "target") return;
   const container = level.type === "list" ? $("#list-window") : $("#command-window");
   container.querySelectorAll(".menu-item").forEach((li, i) => li.classList.toggle("selected", i === level.cursor));
-  if (level.type === "list") {
-    const entry = level.entries[level.cursor];
-    $(".list-help", container).innerHTML = (entry && entry.help) || "&nbsp;";
-  }
 }
 
 export function renderMenu(menu: MenuController) {
@@ -207,12 +199,10 @@ export function renderMenu(menu: MenuController) {
   commandWindow.appendChild(menuList(root, 0, top === root));
 
   if (top.type === "list") {
-    const entry = top.entries[top.cursor];
-    const title = top.kind === "spell" ? `${hero.command} <span>PS ${hero.mp}/${hero.maxMp}</span>` : "Besace";
+    const title = top.kind === "spell" ? hero.command : "Besace";
     listWindow.replaceChildren();
-    listWindow.insertAdjacentHTML("beforeend", `<div class="window-title">${title}</div>`);
+    listWindow.insertAdjacentHTML("beforeend", `<div class="window-title">${hero.name} · ${title}</div>`);
     listWindow.appendChild(menuList(top, menu.stack.length - 1, true));
-    listWindow.insertAdjacentHTML("beforeend", `<div class="list-help">${(entry && entry.help) || "&nbsp;"}</div>`);
     listWindow.appendChild(backLink());
     listWindow.hidden = false;
   }
@@ -226,8 +216,16 @@ export function renderMenu(menu: MenuController) {
       }
     }
     commandWindow.hidden = true;
-    // Nom et aide de la capacité ou de l'objet choisi : au toucher, la liste se ferme aussitôt (MAE-74)
-    const help = top.ability.desc ? `<strong>${top.ability.name}</strong> · ${top.ability.desc}` : "";
+    // Nom, élément, coût et aide de la capacité ou de l'objet choisi : au toucher, la liste se ferme aussitôt (MAE-74, planche G2)
+    const { ability } = top;
+    $("#target-title").textContent = `${hero.name} · Choisir une cible`;
+    const facts = [
+      "element" in ability && ability.element ? ELEMENT_NAMES[ability.element] : "",
+      "mp" in ability && ability.mp ? `${ability.mp} PS` : "",
+    ].filter(Boolean).map(fact => ` · ${fact}`).join("");
+    const help = ability.desc
+      ? `<div class="target-name">${ability.name}<span class="menu-element">${facts}</span></div><div class="target-desc">${ability.desc}</div>`
+      : "";
     $("#target-help").innerHTML = help;
     $("#target-help").hidden = !help;
     $("#target-hint").hidden = false;
