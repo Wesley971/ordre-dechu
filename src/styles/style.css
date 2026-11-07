@@ -165,7 +165,7 @@ body.lock-scroll { overflow: hidden; }
 
 #battle-scene.quake { animation: shake 0.4s ease; }
 
-body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
+body.game-over #battle-scene { filter: grayscale(0.85) brightness(0.6); }
 
 /* Chapitres sans décor peint : les combattants jouent à droite du groupe, entre les plaques du haut et du bas */
 #battle-arena {
@@ -227,7 +227,7 @@ body.game-over #battle-scene { filter: grayscale(1) brightness(0.35); }
 #painted-stage.ready { opacity: 1; }
 #painted-stage.quake { animation: shake 0.4s ease; }
 
-body.game-over #painted-stage { filter: grayscale(1) brightness(0.35); }
+body.game-over #painted-stage { filter: grayscale(0.85) brightness(0.6); }
 
 /* Les ancres suivent les sprites ; le calque lui-même laisse passer les clics vers la page */
 #actor-layer {
@@ -1059,6 +1059,61 @@ body.in-game #sound-btn {
 
 /* Fragment de mémoire révélé par le blason de Maelor */
 .memory { color: var(--gold-title); }
+
+/* Défaite (planche G7) : décor en gris, plus de marque ni de barre d'ennemi ; les options de l'écran titre se posent dans la bande */
+body.game-over .od-foe,
+body.game-over .turn-mark,
+body.game-over #boss-panel { display: none; }
+
+body.defeat-choice #dialog { padding-bottom: 88px; }
+
+body.defeat-choice #intro-screen {
+  position: fixed;
+  bottom: var(--space-8);
+  left: 120px;
+  z-index: 21;
+  display: block;
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  text-align: left;
+  text-shadow: var(--text-ink);
+}
+
+body.defeat-choice .logo,
+body.defeat-choice .intro-keys { display: none; }
+
+body.defeat-choice .title-menu {
+  flex-direction: row;
+  gap: var(--space-8);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+body.defeat-choice .title-option {
+  width: auto;
+  padding: 2px 0 2px calc(var(--rose-bud) + var(--space-2));
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.25;
+  color: var(--text-parchment);
+}
+
+body.defeat-choice .title-option.selected { color: var(--gold-bright); }
+
+body.defeat-choice .title-option.selected::before {
+  left: 0;
+  width: var(--rose-bud);
+  height: var(--rose-bud);
+  margin-top: calc(var(--rose-bud) / -2);
+  background: var(--od-rose) center / contain no-repeat;
+  filter: drop-shadow(0 0 1px var(--gold-bright));
+  image-rendering: auto;
+  animation: none;
+}
 
 /* ─── DIVERS ───────────────────────────────────────────────────────── */
 

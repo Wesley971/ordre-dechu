@@ -70,6 +70,13 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     return domStage;
   }
 
+  // Retour à l'écran titre : la mémoire graphique est rendue entre deux parties
+  function leaveBattleScreen() {
+    releasePainted();
+    stage = domStage;
+    showScreen("intro");
+  }
+
   // Interface au repos : lignes du groupe, menu fermé
   function renderHud(party: Hero[]) {
     setBossPanel(null);
@@ -81,14 +88,23 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     // — Écrans et histoire —
 
     async showTitle({ startLabel, canRetry, canContinue }) {
-      releasePainted(); // la mémoire graphique est rendue entre deux parties
-      stage = domStage;
-      showScreen("intro");
+      // Après une défaite, les choix se posent dans la bande, sur la scène éteinte (planche G7) :
+      // l'écran de jeu reste affiché, et la scène n'est libérée qu'une fois le choix fait
+      const defeat = canRetry;
+      document.body.classList.toggle("defeat-choice", defeat);
+      if (defeat) $("#intro-screen").hidden = false;
+      else leaveBattleScreen();
       $("#start-btn").textContent = startLabel;
       $("#retry-btn").hidden = !canRetry;
       $("#continue-btn").hidden = !canContinue;
       const buttons = [...document.querySelectorAll<HTMLElement>(".title-option")].filter(button => !button.hidden);
       const chosen = buttons[await pickOption(buttons)];
+      if (defeat) {
+        document.body.classList.remove("defeat-choice", "game-over");
+        $("#dialog").hidden = true;
+        hideBanner();
+        leaveBattleScreen();
+      }
       if (chosen.id === "retry-btn") return "retry";
       if (chosen.id === "continue-btn") return "continue";
       return "start";
@@ -124,8 +140,9 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     async showDefeat(telling) {
       Sfx.play("gameOver");
       document.body.classList.add("game-over");
-      await Dialog.show(telling);
-      document.body.classList.remove("game-over");
+      // Le mot « Défaite » est dans le bandeau, pas répété dans la bande (planche G7) ; game-over reste jusqu'au choix (showTitle)
+      showBanner(telling.title ?? "", "danger");
+      await Dialog.show({ pages: telling.pages }, { hold: true });
     },
 
     // Épargner : il se relève, apaisé
@@ -242,7 +259,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
 function wirePage() {
   // Un clic dans la fenêtre de dialogue vaut « Valider », sauf pendant un choix (il faut cliquer une option)
   $("#dialog").addEventListener("click", () => {
-    if ($("#dialog-choices").hidden) Input.emit("confirm");
+    if ($("#dialog-choices").hidden && !document.body.classList.contains("defeat-choice")) Input.emit("confirm");
   });
   $("#target-hint").addEventListener("click", () => Menu.back());
 

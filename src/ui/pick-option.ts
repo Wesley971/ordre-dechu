@@ -3,7 +3,7 @@
 import { Input } from "../input/input.ts";
 import { Sfx } from "../audio/sfx.ts";
 
-// Options verticales avec le curseur main : flèches, Valider, survol ou clic.
+// Options en colonne ou en ligne, avec leur curseur : flèches, Valider, survol ou clic.
 // preselect: false → aucune option désignée au départ, il faut d'abord bouger la main.
 // Renvoie une promesse résolue avec l'index de l'option choisie.
 export function pickOption(items: HTMLElement[], { preselect = true }: { preselect?: boolean } = {}) {
@@ -29,8 +29,8 @@ export function pickOption(items: HTMLElement[], { preselect = true }: { presele
     });
 
     Input.push(action => {
-      if (action === "up" || action === "down") {
-        const delta = action === "up" ? -1 : 1;
+      if (action === "up" || action === "down" || action === "left" || action === "right") {
+        const delta = action === "up" || action === "left" ? -1 : 1;
         cursor = cursor < 0 ? (delta < 0 ? items.length - 1 : 0) : (cursor + delta + items.length) % items.length;
         Sfx.play("cursor");
         highlight();

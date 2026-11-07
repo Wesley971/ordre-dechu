@@ -647,7 +647,7 @@ export function endingOf(power: PowerState | null, dragonSpared: boolean | null)
 }
 
 export const GAME_OVER: Page[] = [
-  "Le Val Ténébreux referme ses brumes sur le groupe.<br><br>" +
+  "<em>Le Val Ténébreux referme ses brumes sur le groupe.</em><br><br>" +
   "L'Ordre Déchu retombe dans l'oubli... pour cette fois.",
 ];
 

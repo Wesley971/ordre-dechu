@@ -13,7 +13,7 @@ interface DialogWindow {
   onConfirm: (() => void) | null; // réaction à « Valider » : finir d'écrire la page, ou passer à la suivante
   open(title: string): void;
   close(): void;
-  show(telling: Telling): Promise<void>;
+  show(telling: Telling, options?: { hold?: boolean }): Promise<void>;
   choose<T extends string>(question: Question<T>): Promise<T>;
   type(html: string): Promise<void>;
   waitForNext(): Promise<void>;
@@ -37,7 +37,8 @@ export const Dialog: DialogWindow = {
     $("#dialog").hidden = true;
   },
 
-  async show({ title = "", pages }) {
+  // hold : le texte reste à l'écran une fois validé (défaite : les choix s'affichent dessous, planche G7)
+  async show({ title = "", pages }, { hold = false } = {}) {
     this.open(title);
     for (const page of pages) {
       const { html, sfx, levelUps = [] }: PageObject = typeof page === "string" ? { html: page } : page;
@@ -48,6 +49,7 @@ export const Dialog: DialogWindow = {
     }
     setLevelUps([]);
     this.close();
+    $("#dialog").hidden = !hold;
   },
 
   // Pose une question ; options : [{ id, label }] · renvoie l'id de l'option choisie
