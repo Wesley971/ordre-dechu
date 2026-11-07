@@ -14,7 +14,8 @@ Chaque image, police, musique ou son du jeu est listé ici, avec son origine et 
 | `public/images/backdrops/lisiere/` (12 images) | Générée avec Gemini (Google), retravaillée ; côtés tirés de `background.png` (ChatGPT, OpenAI) | Autorisé par les conditions de Google et d'OpenAI |
 | Three.js (bibliothèque, chargée pour la scène peinte) | Three.js authors | Autorisé par la licence MIT |
 | `public/images/hand.svg`, `shield.svg` | Créés pour le jeu | Oui, propriété du projet |
-| Polices Cinzel Decorative et DotGothic16 (Google Fonts) | Tiers | Autorisé par la SIL Open Font License 1.1 |
+| `public/images/ui/rose.svg`, `vine.svg` | Générés avec Claude (Anthropic) pour le Design System du jeu | Voir « Créé pour le jeu » |
+| `public/fonts/` : IM Fell English, IM Fell English SC, Cinzel Decorative, DotGothic16 | Tiers | Autorisé par la SIL Open Font License 1.1 |
 | `public/audio/*.mp3` (9 musiques) | Otto Halmén, HitCtrl, Matthew Pablo, Yubatake, Tausdei, Kevin MacLeod | Autorisé par les licences CC-BY 3.0 et CC BY 4.0 |
 | Sons | Synthétisés par le code | Oui, propriété du projet |
 
@@ -121,14 +122,22 @@ Générés par Wesley avec ChatGPT en 2025, ajoutés au dépôt le 03/05/2025 (c
 
 Ces deux images sont écrites à la main en SVG, pixel par pixel (un rectangle d'un pixel par point), dans les tons sombres et dorés de l'interface (`#1a0f06`, `#f1e4c3`, `#c9a84c`, `#8b6914`). Preuve : elles apparaissent dans le dépôt avec le commit `d43075b` du 24/09/2026 (« add ATB battle system with unified dark-gold UI », un seul curseur en forme de main), sans source externe.
 
+**Ornements générés avec Claude (Anthropic).** `public/images/ui/rose.svg` (rose noire) et `public/images/ui/vine.svg` (tige épineuse) viennent du Design System du jeu (MAE-84) : ce sont des tracés SVG générés avec Claude à la demande de Wesley, et non un travail fait à la main. Leurs métadonnées C2PA ont été retirées pour alléger les fichiers (MAE-87), les tracés sont inchangés.
+
 ## Polices
 
-| Police | Usage | Source |
-|---|---|---|
-| [Cinzel Decorative](https://fonts.google.com/specimen/Cinzel+Decorative) | Logo | Google Fonts, SIL Open Font License 1.1 |
-| [DotGothic16](https://fonts.google.com/specimen/DotGothic16) | Tout le reste | Google Fonts, SIL Open Font License 1.1 |
+Toutes hébergées dans le jeu (`public/fonts/`, MAE-87) : aucune n'est chargée depuis Internet.
 
-Licence confirmée par les fichiers `OFL.txt` du dépôt officiel `google/fonts` (`ofl/cinzeldecorative` et `ofl/dotgothic16`). La SIL Open Font License autorise l'usage commercial ; seule la vente de la police seule est interdite. Les polices sont chargées depuis Google Fonts (`src/styles/design-system.css`).
+| Police | Usage | Fichier | Licence jointe |
+|---|---|---|---|
+| [IM Fell English](https://github.com/google/fonts/tree/main/ofl/imfellenglish), romain et italique | Combat et dialogues : chiffres, textes | `im-fell-english-regular.woff2`, `im-fell-english-italic.woff2` | `public/licenses/im-fell-english-ofl.txt` |
+| [IM Fell English SC](https://github.com/google/fonts/tree/main/ofl/imfellenglishsc) | Combat et dialogues : noms, menus, bandeaux | `im-fell-english-sc-regular.woff2` | `public/licenses/im-fell-english-ofl.txt` |
+| [Cinzel Decorative](https://github.com/google/fonts/tree/main/ofl/cinzeldecorative), Black | Logo de l'écran titre | `cinzel-decorative-black.ttf` | `public/licenses/cinzel-decorative-ofl.txt` |
+| [DotGothic16](https://github.com/google/fonts/tree/main/ofl/dotgothic16) | Reste de l'écran titre, bouton du son | `dotgothic16-regular.woff2` | `public/licenses/dotgothic16-ofl.txt` |
+
+Fichiers téléchargés le 07/11/2026 depuis le dépôt officiel `google/fonts`, dont les fichiers `OFL.txt` confirment la SIL Open Font License 1.1 (IM Fell : `Copyright (c) 2010, Igino Marini` ; Cinzel Decorative : `Copyright (c) 2012 Natanael Gama`, nom réservé « Cinzel » ; DotGothic16 : `Copyright 2020 The DotGothic16 Project Authors`). Cette licence autorise l'usage commercial ; seule la vente de la police seule est interdite.
+
+Changements : IM Fell English, IM Fell English SC et DotGothic16 sont converties en WOFF2 et réduites à l'alphabet latin, à la ponctuation et aux symboles (DotGothic16 passe de 2 Mo à 20 Ko). Aucune de ces trois polices n'a de nom réservé. Cinzel Decorative a un nom réservé : son fichier officiel est gardé tel quel, sans conversion.
 
 ## Sons
 

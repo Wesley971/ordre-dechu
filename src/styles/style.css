@@ -101,7 +101,7 @@ body.lock-scroll { overflow: hidden; }
 
 .logo h1 {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-logo);
   font-size: var(--text-logo);
   font-weight: 900;
   line-height: 1.05;
