@@ -55,8 +55,10 @@ export function computeFraming(size: ScreenSize, decor: Decor, group: GroupExten
     const right = Math.max(...group.map((actor) => actor.col + (actor.spriteWidth / 2) * imagePixelsPerSpritePixel));
     const groupWidth = (right - left) / imagePixelsPerSpritePixel + 2 * margin;
     const widthLimit = Math.floor(deviceWidth / groupWidth);
-    if (widthLimit < spritePixel) {
-      spritePixel = Math.max(1, widthLimit);
+    // k peut tenir alors que la peinture, plus grande que k ne le voudrait (k est arrondi), écarte trop les personnages
+    const sidesAtFullHeight = (right - left) * (safeHeight / height);
+    if (widthLimit < spritePixel || sidesAtFullHeight + 2 * margin * spritePixel > deviceWidth) {
+      spritePixel = Math.max(1, Math.min(spritePixel, widthLimit));
       imageHeight = Math.min(safeHeight, screenRows * spritePixel);
       centerCol = (left + right) / 2;
       fitted = true;

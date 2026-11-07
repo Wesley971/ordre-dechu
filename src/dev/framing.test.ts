@@ -13,6 +13,25 @@ const group: GroupExtent = [
 ];
 const rows = CONFIG.scene.screenHeightInSpritePixels;
 
+describe("téléphone en portrait : scène entre le groupe et le panneau (MAE-87)", () => {
+  const placed: GroupExtent = [
+    ...Object.values(decor.places.heroes).map((place) => ({ col: place.col, row: place.row, spriteWidth: 47 })),
+    ...decor.places.enemies.map((place) => ({ col: place.col, row: place.row, spriteWidth: 77 })),
+  ];
+
+  it.each([[414, 715], [390, 844], [375, 667]])("en %i × %i, deux pixels réels par pixel de sprite, et tout le monde à l'écran", (cssWidth, cssHeight) => {
+    const ratio = 2;
+    const framing = computeFraming({ cssWidth, cssHeight, ratio }, decor, placed, { top: 124 * ratio, height: (cssHeight - 124 - 272) * ratio });
+    expect(framing.spritePixel).toBe(2);
+    for (const actor of placed) {
+      const x = ((1 + framing.colToNdc(actor.col)) / 2) * cssWidth * ratio;
+      const half = (actor.spriteWidth / 2) * framing.spritePixel;
+      expect(x - half).toBeGreaterThanOrEqual(0);
+      expect(x + half).toBeLessThanOrEqual(cssWidth * ratio);
+    }
+  });
+});
+
 describe("dégagement de la bande et des plaques (MAE-87)", () => {
   const placed: GroupExtent = [
     ...Object.values(decor.places.heroes).map((place) => ({ col: place.col, row: place.row, spriteWidth: 47 })),

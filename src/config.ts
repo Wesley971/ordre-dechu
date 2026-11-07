@@ -32,7 +32,7 @@ export const CONFIG = {
   scene: {
     spritePixel: 1 / 32,               // taille d'un pixel de sprite dans le monde, en mètres
     screenHeightInSpritePixels: 360,   // hauteur d'écran visée, en pixels de sprite : fixe la taille des personnages
-    groupMarginInSpritePixels: 8,      // marge de chaque côté du groupe, quand la largeur de l'écran limite le cadrage
+    groupMarginInSpritePixels: 4,      // marge de chaque côté du groupe, quand la largeur de l'écran limite le cadrage
     camera: {
       fov:     28,   // focale serrée : peu de déformation, l'effet « maquette » du décor peint
       pitch:   0.36, // inclinaison vers le sol, en radians (20,6°) : on voit le sol sans perdre le haut de la forêt

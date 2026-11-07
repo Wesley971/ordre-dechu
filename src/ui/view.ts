@@ -213,6 +213,7 @@ export function renderMenu(menu: MenuController) {
   const hero = menu.hero;
   $("#action-window").hidden = !hero;
   $("#action-window").setAttribute("aria-label", hero ? `Commandes de ${hero.name}` : "Commandes");
+  $("#panel-ps").textContent = hero ? `${hero.mp} PS` : ""; // sur téléphone, les PS du héros qui joue (planche P1)
   commandWindow.hidden = !hero;
   listWindow.hidden = true;
   const top = menu.level;

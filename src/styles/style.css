@@ -878,6 +878,9 @@ body.scene-painted #battle-scene { pointer-events: none; }
   .appear > .od-foe { animation: none; }
 }
 
+/* Les PS du héros qui joue, en haut du panneau : sur téléphone seulement */
+#panel-ps { display: none; }
+
 /* Le menu */
 #action-window .window-title {
   font-family: var(--font-display);
@@ -1204,13 +1207,199 @@ body.defeat-choice .title-option.selected::before {
 
 /* ─── RESPONSIVE ───────────────────────────────────────────────────── */
 
+/* Téléphone en portrait (planches P1 à P6, MAE-87) : le groupe en haut, la scène au milieu, un panneau de hauteur fixe en bas,
+   où menu, sous-menu, ciblage et dialogue prennent la même place : la peinture ne bouge pas de l'un à l'autre.
+   Tout écran de 640 px de large ou moins. Le téléphone en paysage garde la mise en page d'ordinateur : MAE-40. */
 @media (max-width: 640px) {
+  :root {
+    --party-height: 124px;
+    --panel-height: 272px;
+    --band-height:  var(--panel-height);
+    --foe-width:    80px;
+  }
+
   .logo h1 { font-size: 44px; }
 
+  /* La scène */
+  #battle-scene {
+    --scene-clear-bottom: 0px;
+    --scene-clear-left: 0px;
+    top: var(--party-height);
+    bottom: var(--panel-height);
+    background:
+      linear-gradient(180deg, var(--bg-void) 0%, transparent 14%, transparent 82%, var(--bg-void) 100%),
+      linear-gradient(var(--scene-tint), var(--scene-tint)),
+      url("/images/background.png") center 65% / cover;
+  }
+
+  #battle-arena {
+    top: var(--space-8);
+    right: 0;
+    bottom: 56px; /* la barre du boss */
+    left: 0;
+    width: auto;
+  }
 
   .sprite.hero,
-  .sprite.enemy      { --px: 1; }
-  #hero-area         { width: 36%; }
+  .sprite.enemy { --px: 1; }
+  #hero-area    { width: 36%; }
 
-  #dialog    { top: 60px; font-size: 16px; line-height: 1.6; }
+  .turn-mark,
+  .od-foe-name { font-size: 16px; }
+
+  #battle-banner        { top: 20%; }
+  #battle-banner.result { top: 29%; }
+
+  .popup      { font-size: 28px; }
+  .popup.crit { font-size: 38px; }
+
+  /* Le groupe : une ligne par héros (nom, barres, PV, état) ; les PS passent en haut du panneau */
+  #party-window {
+    top: 0;
+    right: 0;
+    height: var(--party-height);
+    padding: 10px 64px 12px 12px;
+    background: var(--bg-void);
+  }
+  #party-window::before { display: none; }
+
+  .od-hud { gap: 6px; width: auto; }
+
+  .od-hero {
+    grid-template-columns: 62px minmax(0, 1fr) 74px 54px;
+    grid-template-rows: 1fr 1fr;
+    column-gap: 10px;
+    row-gap: 3px;
+    align-items: center;
+    min-height: 30px;
+    margin: 0 -8px;
+    padding: 0 8px;
+  }
+
+  .od-hero-head,
+  .od-hero-values { display: contents; }
+
+  .od-hero-name { grid-area: 1 / 1 / 3 / 2; font-size: 18px; }
+  .od-hero > .od-bar { grid-area: 1 / 2; align-self: end; }
+  .od-mp-line   { grid-area: 2 / 2; align-self: start; }
+  .od-hp        { grid-area: 1 / 3 / 3 / 4; font-size: 18px; text-align: right; white-space: nowrap; }
+  .od-hp small  { font-size: 16px; }
+  .od-turn      { grid-area: 1 / 4 / 3 / 5; justify-self: end; font-size: 16px; white-space: nowrap; }
+  .od-mp        { display: none; }
+
+  body.in-game #sound-btn {
+    top: 6px;
+    right: 8px;
+    background: none;
+    font-size: 22px;
+  }
+
+  /* Le panneau du bas : son fond reste là quand aucun menu n'est ouvert */
+  #battle-hud::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: var(--panel-height);
+    border-top: 1px solid var(--gold-aged);
+    background: var(--bg-void);
+  }
+
+  #action-window {
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    height: var(--panel-height);
+    padding: 12px 16px 14px;
+    background: none;
+  }
+  #action-window::before,
+  #action-window::after { display: none; }
+
+  #panel-ps {
+    display: block;
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 18px;
+    line-height: 1.4;
+    color: var(--state-mp);
+  }
+
+  #action-window .menu-item {
+    align-items: center;
+    min-height: 44px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  #list-window,
+  #target-hint { width: auto; }
+
+  #list-window {
+    grid-template-rows: auto minmax(0, max-content) auto;
+    align-content: start;
+    height: 100%;
+  }
+  #list-window .menu {
+    align-content: start;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  #action-window .menu-back {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  #target-hint { align-content: start; }
+
+  /* La barre du boss : en bas de la scène, sur toute la largeur */
+  #boss-panel {
+    right: 12px;
+    bottom: calc(var(--panel-height) + var(--space-2));
+    left: 12px;
+    width: auto;
+    transform: none;
+  }
+
+  /* La bande de dialogue, à la place du panneau */
+  #dialog {
+    padding: 20px 20px 16px;
+    background: var(--bg-void);
+  }
+  #dialog::before { top: 0; }
+
+  #dialog-choices { flex-direction: column; }
+  #dialog .menu-item {
+    align-items: center;
+    min-height: 44px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  #dialog-more,
+  #dialog-next { right: 20px; bottom: 12px; }
+
+  /* Défaite : les choix l'un sous l'autre (planche P5) */
+  body.defeat-choice #dialog { padding-bottom: 104px; }
+
+  body.defeat-choice #intro-screen {
+    right: 20px;
+    bottom: var(--space-4);
+    left: 20px;
+  }
+
+  body.defeat-choice .title-menu { flex-direction: column; gap: 0; }
+
+  body.defeat-choice .title-option {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
 }
