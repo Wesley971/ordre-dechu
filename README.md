@@ -49,12 +49,15 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 | `src/data/game-data.ts` | Héros, souffles, objets, ennemis, chapitres, textes + objet `GameState` |
 | `src/data/decors.ts` | Décors peints en 2,5D : images, relief, places des personnages et ambiance de chaque lieu |
 | `src/scene/` | Scène peinte en 2,5D (Three.js) : cadrage, relief, brume, lucioles, sprites nets et leurs poses ; `battle-stage.ts` la branche sur le combat des chapitres qui ont un décor (le chapitre I aujourd'hui) |
-| `src/dev/` | Outils de test en local : mode test, page de contrôle de la scène, compteur d'images/s, vue muette, combats sans navigateur, tests Vitest |
+| `src/dev/` | Outils de test en local : mode test, page de contrôle de la scène, aperçu des animations, compteur d'images/s, vue muette, combats sans navigateur, tests Vitest |
 | `src/party/heroes.ts` | Création des héros, XP, montées de niveau, récompenses |
 | `src/battle/battle.ts` | Moteur de combat : calculs purs (dégâts, soins, ciblage) et boucle ATB |
 | `src/story/game-flow.ts` | Déroulement de la partie : titre, chapitres, victoire, défaite |
 | `src/ui/dom-view.ts` | Implémentation du contrat sur la page : relie la logique à la page, aux sons, aux contrôles et à la scène du chapitre (DOM ou peinte) |
 | `src/ui/stage.ts` | La partie « scène » de l'affichage (combattants, poses, animations) : contrat `Stage` et sa version DOM |
+| `src/ui/sprite-frames.ts` | Image d'un combattant dans une pose, composée à partir de son PNG : chaque pixel affiché est un pixel du PNG |
+| `src/ui/sprite-motion.ts` | Animations des combattants en code : poses de fond, gestes, durées, mouvement réduit |
+| `src/ui/animated-sprite.ts` | Un combattant animé dans un canvas, partagé par les deux scènes (DOM et peinte) |
 | `src/ui/view.ts` | Affichage DOM : écrans, fenêtres, menus, bandeau, chiffres de dégâts et effets |
 | `src/ui/battle-menu.ts` | Menus de commande et sélection des cibles ; rend l'ordre du joueur à la logique |
 | `src/ui/dialog.ts` | Fenêtre de dialogue avec effet machine à écrire, et questions à choix |
@@ -63,7 +66,7 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 | `src/audio/music.ts` | Musiques d'ambiance : une piste par lieu, boucle et fondus |
 | `src/input/input.ts` | Clavier et manette traduits en actions (`up`, `confirm`, `cancel`…) |
 | `src/styles/design-system.css` | Design System : tokens CSS (couleurs, typographie, espacements) et styles de base |
-| `src/styles/style.css` | Mise en page, fenêtres, sprites, animations |
+| `src/styles/style.css` | Mise en page, fenêtres, sprites et leurs couleurs, animations de l'interface |
 | `public/images/` | Images, copiées telles quelles dans le build |
 | `public/audio/` | Musiques (MP3 96 kbps), chargées seulement quand elles servent |
 | `public/licenses/` | Texte des licences à publier avec le jeu (Three.js) |
