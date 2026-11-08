@@ -9,7 +9,7 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 
 * **Groupe de 3 héros** aux rôles distincts : Maelor (chevalier déchu), Corvin (veilleur), Elwen (Source)
 * **Combat ATB** (Active Time Battle) : chaque combattant a une jauge qui se remplit selon sa vitesse ; les ennemis n'attendent pas
-* Mode **Attente** : le temps se fige quand tu fouilles dans les techniques ou la Besace (réglable dans `src/config.ts`)
+* Mode **Attente** : le temps du combat s'arrête dès qu'un héros choisit son action, au menu, dans un sous-menu ou en ciblage (réglable dans `src/config.ts`)
 * Menu de commandes façon FF : **Frapper**, **Gestes / Lanterne / Source** (les techniques de chaque héros), **Besace**, **Garde**, **Repli**
 * **Techniques et PS** (points de Souffle) : les gestes de Maelor (Vordrak, Édrag), la lanterne de Corvin (Mèche, Nuit blanche, Tocsin, Soufre) et la Source d'Elwen (Nios, Aurésor, Liéver) ; l'élément s'affiche dans la liste
 * **Faiblesses élémentaires** : le Gau-Tik craint la foudre, Vahn la glace… et il **absorbe** le feu
