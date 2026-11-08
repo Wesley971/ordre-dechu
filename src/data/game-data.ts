@@ -109,6 +109,21 @@ export const HEROES: HeroDef[] = [
 export const ATTACK: PhysicalAbility = { name: "Frapper", kind: "physical", power: 1, target: "foe" };
 export const RUN: RunAbility         = { name: "Repli",   kind: "run", target: "none" };
 
+// Aide des commandes du menu de combat, dans la bande sur ordinateur (MAE-89), par nom de commande. Textes validés par
+// Wesley le 08/11/2026. Règles : Garde (CONFIG.damage.defendMultiplier, coups physiques seulement), Repli
+// (CONFIG.run.successChance, canRun), objet retiré au choix (battle.ts). Histoire : docs/lore.md (grand-père de Maelor,
+// maître de Corvin) et les fiches de personnages (projet claude.ai « RPG », MAE-55 : la lanterne du maître, la lumière
+// qu'Elwen fait naître dans ses mains)
+export const COMMAND_HELP: Record<string, string> = {
+  Frapper:  "Une attaque simple sur un ennemi, sans coût en PS.",
+  Gestes:   "Les gestes de combat que son grand-père lui a appris. Ils coûtent des PS.",
+  Lanterne: "Les énergies que canalise la lanterne de son maître. Elles coûtent des PS.",
+  Source:   "La lumière qu'Elwen fait naître dans ses mains : soigner un allié ou tout le groupe, ranimer un allié éteint. Elle coûte des PS.",
+  Besace:   "Les objets du groupe. Un objet utilisé est perdu.",
+  Garde:    "Se protéger jusqu'à son prochain tour : les coups d'arme reçus font moitié moins mal.",
+  Repli:    "Tenter de fuir le combat. Le repli peut échouer, et certains combats l'interdisent.",
+};
+
 export const SPELLS = {
   // Noms de la langue de l'Ordre (Maelor), des mots de métier des Veilleurs (Corvin), de la langue des immortels
   // (Elwen) : docs/lexique.md

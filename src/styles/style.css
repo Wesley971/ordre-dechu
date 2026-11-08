@@ -1178,6 +1178,12 @@ body.in-game #sound-btn {
   #action-window .menu-item { padding-top: 0; padding-bottom: 0; line-height: 1.15; }
 }
 
+/* Plus bas encore (1280 × 720) : l'aide la plus longue (Source) tient sous les pieds de Maelor */
+@media (min-width: 641px) and (max-height: 800px) {
+  #help-text { line-height: 1.2; }
+  #help-keys { margin-top: 2px; }
+}
+
 /* ─── DIALOGUES ────────────────────────────────────────────────────── */
 
 /* La bande d'ombre en bas de l'écran, dont la hauteur suit celle de l'écran et non le texte (planches G5 à G7, tous les dialogues ;

@@ -4,7 +4,7 @@
 // le rend par la promesse de la demande. Il lit l'état du combat pour proposer les bonnes entrées, sans jamais
 // le modifier : réserver un objet, mettre l'action en file ou passer la main reste l'affaire de la logique.
 
-import { ATTACK, RUN, SPELLS, ITEMS, ELEMENT_NAMES, GameState } from "../data/game-data.ts";
+import { ATTACK, COMMAND_HELP, RUN, SPELLS, ITEMS, ELEMENT_NAMES, GameState } from "../data/game-data.ts";
 import type { Ability, ItemId } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import type { HeroOrder, OrderContext, OrderRequest } from "../game-view.ts";
@@ -38,13 +38,14 @@ export interface TargetLevel {
 export type MenuLevel = CommandLevel | ListLevel | TargetLevel;
 
 function commandEntries(hero: Hero): MenuEntry[] {
-  return [
+  const entries: MenuEntry[] = [
     { label: "Frapper",    select: () => Menu.chooseTarget(ATTACK) },
     { label: hero.command, select: () => Menu.openList("spell"), disabled: hero.spells.length === 0 },
     { label: "Besace",     select: () => Menu.openList("item") },
     { label: "Garde",      select: () => Menu.finish({ kind: "defend" }) },
     { label: "Repli",      select: () => Menu.confirmAction(RUN, []) },
   ];
+  return entries.map(entry => ({ ...entry, help: COMMAND_HELP[entry.label] }));
 }
 
 function spellEntries(hero: Hero): MenuEntry[] {

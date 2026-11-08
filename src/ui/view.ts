@@ -4,7 +4,7 @@
 // en 2,5D (MAE-29). Ce fichier ne joue aucun son : les sons sont dans dom-view.ts, les menus et le dialogue.
 
 import { CONFIG } from "../config.ts";
-import { ELEMENT_NAMES, GameState, HEROES } from "../data/game-data.ts";
+import { COMMAND_HELP, ELEMENT_NAMES, GameState, HEROES } from "../data/game-data.ts";
 import type { Ability, Chapter } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import type { SoundName } from "../audio/sfx.ts";
@@ -267,7 +267,7 @@ function renderHelp(menu: MenuController) {
   if (top.type === "target") {
     name = top.ability.name;
     facts = abilityFacts(top.ability);
-    text = top.ability.desc ?? "";
+    text = top.ability.desc ?? COMMAND_HELP[top.ability.name] ?? ""; // Frapper n'a pas de desc : l'aide de sa commande
   } else {
     const entry = top.entries[top.cursor];
     const cost = top.type === "list" && top.kind === "spell" ? entry?.detail : "";
