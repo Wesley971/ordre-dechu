@@ -1,7 +1,16 @@
-// input.ts - Clavier et manette traduits en actions : up, down, left, right, confirm, cancel
+// input.ts - Clavier et manette traduits en actions : up, down, left, right, confirm, cancel,
+// et les touches 1 à 9 du clavier (pick-1 à pick-9 : choisir une entrée du menu de combat, MAE-89)
 // Chaque écran empile son gestionnaire ; seul celui du dessus reçoit les actions.
 
-export type Action = "up" | "down" | "left" | "right" | "confirm" | "cancel";
+export type Pick = "pick-1" | "pick-2" | "pick-3" | "pick-4" | "pick-5" | "pick-6" | "pick-7" | "pick-8" | "pick-9";
+export type Action = "up" | "down" | "left" | "right" | "confirm" | "cancel" | Pick;
+
+// Rang (à partir de 0) de l'entrée choisie par une touche 1 à 9, ou null pour une autre action
+export function pickIndex(action: Action): number | null {
+  return action.startsWith("pick-") ? Number(action.slice("pick-".length)) - 1 : null;
+}
+
+const DIRECTIONS: readonly Action[] = ["up", "down", "left", "right"];
 type Handler = (action: Action) => void;
 
 interface InputStack {
@@ -25,13 +34,15 @@ const KEYS: Record<string, Action> = {
   ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
   Enter: "confirm", " ": "confirm", z: "confirm", Z: "confirm",
   Escape: "cancel", Backspace: "cancel", x: "cancel", X: "cancel",
+  1: "pick-1", 2: "pick-2", 3: "pick-3", 4: "pick-4", 5: "pick-5", 6: "pick-6", 7: "pick-7", 8: "pick-8", 9: "pick-9",
 };
 
 document.addEventListener("keydown", event => {
   const action = KEYS[event.key];
   if (!action) return;
+  if (pickIndex(action) !== null && (event.ctrlKey || event.metaKey || event.altKey)) return; // Ctrl+1 : un onglet du navigateur
   event.preventDefault();
-  const isDirection = !["confirm", "cancel"].includes(action);
+  const isDirection = DIRECTIONS.includes(action);
   if (event.repeat && !isDirection) return; // seules les flèches se répètent quand on reste appuyé
   Input.emit(action);
 });

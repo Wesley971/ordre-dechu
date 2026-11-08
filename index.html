@@ -62,9 +62,18 @@
         <div id="command-window" hidden></div>
         <div id="target-hint" hidden>
           <div id="target-title" class="window-title"></div>
+          <!-- Sur ordinateur, la liste d'où vient la capacité reste en vue pendant le ciblage : une copie inerte (MAE-89) -->
+          <div id="target-list" aria-hidden="true"></div>
           <div id="target-help" hidden></div>
-          <span class="menu-back">◀&#xFE0E; Retour</span>
+          <span class="menu-back">◀&#xFE0E; Retour<kbd class="key-hint">Échap</kbd></span>
         </div>
+        <!-- Sur ordinateur, l'aide à droite de la liste : la commande ou la capacité sous le curseur, et le rappel des
+             touches pendant le chapitre I (MAE-89, planches N1 et N2) -->
+        <aside id="battle-help" hidden>
+          <div id="help-title"></div>
+          <div id="help-text"></div>
+          <div id="help-keys" hidden></div>
+        </aside>
       </nav>
     </section>
 

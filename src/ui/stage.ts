@@ -61,6 +61,8 @@ function createSprite(c: Combatant, [x, y]: [number, number]) {
   sprite.style.setProperty("--canvas-h", String(canvas.h));
   sprite.innerHTML = `<div class="sprite-body"><img class="sprite-img" src="${c.image}" alt="${c.name}">${embersHtml(c)}</div>${overlayHtml(c)}`;
   sprite.addEventListener("click", () => Menu.clickTarget(c));
+  sprite.addEventListener("mouseenter", () => Menu.hoverTarget(c, true));
+  sprite.addEventListener("mouseleave", () => Menu.hoverTarget(c, false));
   if (c.side === "hero") {
     // Un héros déjà éteint quand la scène est construite est posé à terre, sans rejouer sa chute
     if (!isAlive(c)) sprite.classList.add("ko", "fallen");

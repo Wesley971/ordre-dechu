@@ -23,7 +23,8 @@ export interface HeroFlags { ko: boolean; critical: boolean; active: boolean; re
 export interface BattleStageOptions {
   quality?: SceneQuality;
   flagsOf(hero: Hero): HeroFlags;             // pose d'un héros d'après l'état (ui/view.ts, heroFlags)
-  onPick(combatant: Combatant): void;         // toucher sur un combattant pendant le ciblage
+  onPick(combatant: Combatant): void;         // clic ou toucher sur un combattant
+  onHover?(combatant: Combatant, entering: boolean): void; // la souris entre sur un combattant ou le quitte (MAE-89)
   anchorHtml?(combatant: Combatant): string;  // contenu DOM de l'ancre (braises d'Elwen)
   counter?: boolean;                           // compteur d'images/s à l'écran (mode test)
   expose?: boolean;                            // window.battleStage pour les mesures du bot (mode test, local)
@@ -183,6 +184,8 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       anchor.dataset.sprite = c.id;
       anchor.innerHTML = options.anchorHtml?.(c) ?? "";
       anchor.addEventListener("click", () => options.onPick(c));
+      anchor.addEventListener("mouseenter", () => options.onHover?.(c, true));
+      anchor.addEventListener("mouseleave", () => options.onHover?.(c, false));
       layer.appendChild(anchor);
       anchors.set(c.id, anchor);
     }
