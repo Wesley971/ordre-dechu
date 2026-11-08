@@ -166,7 +166,7 @@ describe("les 9 sprites du jeu, dans toutes leurs animations : rien ne sort de l
         }
       }
     }
-  });
+  }, 30_000); // jusqu'à 3 s pour le Dragon sur ce PC : la limite de 5 s de Vitest céderait sous charge (CI, bot en parallèle)
 });
 
 // Hauteur de la silhouette : de la première à la dernière rangée qui a un pixel opaque
