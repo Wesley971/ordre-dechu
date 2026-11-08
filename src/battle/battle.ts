@@ -202,7 +202,6 @@ export interface BattleState {
   readyQueue: Hero[];           // héros dont la jauge est pleine, en attente d'un ordre
   actionQueue: QueuedAction[];  // actions choisies, exécutées une par une
   busy: boolean;                // une action est en cours d'animation
-  browsing: boolean;            // le joueur est dans une liste ou un ciblage (le temps se fige en mode « wait »)
   actionsDone: number;          // actions jouées depuis le début du combat (trêve)
   over: boolean;
   order: { hero: Hero; request: OrderRequest } | null; // demande d'ordre en cours auprès de la vue
@@ -214,7 +213,6 @@ export const Battle: BattleState = {
   readyQueue: [],
   actionQueue: [],
   busy: false,
-  browsing: false,
   actionsDone: 0,
   over: false,
   order: null,
@@ -238,7 +236,7 @@ export async function runBattle(gameView: GameView, chapter: BattleChapter, { wi
   view = gameView;
   Object.assign(Battle, {
     heroes: GameState.party, enemies: createEnemies(chapter.enemies), chapter,
-    readyQueue: [], actionQueue: [], busy: true, browsing: false, actionsDone: 0, over: false, order: null,
+    readyQueue: [], actionQueue: [], busy: true, actionsDone: 0, over: false, order: null,
   });
   const ended = new Promise<BattleResult>(resolve => Battle.resolve = resolve);
 
@@ -273,12 +271,17 @@ function battleLoop(elapsedMs: number) {
   const dt = Math.min(elapsedMs / 1000, 0.1);
 
   if (!isTimeFrozen()) fillGauges(dt);
-  if (!Battle.busy && Battle.actionQueue.length > 0) runNextAction();
+  // Relu après les jauges : un héros devenu prêt à cette image ouvre son menu, et la file attend son choix
+  if (!isTimeFrozen() && Battle.actionQueue.length > 0) runNextAction();
   view.refreshGauges(Battle.heroes);
 }
 
+// Le temps du combat (jauges et actions en file) s'arrête pendant une action, et en mode « wait » (MAE-91) tant
+// qu'un héros a son menu ouvert : menu principal, sous-menu ou ciblage. Avec plusieurs héros prêts, le menu du
+// suivant s'ouvre dès le choix du précédent : le temps ne reprend qu'une fois tous les ordres donnés.
+// L'action déjà en cours d'animation va jusqu'au bout.
 function isTimeFrozen() {
-  return Battle.busy || (CONFIG.atb.mode === "wait" && Battle.browsing);
+  return Battle.busy || (CONFIG.atb.mode === "wait" && Battle.order !== null);
 }
 
 function fillGauges(dt: number) {
@@ -320,13 +323,11 @@ function offerOrder() {
   const request = view.requestOrder({
     hero,
     canPass: () => Battle.readyQueue.length > 1,
-    onBrowse: (inSubmenu) => { if (Battle.order?.request === request) Battle.browsing = inSubmenu; },
   });
   Battle.order = { hero, request };
   void request.order.then(order => {
     if (Battle.order?.request !== request) return; // annulée entre-temps
     Battle.order = null;
-    Battle.browsing = false;
     // Le combat a pu se finir, ou le héros tomber, entre le choix et son arrivée ici
     if (order && !Battle.over && hero.state === "ready") applyOrder(hero, order);
     offerOrder();
@@ -338,7 +339,6 @@ function cancelOrder() {
   const pending = Battle.order;
   if (!pending) return;
   Battle.order = null;
-  Battle.browsing = false;
   pending.request.cancel();
 }
 

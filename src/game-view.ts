@@ -40,7 +40,6 @@ export type HeroOrder =
 export interface OrderContext {
   hero: Hero;
   canPass(): boolean;                   // un autre héros attend aussi un ordre
-  onBrowse(inSubmenu: boolean): void;   // le joueur entre dans une liste ou un ciblage (le temps se fige en mode « wait »)
 }
 
 // Une demande d'ordre en cours. order se résout avec l'ordre du joueur, ou null si la logique l'annule
