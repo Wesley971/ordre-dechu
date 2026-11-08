@@ -46,6 +46,7 @@
   --bg-deep:    #00171f;
   --bg-raised:  #2a1c0f;  /* fond des barres */
   --scene-glow: #0d3c4b;
+  --moonlight:  #bfe7e9;  /* clair de lune : le contour et le nom de l'ennemi survolé (MAE-89, planche M1) */
   --hud-shade:  rgba(1, 12, 16, 0.72);
   --bar-track:  var(--bg-raised);
 
@@ -95,6 +96,7 @@
   --hud-text:        clamp(20px, calc(14.5px + 0.75 * var(--hud-unit)), 24px); /* noms et menu */
   --hud-text-sm:     calc(var(--hud-text) * 0.9);
   --hud-text-lg:     calc(var(--hud-text) * 1.1);
+  --hud-text-xs:     calc(var(--hud-text) * 0.75); /* numéros des touches, rappel des touches, info au survol (MAE-89) */
   --plate-width:     clamp(384px, calc(283.9px + 13.9 * var(--hud-unit)), 460px); /* sous-menu et ciblage, avec une marge : les sprites restent à sa droite */
   --hud-width:       clamp(240px, calc(176.6px + 8.8 * var(--hud-unit)), 288px);
   --boss-width:      560px;

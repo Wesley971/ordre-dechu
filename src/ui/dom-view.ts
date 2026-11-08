@@ -55,7 +55,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
       try {
         const { createBattleStage } = await import("../scene/battle-stage.ts");
         const created = await createBattleStage(DECORS[decorId], {
-          flagsOf: heroFlags, onPick: (c) => Menu.clickTarget(c), anchorHtml: (c) => embersHtml(c) + overlayHtml(c),
+          flagsOf: heroFlags, onPick: (c) => Menu.clickTarget(c), onHover: (c, entering) => Menu.hoverTarget(c, entering), anchorHtml: (c) => embersHtml(c) + overlayHtml(c),
           counter: options.counter, expose: options.expose,
         });
         painted = { stage: created, decorId };

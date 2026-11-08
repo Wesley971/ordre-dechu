@@ -12,6 +12,7 @@ import { Battle, isAlive } from "../battle/battle.ts";
 import type { Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
 import type { CommandLevel, ListLevel, MenuController } from "./battle-menu.ts";
+import { screenOrder } from "./target-order.ts";
 
 // Élément de la page, qui doit exister : son absence est une erreur de structure de index.html
 export function $(selector: string, root: ParentNode = document) {
@@ -172,6 +173,19 @@ export function updateAtbUI(heroes: Hero[]) {
 
 // — Menus —
 
+// Affichage d'ordinateur (plus de 640 px de large) : clic direct sur l'ennemi, survol, numéros des touches (MAE-89).
+// Le téléphone garde son panneau et son toucher (planches P1 à P6)
+export function isPointerLayout() {
+  return window.matchMedia("(min-width: 641px)").matches;
+}
+
+// Centre du sprite d'un combattant à l'écran, pour le ciblage dans l'ordre de l'écran ; null s'il n'est pas affiché
+export function screenCenter(c: Combatant) {
+  const rect = spriteEl(c)?.getBoundingClientRect();
+  if (!rect || rect.width === 0) return null;
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+}
+
 function menuList(level: CommandLevel | ListLevel, depth: number, active: boolean) {
   const ul = document.createElement("ul");
   ul.className = "menu" + (active ? "" : " inactive");
@@ -179,7 +193,9 @@ function menuList(level: CommandLevel | ListLevel, depth: number, active: boolea
     const li = document.createElement("li");
     li.className = "menu-item" + (entry.disabled ? " disabled" : "") + (i === level.cursor ? " selected" : "");
     const element = entry.element ? `<span class="menu-element">· ${entry.element}</span>` : "";
-    li.innerHTML = `<span>${entry.label}</span>${element}${entry.detail ? `<span class="detail">${entry.detail}</span>` : ""}`;
+    // Le numéro de la touche est un <kbd> devant le nom : le nom reste le premier <span> de l'entrée
+    const key = i < 9 ? `<kbd class="menu-key">${i + 1}</kbd>` : "";
+    li.innerHTML = `${key}<span>${entry.label}</span>${element}${entry.detail ? `<span class="detail">${entry.detail}</span>` : ""}`;
     li.addEventListener("click", () => Menu.clickEntry(depth, i));
     li.addEventListener("mouseenter", () => Menu.hoverEntry(depth, i));
     ul.appendChild(li);
@@ -190,7 +206,7 @@ function menuList(level: CommandLevel | ListLevel, depth: number, active: boolea
 function backLink() {
   const back = document.createElement("div");
   back.className = "menu-back";
-  back.textContent = "◀\uFE0E Retour"; // \uFE0E : le triangle en texte, pas en emoji sur iPhone
+  back.innerHTML = `◀︎ Retour<kbd class="key-hint">Échap</kbd>`; // ︎ : le triangle en texte, pas en emoji sur iPhone
   back.addEventListener("click", () => Menu.back());
   return back;
 }
@@ -202,6 +218,93 @@ export function updateMenuCursor(menu: MenuController, depth: number) {
   if (level.type === "target") return;
   const container = level.type === "list" ? $("#list-window") : $("#command-window");
   container.querySelectorAll(".menu-item").forEach((li, i) => li.classList.toggle("selected", i === level.cursor));
+}
+
+// Numéros 1, 2, 3 près des alliés visés un par un, dans l'ordre de l'écran : des repères, pas des touches (MAE-89)
+function numberAllies(menu: MenuController, targets: Combatant[]) {
+  document.querySelectorAll(".ally-number").forEach(el => el.remove());
+  const top = menu.level;
+  if (!top || top.type !== "target" || top.all || top.relation !== "ally" || !isPointerLayout()) return;
+  const placed = targets.flatMap(c => {
+    const center = screenCenter(c);
+    return center ? [{ item: c, ...center }] : [];
+  });
+  screenOrder(placed).forEach((c, i) => {
+    spriteEl(c)?.insertAdjacentHTML("beforeend", `<span class="ally-number" aria-hidden="true">${i + 1}</span>`);
+  });
+}
+
+// Contour du survol (planche M1, piste A) : un fin trait clair de lune autour de la silhouette du sprite, sur les pixels
+// transparents qui touchent un pixel visible. Dessiné une seule fois par image, dans une toile plus grande d'un pixel de
+// chaque côté (un sprite peut toucher le bord de sa toile), puis posé en image sur le sprite ; null si l'image ne se lit
+// pas (pas de contour, l'info « Clic : Frapper … » reste).
+interface Outline { url: string; width: number; height: number } // toile de l'image, en pixels de sprite
+const outlines = new Map<string, Promise<Outline | null>>();
+
+function spriteOutline(src: string): Promise<Outline | null> {
+  const known = outlines.get(src);
+  if (known) return known;
+  const drawn = new Promise<Outline | null>(resolve => {
+    const img = new Image();
+    img.addEventListener("error", () => resolve(null), { once: true });
+    img.addEventListener("load", () => {
+      const width = img.naturalWidth, height = img.naturalHeight;
+      const source = document.createElement("canvas");
+      source.width = width;
+      source.height = height;
+      const read = source.getContext("2d");
+      const canvas = document.createElement("canvas");
+      canvas.width = width + 2;
+      canvas.height = height + 2;
+      const draw = canvas.getContext("2d");
+      if (!read || !draw || !width || !height) return resolve(null);
+      read.drawImage(img, 0, 0);
+      const { data } = read.getImageData(0, 0, width, height);
+      const opaque = (x: number, y: number) => x >= 0 && y >= 0 && x < width && y < height && data[(y * width + x) * 4 + 3] > 0;
+      draw.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--moonlight").trim() || "#bfe7e9";
+      for (let y = -1; y <= height; y++) {
+        for (let x = -1; x <= width; x++) {
+          if (opaque(x, y)) continue;
+          if (opaque(x - 1, y) || opaque(x + 1, y) || opaque(x, y - 1) || opaque(x, y + 1)) draw.fillRect(x + 1, y + 1, 1, 1);
+        }
+      }
+      resolve({ url: canvas.toDataURL(), width, height });
+    }, { once: true });
+    img.src = src;
+  });
+  outlines.set(src, drawn);
+  return drawn;
+}
+
+// Le contour, posé sur le corps du sprite (DOM : il suit le pas en avant du héros) ou sur l'ancre de la scène peinte ;
+// il attend la première lecture de l'image si besoin
+function addPointerOutline(menu: MenuController, c: Combatant, el: HTMLElement) {
+  el.classList.add("pointer-target");
+  void spriteOutline(c.image).then(outline => {
+    if (!outline || menu.hovered !== c || !el.classList.contains("pointer-target") || el.querySelector(".pointer-outline")) return;
+    const { url, width, height } = outline;
+    const style = `left: ${-100 / width}%; top: ${-100 / height}%; width: ${((width + 2) / width) * 100}%; height: ${((height + 2) / height) * 100}%`;
+    const host = el.querySelector<HTMLElement>(".sprite-body") ?? el;
+    host.insertAdjacentHTML("beforeend", `<img class="pointer-outline" alt="" aria-hidden="true" src="${url}" style="${style}">`);
+  });
+}
+
+// Sous la souris : contour clair de lune quand un clic agirait (frapper, ou valider la cible), et l'info
+// « Clic : Frapper … » seulement quand le clic frappe (décisions 3 et 4 du 08/11/2026)
+export function showPointer(menu: MenuController) {
+  document.querySelectorAll(".pointer-target").forEach(el => el.classList.remove("pointer-target"));
+  document.querySelectorAll(".pointer-outline, .strike-tip").forEach(el => el.remove());
+  const c = menu.hovered;
+  const el = c && spriteEl(c);
+  const top = menu.level;
+  if (!c || !el || !top || !isPointerLayout()) return;
+  if (top.type === "target") {
+    if (el.classList.contains("targeted")) addPointerOutline(menu, c, el);
+    return;
+  }
+  if (!menu.canStrike(c, true)) return;
+  addPointerOutline(menu, c, el);
+  el.insertAdjacentHTML("beforeend", `<span class="strike-tip" aria-hidden="true">Clic : Frapper ${c.name}</span>`);
 }
 
 export function renderMenu(menu: MenuController) {
@@ -216,9 +319,13 @@ export function renderMenu(menu: MenuController) {
   $("#panel-ps").textContent = hero ? `${hero.mp} PS` : ""; // sur téléphone, les PS du héros qui joue (planche P1)
   commandWindow.hidden = !hero;
   listWindow.hidden = true;
+  numberAllies(menu, []);
   const top = menu.level;
   const [root] = menu.stack;
-  if (!hero || !top || root.type !== "command") return updateBattleUI();
+  if (!hero || !top || root.type !== "command") {
+    showPointer(menu);
+    return updateBattleUI();
+  }
 
   commandWindow.replaceChildren();
   commandWindow.insertAdjacentHTML("beforeend", `<div class="window-title">${hero.name}</div>`);
@@ -255,8 +362,10 @@ export function renderMenu(menu: MenuController) {
     $("#target-help").innerHTML = help;
     $("#target-help").hidden = !help;
     $("#target-hint").hidden = false;
+    numberAllies(menu, targets);
   }
 
+  showPointer(menu);
   updateBattleUI();
 }
 

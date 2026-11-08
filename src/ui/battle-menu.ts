@@ -8,10 +8,11 @@ import { ATTACK, RUN, SPELLS, ITEMS, ELEMENT_NAMES, GameState } from "../data/ga
 import type { Ability, ItemId } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import type { HeroOrder, OrderContext, OrderRequest } from "../game-view.ts";
-import { Input, type Action } from "../input/input.ts";
+import { Input, pickIndex, type Action } from "../input/input.ts";
 import { Sfx } from "../audio/sfx.ts";
 import { isAlive, groupOf, targetCandidates, type Combatant } from "../battle/battle.ts";
-import { renderMenu, updateMenuCursor } from "./view.ts";
+import { isPointerLayout, renderMenu, screenCenter, showPointer, updateMenuCursor } from "./view.ts";
+import { canStrike, screenOrder, stepAlong } from "./target-order.ts";
 
 // Le menu est une pile de niveaux : commande → liste (souffle / objets) → cible
 
@@ -79,6 +80,8 @@ export interface MenuController {
   stack: MenuLevel[];
   context: OrderContext | null;                  // la demande en cours
   settle: ((order: HeroOrder | null) => void) | null;
+  openedAt: number;                              // ouverture du menu de ce héros (performance.now), pour le double clic
+  hovered: Combatant | null;                     // combattant sous la souris
   readonly level: MenuLevel | undefined;
   request(context: OrderContext): OrderRequest;
   finish(order: HeroOrder | null): void;
@@ -92,10 +95,13 @@ export interface MenuController {
   handle(action: Action): void;
   select(index: number): void;
   handleTarget(level: TargetLevel, action: Action): void;
-  switchSide(level: TargetLevel, relation: "foe" | "ally"): void;
+  stepTarget(level: TargetLevel, delta: -1 | 1): void;
+  aimAt(level: TargetLevel, combatant: Combatant): boolean;
   clickEntry(depth: number, index: number): void;
   hoverEntry(depth: number, index: number): void;
   clickTarget(combatant: Combatant): void;
+  canStrike(combatant: Combatant, ignoreGuard?: boolean): boolean; // ignoreGuard : pour l'info au survol
+  hoverTarget(combatant: Combatant, entering: boolean): void;
 }
 
 export const Menu: MenuController = {
@@ -103,6 +109,8 @@ export const Menu: MenuController = {
   stack: [],
   context: null,
   settle: null,
+  openedAt: 0,
+  hovered: null,
 
   get level() { return this.stack[this.stack.length - 1]; },
 
@@ -112,6 +120,7 @@ export const Menu: MenuController = {
     const order = new Promise<HeroOrder | null>(resolve => { this.settle = resolve; });
     this.context = context;
     this.hero = context.hero;
+    this.openedAt = performance.now();
     Input.push(action => this.handle(action));
     this.stack = [{ type: "command", cursor: 0, entries: commandEntries(context.hero) }];
     this.render();
@@ -190,6 +199,14 @@ export const Menu: MenuController = {
     if (!level) return;
     if (level.type === "target") return this.handleTarget(level, action);
 
+    // Touches 1 à 9 : l'entrée de ce rang, comme un clic (MAE-89)
+    const picked = pickIndex(action);
+    if (picked !== null) {
+      if (picked >= level.entries.length) return;
+      level.cursor = picked;
+      return this.select(picked);
+    }
+
     const count = level.entries.length;
     const move = (delta: number) => {
       level.cursor = (level.cursor + delta + count) % count;
@@ -220,15 +237,14 @@ export const Menu: MenuController = {
     level.cursor = Math.min(level.cursor, targets.length - 1);
 
     switch (action) {
+      // Dans l'ordre de l'écran, de gauche à droite ; ↑ ↓ font comme ← → (décision 7 du 07/11/2026)
       case "up":
-      case "down":
-        if (level.all) return;
-        level.cursor = (level.cursor + (action === "up" ? -1 : 1) + targets.length) % targets.length;
-        Sfx.play("cursor");
-        break;
       case "left":
+        this.stepTarget(level, -1);
+        break;
+      case "down":
       case "right":
-        this.switchSide(level, action === "left" ? "ally" : "foe"); // groupe à gauche, ennemis à droite
+        this.stepTarget(level, 1);
         break;
       case "confirm":
         Sfx.play("confirm");
@@ -240,17 +256,41 @@ export const Menu: MenuController = {
     this.render();
   },
 
-  switchSide(level, relation) {
-    if (level.all || !canSwitchSide(level.ability) || level.relation === relation) return;
-    const previous = level.relation;
-    level.relation = relation;
+  // Cible voisine à l'écran. Si la capacité peut changer de camp, la ligne compte les deux camps (le groupe à gauche,
+  // les ennemis à droite) : on passe de l'un à l'autre au bout de son camp. Pas de retour à l'autre bout de la ligne.
+  stepTarget(level, delta) {
+    if (level.all || !this.hero) return;
     const targets = this.targetsOf(level);
-    if (targets.length === 0) {
-      level.relation = previous;
-      return;
-    }
-    level.cursor = defaultTargetIndex(level.ability, targets);
+    const current = targets[level.cursor];
+    const relation = level.relation;
+    const pool = relation && canSwitchSide(level.ability)
+      ? [...targets, ...groupOf(this.hero, relation === "foe" ? "ally" : "foe").filter(isAlive)]
+      : targets;
+    const line = screenOrder(pool.map((c, i) => ({ item: c, ...(screenCenter(c) ?? { x: i, y: 0 }) })));
+    const next = current && stepAlong(line, current, delta);
+    if (!next) return;
+    if (relation && !targets.includes(next)) level.relation = relation === "foe" ? "ally" : "foe";
+    level.cursor = Math.max(0, this.targetsOf(level).indexOf(next));
     Sfx.play("cursor");
+  },
+
+  // Vise ce combattant s'il est une cible possible (en changeant de camp si la capacité le permet) ; sinon ne change rien
+  aimAt(level, combatant) {
+    const previous = level.relation;
+    if (!level.all) {
+      const relation = combatant.side === "hero" ? "ally" : "foe";
+      if (relation !== level.relation) {
+        if (!canSwitchSide(level.ability)) return false;
+        level.relation = relation;
+      }
+    }
+    const index = this.targetsOf(level).indexOf(combatant);
+    if (index < 0) {
+      level.relation = previous;
+      return false;
+    }
+    level.cursor = index;
+    return true;
   },
 
   // — Souris / tactile —
@@ -269,21 +309,43 @@ export const Menu: MenuController = {
     updateMenuCursor(this, depth);
   },
 
+  // Clic ou toucher sur un combattant : en ciblage, il valide la cible ; au menu principal, sur ordinateur, un clic sur
+  // un ennemi lance « Frapper » ; dans un sous-menu, rien (décision 3 du 07/11/2026)
   clickTarget(combatant) {
     const level = this.level;
-    if (!level || level.type !== "target") return;
-
-    if (!level.all) {
-      const relation = combatant.side === "hero" ? "ally" : "foe";
-      if (relation !== level.relation) {
-        if (!canSwitchSide(level.ability)) return;
-        level.relation = relation;
-      }
+    if (!level) return;
+    if (level.type !== "target") {
+      if (!this.canStrike(combatant)) return;
+      Sfx.play("confirm");
+      return this.confirmAction(ATTACK, [combatant]);
     }
-    const index = this.targetsOf(level).indexOf(combatant);
-    if (index < 0) return;
-    level.cursor = index;
-    this.handleTarget(level, "confirm");
+    if (this.aimAt(level, combatant)) this.handleTarget(level, "confirm");
+  },
+
+  canStrike(combatant, ignoreGuard = false) {
+    const [root] = this.stack;
+    if (!this.hero || !root || root.type !== "command") return false;
+    return canStrike({
+      atRoot: this.stack.length === 1,
+      attackEnabled: !root.entries[0]?.disabled,
+      isCandidate: combatant.side === "enemy" && targetCandidates(this.hero, ATTACK.target).includes(combatant),
+      pointerLayout: isPointerLayout(),
+      sinceOpenMs: ignoreGuard ? Infinity : performance.now() - this.openedAt,
+    });
+  },
+
+  // Survol d'un combattant : en ciblage, la marque ▼ le suit, dans le camp visé seulement (passer la souris sur un allié ne
+  // doit pas détourner une attaque ; le clic, lui, peut changer de camp) ; le cadre doré et l'info « Clic : Frapper … »
+  // sont posés par showPointer, seulement quand un clic agirait
+  hoverTarget(combatant, entering) {
+    this.hovered = entering ? combatant : this.hovered === combatant ? null : this.hovered;
+    const level = this.level;
+    const sameSide = level?.type === "target" && level.relation === (combatant.side === "hero" ? "ally" : "foe");
+    if (entering && level?.type === "target" && !level.all && sameSide) {
+      const before = `${level.relation}:${level.cursor}`;
+      if (this.aimAt(level, combatant) && before !== `${level.relation}:${level.cursor}`) return this.render(); // sans son, comme le survol du menu
+    }
+    showPointer(this);
   },
 };
 
