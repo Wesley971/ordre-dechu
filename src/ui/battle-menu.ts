@@ -88,7 +88,6 @@ export interface MenuController {
   readonly level: MenuLevel | undefined;
   request(context: OrderContext): OrderRequest;
   finish(order: HeroOrder | null): void;
-  syncDepth(): void;
   render(): void;
   openList(kind: "spell" | "item"): void;
   chooseTarget(ability: Ability, itemId?: ItemId | null): void;
@@ -143,11 +142,6 @@ export const Menu: MenuController = {
     settle(order);
   },
 
-  // Dit à la logique si le joueur est dans un sous-menu (le temps se fige en mode « wait »)
-  syncDepth() {
-    this.context?.onBrowse(this.stack.length > 1);
-  },
-
   render() {
     renderMenu(this);
   },
@@ -156,7 +150,6 @@ export const Menu: MenuController = {
     if (!this.hero) return;
     const entries = kind === "spell" ? spellEntries(this.hero) : itemEntries(this.hero);
     this.stack.push({ type: "list", kind, cursor: 0, entries });
-    this.syncDepth();
     this.render();
   },
 
@@ -169,7 +162,6 @@ export const Menu: MenuController = {
       level.cursor = defaultTargetIndex(ability, this.targetsOf(level));
     }
     this.stack.push(level);
-    this.syncDepth();
     this.render();
   },
 
@@ -188,7 +180,6 @@ export const Menu: MenuController = {
     if (this.stack.length > 1) {
       this.stack.pop();
       Sfx.play("cancel");
-      this.syncDepth();
       this.render();
     } else if (this.context?.canPass()) {
       // Comme dans FF : Annuler au menu principal passe la main au héros prêt suivant
