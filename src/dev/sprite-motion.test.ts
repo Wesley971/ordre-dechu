@@ -3,11 +3,12 @@
 import { describe, expect, it } from "vitest";
 import { CONFIG } from "../config.ts";
 import {
-  createMotion, FRAME_MS, frameCount, gestureImages, type BaseName, type GestureName, type MotionPose, type MotionRig, type MotionTimings,
+  createMotion, FRAME_MS, frameCount, gestureImages, SHADE, shadeColor, type BaseName, type GestureName, type MotionPose, type MotionRig, type MotionTimings,
 } from "../ui/sprite-motion.ts";
 import { REST_BODY } from "../ui/sprite-frames.ts";
+import { shadeFilter } from "../ui/animated-sprite.ts";
 
-const rig: MotionRig = { height: 66, waist: 36, kneel: 9, breath: { period: 2.8, phase: 0 } };
+const rig: MotionRig = { height: 66, waist: 36, breath: { period: 2.8, phase: 0 } };
 const timings = (): MotionTimings => CONFIG.timing;
 const GESTURES: GestureName[] = ["attack", "strike", "cast", "hit", "fall", "revive", "victory", "slump", "rise", "dissolve"];
 const DURATIONS: Record<GestureName, keyof MotionTimings> = {
@@ -52,7 +53,7 @@ describe("gestes", () => {
       motion.play(name, start);
       const seen = new Set<string>();
       for (let t = start; motion.busy(t); t += 1) seen.add(shapeOf(motion.poseAt(t, true)));
-      for (const image of images) expect(seen).toContain(JSON.stringify({ ...REST_BODY, dx: 0, dy: 0, ...image, drawn: null }));
+      for (const image of images) expect(seen).toContain(JSON.stringify({ ...REST_BODY, dx: 0, dy: 0, shade: 0, ...image, drawn: null }));
     }
   });
 
@@ -82,35 +83,66 @@ describe("gestes", () => {
   });
 });
 
-describe("K.O. et réanimation", () => {
-  it("la chute passe par les genoux, puis la pose couchée reste tenue", () => {
+describe("genou à terre (pose provisoire, décisions du 08/11/2026)", () => {
+  it("affaissé et penché en avant, sans replier les jambes, avec une respiration plus ample et plus lente que l'attente", () => {
+    const motion = createMotion(rig, timings, "critical");
+    const lifts = new Set<number>();
+    let changes = 0, previous = motion.poseAt(0, true).lift;
+    for (let t = 0; t < 20000; t += 10) {
+      const pose = motion.poseAt(t, true);
+      expect(pose).toMatchObject({ fold: 0, lean: 2, shade: 0 });
+      lifts.add(pose.lift);
+      if (pose.lift !== previous) changes++;
+      previous = pose.lift;
+    }
+    expect([...lifts].sort((a, b) => a - b)).toEqual([-3, -1]);
+    const idle = createMotion(rig, timings);
+    let idleChanges = 0, idlePrevious = idle.poseAt(0, true).lift;
+    for (let t = 0; t < 20000; t += 10) {
+      const lift = idle.poseAt(t, true).lift;
+      if (lift !== idlePrevious) idleChanges++;
+      idlePrevious = lift;
+    }
+    expect(changes).toBeLessThan(idleChanges);
+  });
+
+  it("un coup reçu garde l'affaissement", () => {
+    const motion = createMotion(rig, timings, "critical");
+    motion.play("hit", 0);
+    expect(motion.poseAt(10, true).lift).toBe(-3);
+  });
+});
+
+describe("K.O. et réanimation (pose provisoire, décisions du 08/11/2026)", () => {
+  it("le héros s'affaisse, puis s'éteint, et la pose éteinte reste tenue", () => {
     const motion = createMotion(rig, timings);
     motion.play("fall", 0);
     motion.setBase("ko");
-    expect(motion.poseAt(0, true)).toMatchObject({ lying: false, fold: 0, lift: -1 });
-    expect(motion.poseAt(CONFIG.timing.fall * 0.5, true).fold).toBe(rig.kneel);
-    for (const t of [CONFIG.timing.fall + FRAME_MS, 5000, 60000]) expect(motion.poseAt(t, true).lying).toBe(true);
+    expect(motion.poseAt(0, true)).toMatchObject({ lift: -1, shade: 0 });
+    let shade = 0;
+    for (let t = 0; motion.busy(t); t += 10) {
+      const pose = motion.poseAt(t, true);
+      expect(pose.shade).toBeGreaterThanOrEqual(shade); // il s'éteint sans se rallumer
+      shade = pose.shade;
+    }
+    for (const t of [CONFIG.timing.fall + FRAME_MS, 5000, 60000]) {
+      expect(motion.poseAt(t, true)).toMatchObject({ lift: -3, lean: 2, fold: 0, shade: 1 });
+    }
   });
 
-  it("un héros déjà à genoux ne se relève pas pour tomber", () => {
+  it("un héros déjà affaissé (en danger) ne se redresse pas avant de s'éteindre", () => {
     const motion = createMotion(rig, timings, "critical");
     motion.play("fall", 0);
     motion.setBase("ko");
-    for (let t = 0; motion.busy(t); t += 10) expect(motion.poseAt(t, true).fold).toBe(rig.kneel);
+    for (let t = 0; motion.busy(t); t += 10) expect(motion.poseAt(t, true).lift).toBe(-3);
   });
 
-  it("une réanimation ramène à l'attente", () => {
+  it("une réanimation le rallume et ramène à l'attente", () => {
     const motion = createMotion(rig, timings, "ko");
     motion.play("revive", 0);
     motion.setBase("idle");
-    expect(motion.poseAt(0, true)).toMatchObject({ lying: false, fold: rig.kneel });
-    expect(motion.poseAt(CONFIG.timing.fall + FRAME_MS, true)).toMatchObject({ lying: false, fold: 0, lean: 0 });
-  });
-
-  it("un coup reçu à genoux garde le genou à terre", () => {
-    const motion = createMotion(rig, timings, "critical");
-    motion.play("hit", 0);
-    expect(motion.poseAt(10, true).fold).toBe(rig.kneel);
+    expect(motion.poseAt(0, true).shade).toBeLessThan(1);
+    expect(motion.poseAt(CONFIG.timing.fall + FRAME_MS, true)).toMatchObject({ shade: 0, fold: 0, lean: 0 });
   });
 });
 
@@ -121,11 +153,25 @@ describe("mouvement réduit", () => {
     for (let t = 0; t < 4000; t += 50) expect(motion.poseAt(t, false)).toMatchObject({ dx: 0, lift: 0, lean: 0 });
   });
 
-  it("le K.O. passe directement à la pose couchée", () => {
+  it("en danger : affaissé et immobile", () => {
+    const motion = createMotion(rig, timings, "critical");
+    for (let t = 0; t < 8000; t += 50) expect(motion.poseAt(t, false)).toMatchObject({ lift: -3, lean: 2, fold: 0, shade: 0 });
+  });
+
+  it("le K.O. passe directement à la pose éteinte", () => {
     const motion = createMotion(rig, timings);
     motion.play("fall", 0);
     motion.setBase("ko");
-    expect(motion.poseAt(0, false).lying).toBe(true);
+    expect(motion.poseAt(0, false)).toMatchObject({ lift: -3, shade: 1 });
+  });
+});
+
+describe("couleur du héros éteint", () => {
+  it("allumé : aucun filtre ; éteint : tout en gris, assombri presque jusqu'à l'ombre", () => {
+    expect(shadeFilter(0)).toBe("");
+    expect(shadeColor(1)).toEqual({ gray: 1, brightness: 1 - SHADE.darkness });
+    expect(shadeFilter(1)).toBe(`grayscale(1) brightness(${1 - SHADE.darkness})`);
+    expect(shadeColor(0.5).brightness).toBeGreaterThan(shadeColor(1).brightness);
   });
 });
 

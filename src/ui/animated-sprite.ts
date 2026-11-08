@@ -10,7 +10,7 @@
 import { CONFIG } from "../config.ts";
 import type { SpriteRig } from "../data/game-data.ts";
 import { composeFrame, frameLayout, type FrameLayout, type FrameRig, type PixelImage } from "./sprite-frames.ts";
-import { createMotion, type BaseName, type GestureName, type MotionPose, type SpriteMotion } from "./sprite-motion.ts";
+import { createMotion, shadeColor, type BaseName, type GestureName, type MotionPose, type SpriteMotion } from "./sprite-motion.ts";
 
 export interface AnimatedSpriteOptions {
   url: string;                 // PNG du personnage
@@ -31,6 +31,13 @@ export interface AnimatedSprite {
   setBase(name: BaseName): void;
   play(name: GestureName): void;  // avant setBase pour une transition (fall puis ko, sprite-motion.ts)
   dispose(): void;
+}
+
+// Filtre CSS du héros éteint (MotionPose.shade) : gris et assombri, une couleur, sans flou ; vide s'il est allumé
+export function shadeFilter(shade: number) {
+  if (shade <= 0) return "";
+  const { gray, brightness } = shadeColor(shade);
+  return `grayscale(${gray}) brightness(${brightness})`;
 }
 
 // — Boucle commune —
@@ -79,7 +86,7 @@ function loadPixels(url: string): Promise<PixelImage> {
 
 const samePose = (a: MotionPose, b: MotionPose) =>
   a.dx === b.dx && a.dy === b.dy && a.lift === b.lift && a.lean === b.lean && a.fold === b.fold && a.clipTop === b.clipTop
-  && a.lying === b.lying && a.drawn?.name === b.drawn?.name && a.drawn?.index === b.drawn?.index;
+  && a.shade === b.shade && a.drawn?.name === b.drawn?.name && a.drawn?.index === b.drawn?.index;
 
 export function createAnimatedSprite(options: AnimatedSpriteOptions): AnimatedSprite {
   const canvas = document.createElement("canvas");
@@ -95,7 +102,7 @@ export function createAnimatedSprite(options: AnimatedSpriteOptions): AnimatedSp
   let disposed = false;
 
   const motion: SpriteMotion = createMotion(
-    { height: options.height, waist: rig.waist, kneel: rig.kneel, breath: { period: rig.breath, phase: rig.phase + (options.phase ?? 0) } },
+    { height: options.height, waist: rig.waist, breath: { period: rig.breath, phase: rig.phase + (options.phase ?? 0) } },
     () => CONFIG.timing, options.initial,
   );
 

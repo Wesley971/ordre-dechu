@@ -85,25 +85,15 @@ describe("composition des poses sur une image de test", () => {
     }
   });
 
-  it("couché : quart de tour exact, tête vers l'adversaire, flanc sur la ligne des pieds", () => {
-    for (const facing of [1, -1] as const) { // as const : les deux sens du regard, du type de FrameRig.facing
-      const frame = composeFrame(source, { waist: 6, facing }, pose({ lying: true }), layout);
-      const seen = new Set<string>();
-      let lowest = -1, headX = 0, feetX = 0;
-      for (let y = 0; y < frame.height; y++) {
-        for (let x = 0; x < frame.width; x++) {
-          const from = sourceAt(frame, x, y);
-          if (!from) continue;
-          seen.add(from.join());
-          lowest = Math.max(lowest, y);
-          if (from[1] === 0) headX = x;
-          if (from[1] === 9) feetX = x;
-        }
-      }
-      expect(seen.size).toBe(60); // chaque pixel une fois, aucun perdu ni répété
-      expect(lowest).toBe(layout.height - 1);
-      expect(Math.sign(headX - feetX)).toBe(facing);
-    }
+  it("haut du corps affaissé : il descend et passe devant le haut des jambes, les pieds ne bougent pas", () => {
+    const frame = composeFrame(source, rig, pose({ lift: -2 }), layout);
+    const at = (y: number) => sourceAt(frame, layout.originX + 1, layout.originY + y);
+    expect(at(0)).toBeNull();
+    expect(at(1)).toBeNull();
+    expect(at(2)).toEqual([1, 0]);
+    expect(at(7)).toEqual([1, 5]); // la taille recouvre la rangée 7 des jambes
+    expect(at(8)).toEqual([1, 8]);
+    expect(at(9)).toEqual([1, 9]);
   });
 });
 
@@ -123,7 +113,7 @@ function rigOf(name: string): SpriteRig {
 
 const POSES: Partial<BodyPose>[] = [
   {}, { lift: 1 }, { lift: 2, lean: -1 }, { lift: -1, lean: 2 }, { lean: 5 }, { lean: -2 }, { fold: 6, lean: 1 },
-  { fold: 6, lean: 5 }, { clipTop: 20 }, { lying: true },
+  { fold: 6, lean: 5 }, { clipTop: 20 }, { lift: -3, lean: 2 },
 ];
 
 function colors(image: PixelImage) {
@@ -143,16 +133,15 @@ describe("les 9 sprites du jeu, dans chaque pose : aucun pixel inventé", () => 
     const layout = frameLayout(source.width, source.height);
     const rig: FrameRig = { waist: rigOf(name).waist, facing };
     for (const part of POSES) {
-      if (part.lying && facing < 0) continue; // seuls les héros se couchent (K.O.)
       const frame = composeFrame(source, rig, pose(part), layout);
       for (const color of colors(frame)) expect(palette.has(color)).toBe(true);
-      // Couché ou au repos, l'image garde tous ses pixels : rien n'est perdu au bord de la toile
-      if (part.lying || Object.keys(part).length === 0) expect(opaque(frame)).toBe(opaque(source));
+      // Au repos, l'image garde tous ses pixels : rien n'est perdu au bord de la toile
+      if (Object.keys(part).length === 0) expect(opaque(frame)).toBe(opaque(source));
     }
   });
 });
 
-// Ce que chaque camp joue : poses de fond et gestes (les ennemis ne se couchent pas)
+// Ce que chaque camp joue : poses de fond et gestes
 const HERO_MOTIONS = { bases: ["idle", "acting", "critical", "ko"], gestures: ["attack", "cast", "hit", "fall", "revive", "victory"] } as const; // as const : des noms de BaseName et GestureName
 const ENEMY_MOTIONS = { bases: ["idle", "defeated", "gone"], gestures: ["strike", "cast", "hit", "slump", "rise", "dissolve"] } as const; // as const : idem
 
@@ -164,7 +153,7 @@ describe("les 9 sprites du jeu, dans toutes leurs animations : rien ne sort de l
     const wide = { width: layout.width + 60, height: layout.height + 60, originX: layout.originX + 30, originY: layout.originY + 30 };
     const data = rigOf(name);
     const frameRig: FrameRig = { waist: data.waist, facing };
-    const rig: MotionRig = { height: source.height, waist: data.waist, kneel: data.kneel, breath: { period: data.breath, phase: data.phase } };
+    const rig: MotionRig = { height: source.height, waist: data.waist, breath: { period: data.breath, phase: data.phase } };
     const { bases, gestures } = facing > 0 ? HERO_MOTIONS : ENEMY_MOTIONS;
     for (const base of bases) {
       for (const gesture of gestures) {
@@ -180,13 +169,46 @@ describe("les 9 sprites du jeu, dans toutes leurs animations : rien ne sort de l
   });
 });
 
+// Hauteur de la silhouette : de la première à la dernière rangée qui a un pixel opaque
+function silhouetteHeight(image: PixelImage) {
+  let top = -1, bottom = -1;
+  for (let y = 0; y < image.height; y++) {
+    for (let x = 0; x < image.width; x++) {
+      if (!image.data[(y * image.width + x) * 4 + 3]) continue;
+      if (top < 0) top = y;
+      bottom = y;
+    }
+  }
+  return { top, bottom, height: bottom - top + 1 };
+}
+
+describe("genou à terre et héros éteint (décisions du 08/11/2026) : la silhouette garde sa taille", () => {
+  it.each(SPRITES.filter(([, , facing]) => facing > 0))("%s", async (name, url, facing) => {
+    const source = await decodePng(url);
+    const layout = frameLayout(source.width, source.height);
+    const data = rigOf(name);
+    const rig: MotionRig = { height: source.height, waist: data.waist, breath: { period: data.breath, phase: data.phase } };
+    const rest = silhouetteHeight(composeFrame(source, { waist: data.waist, facing }, REST_BODY, layout));
+    // Poses de fond, et gestes qui y mènent ou en reviennent (chute, réanimation)
+    const cases = [["critical", null], ["ko", null], ["idle", "fall"], ["critical", "fall"], ["ko", "revive"]] as const; // as const : BaseName et GestureName
+    for (const [base, gesture] of cases) {
+      const motion = createMotion(rig, () => CONFIG.timing, base);
+      if (gesture) motion.play(gesture, 0);
+      for (let t = 0; t < 6000; t += 10) {
+        const shape = silhouetteHeight(composeFrame(source, { waist: data.waist, facing }, motion.poseAt(t, true), layout));
+        expect(shape.bottom).toBe(rest.bottom); // les pieds ne bougent pas
+        expect(rest.height - shape.height).toBeLessThanOrEqual(3); // quelques pixels de moins, pas un personnage rétréci
+      }
+    }
+  });
+});
+
 describe("squelettes des données (MAE-30)", () => {
-  it.each(SPRITES)("%s : taille dans le sprite, jambes assez longues pour se replier", async (name, url) => {
+  it.each(SPRITES)("%s : taille dans le sprite", async (name, url) => {
     const source = await decodePng(url);
     const rig = rigOf(name);
     expect(rig.waist).toBeGreaterThan(0);
     expect(rig.waist).toBeLessThan(source.height);
-    expect(rig.kneel).toBeLessThan(source.height - rig.waist);
     expect(rig.breath).toBeGreaterThan(0);
   });
 });

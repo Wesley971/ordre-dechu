@@ -15,8 +15,8 @@ import { REST_BODY, type BodyPose } from "./sprite-frames.ts";
 export type BaseName =
   | "idle"      // attente : le haut du corps respire
   | "acting"    // héros qui agit, avancé : penché vers l'ennemi
-  | "critical"  // héros en danger : genou à terre, respiration lente
-  | "ko"        // héros éteint : couché, dernière pose tenue
+  | "critical"  // héros en danger : affaissé, penché en avant, respiration lourde (provisoire, MAE-94 la dessinera)
+  | "ko"        // héros éteint : affaissé, silhouette sombre et grise, dernière pose tenue (provisoire, MAE-94)
   | "defeated"  // ennemi vaincu mais pas mort (le Dragon) : affaissé
   | "gone";     // ennemi mort : plus rien à dessiner
 
@@ -26,8 +26,8 @@ export type GestureName =
   | "strike"    // ennemi : bond vers les héros, puis retour
   | "cast"      // Souffle : le haut du corps se lève, penché en arrière
   | "hit"       // coup reçu : recul, penché en arrière, tremblement
-  | "fall"      // héros : flanche, tombe à genoux, s'effondre (avant la pose ko)
-  | "revive"    // héros ranimé : à genoux, puis debout
+  | "fall"      // héros : s'affaisse, puis s'éteint (avant la pose ko)
+  | "revive"    // héros ranimé : se rallume, puis se redresse
   | "victory"   // héros : quatre sauts
   | "slump"     // ennemi vaincu : s'affaisse (avant la pose defeated)
   | "rise"      // ennemi épargné : se relève
@@ -36,14 +36,13 @@ export type GestureName =
 // Durées des gestes, en millisecondes : un extrait de CONFIG.timing
 export interface MotionTimings {
   step: number; blink: number; cast: number; hit: number; fall: number;
-  victoryHop: number; kneel: number; defeatedPose: number; death: number;
+  victoryHop: number; defeatedPose: number; death: number;
 }
 
 // Squelette animé d'un personnage, en pixels de sprite
 export interface MotionRig {
   height: number;                       // hauteur du PNG
   waist: number;                        // première rangée du bas du corps (FrameRig)
-  kneel: number;                        // rangées repliées à genoux
   breath: { period: number; phase: number }; // respiration : période en secondes, et décalage (0 à 1)
   drawn?: Partial<Record<BaseName | GestureName, number>>; // nombre d'images dessinées qui remplacent l'animation (MAE-94)
 }
@@ -52,6 +51,7 @@ export interface MotionRig {
 export interface MotionPose extends BodyPose {
   dx: number;
   dy: number;
+  shade: number; // 0 à 1 : héros qui s'éteint, jusqu'à la silhouette sombre et grise (une couleur, posée par la scène : shadeColor)
   drawn: { name: BaseName | GestureName; index: number } | null; // image dessinée à afficher à la place
 }
 
@@ -66,6 +66,17 @@ interface Gesture {
   // Pose de l'image `frame` (de 0 à count - 1) d'un geste de `count` images ; from : pose de fond quand il a été lancé
   pose(frame: number, count: number, rig: MotionRig, from: BaseName): PosePart;
 }
+
+// Couleur du héros éteint, à hauteur de shade : tout en gris, et assombri jusqu'à presque une ombre
+export const SHADE = { gray: 1, darkness: 0.72 };
+export function shadeColor(shade: number) {
+  return { gray: SHADE.gray * shade, brightness: 1 - SHADE.darkness * shade };
+}
+
+// Pose provisoire du héros éteint et du genou à terre (décisions de Wesley du 08/11/2026) : la silhouette garde sa taille
+const SLUMP = { lift: -3, lean: 2 };
+// Genou à terre : respiration plus lente que l'attente (période × 1,5) et plus ample (2 pixels au lieu de 1)
+const HEAVY_BREATH = { period: 1.5, depth: 2 };
 
 export const FRAMES_PER_SECOND = 12;
 export const FRAME_MS = 1000 / FRAMES_PER_SECOND;
@@ -98,12 +109,12 @@ export function gestureImages(name: GestureName, rig: MotionRig, from: BaseName)
     case "strike": return [{ lean: 1 }, { dx: 3, dy: 1, lean: 2 }, { dx: 5, lean: 3 }, { dx: 2, lean: 1 }];
     case "cast": return [{ lift: 1 }, { lift: 2, lean: -1 }, { lift: 1 }];
     case "hit": return [{ dx: -2, lean: -2 }, { dx: 1, lean: -1 }, { dx: -1, lean: -1 }];
-    case "fall": {
-      const kneeling = [{ fold: rig.kneel, lean: 2 }, { fold: rig.kneel, lean: 5 }]; // à genoux, s'effondre vers l'avant
-      // Déjà à genoux (en danger) : il ne se relève pas pour flancher
-      return from === "critical" ? kneeling : [{ lift: -1, lean: 2 }, ...kneeling];
-    }
-    case "revive": return [{ fold: rig.kneel, lean: 1 }, { fold: Math.round(rig.kneel / 2) }];
+    // S'affaisse un peu, puis s'éteint ; déjà affaissé (en danger), il ne se redresse pas avant de s'éteindre
+    case "fall": return from === "critical"
+      ? [{ ...SLUMP, shade: 0.33 }, { ...SLUMP, shade: 0.66 }]
+      : [{ lift: -1, lean: 1 }, { lift: -2, lean: 2 }, { ...SLUMP, shade: 0.5 }];
+    // Se rallume, puis se redresse
+    case "revive": return [{ ...SLUMP, shade: 0.5 }, { lift: -1, lean: 1 }];
     case "slump": return [1, 2, 3].map((k) => ({ fold: Math.round((sinkOf(rig) * k) / 3), lean: k }));
     case "rise": return [2, 1].map((k) => ({ fold: Math.round((sinkOf(rig) * k) / 3), lean: k }));
     case "victory":
@@ -150,19 +161,19 @@ function breathing(rig: MotionRig, nowMs: number, period: number) {
 }
 
 // breathe false : mouvement réduit, ou pendant un geste (la respiration s'arrête le temps du geste)
-function basePose(name: BaseName, rig: MotionRig, nowMs: number, timings: MotionTimings, breathe: boolean): PosePart {
+function basePose(name: BaseName, rig: MotionRig, nowMs: number, breathe: boolean): PosePart {
   switch (name) {
     case "idle": return { lift: breathe ? breathing(rig, nowMs, rig.breath.period) : 0 };
     case "acting": return { lean: 1 };
-    case "critical": return { fold: rig.kneel, lean: 1, lift: breathe ? breathing(rig, nowMs, timings.kneel / 1000) : 0 };
-    case "ko": return { lying: true };
+    case "critical": return { ...SLUMP, lift: SLUMP.lift + (breathe ? HEAVY_BREATH.depth * breathing(rig, nowMs, rig.breath.period * HEAVY_BREATH.period) : 0) };
+    case "ko": return { ...SLUMP, shade: 1 };
     case "defeated": return { fold: sinkOf(rig), lean: 3 };
     case "gone": return { clipTop: rig.height };
   }
 }
 
 function toPose(part: PosePart): MotionPose {
-  return { ...REST_BODY, dx: 0, dy: 0, ...part, drawn: null };
+  return { ...REST_BODY, dx: 0, dy: 0, shade: 0, ...part, drawn: null };
 }
 
 // Ajoute un geste à la pose de fond : déplacements additionnés, rangées retirées au plus grand
@@ -174,7 +185,7 @@ function addTo(base: PosePart, gesture: PosePart): PosePart {
     lean: (base.lean ?? 0) + (gesture.lean ?? 0),
     fold: Math.max(base.fold ?? 0, gesture.fold ?? 0),
     clipTop: Math.max(base.clipTop ?? 0, gesture.clipTop ?? 0),
-    lying: base.lying ?? false,
+    shade: Math.max(base.shade ?? 0, gesture.shade ?? 0),
   };
 }
 
@@ -213,14 +224,13 @@ export function createMotion(rig: MotionRig, timings: () => MotionTimings, initi
     },
     busy: running,
     poseAt(nowMs, moving) {
-      const t = timings();
       if (!moving || !gesture || !running(nowMs)) {
-        return { ...toPose(basePose(base, rig, nowMs, t, moving)), drawn: drawnFor(base, 1, 1) };
+        return { ...toPose(basePose(base, rig, nowMs, moving)), drawn: drawnFor(base, 1, 1) };
       }
       const def = GESTURES[gesture.name];
       const frame = Math.max(0, frameAt(nowMs) - gesture.start);
       const part = def.pose(frame, gesture.count, rig, gesture.from);
-      const under = basePose(base, rig, nowMs, t, false);
+      const under = basePose(base, rig, nowMs, false);
       return { ...toPose(def.replaces ? part : addTo(under, part)), drawn: drawnFor(gesture.name, frame, gesture.count) };
     },
   };

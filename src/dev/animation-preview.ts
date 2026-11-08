@@ -2,13 +2,14 @@
 //
 // Chaque personnage joue chacune de ses animations en boucle, dans sa case : un pixel de sprite fait un nombre entier
 // de pixels réels (?zoom=1 à 4 ; 2 par défaut sur ordinateur, 1 sur téléphone ; ?zoom=3 : l'échelle d'un grand écran). Les couleurs
-// (teinte du coup reçu, gris du K.O., éclair, mort) imitent celles des scènes, qui les posent elles-mêmes.
+// (teinte du coup reçu, éclair, mort) imitent celles des scènes ; le héros qui s'éteint prend la couleur du moteur
+// (shadeFilter), la même que dans les scènes.
 // Une case « Mouvement réduit » simule le réglage du système (MAE-58). ?vitesse=X accélère les animations, comme en jeu
 // (pas les pauses entre deux tours de boucle). Le pas en avant d'un héros qui agit est fait par la scène : pas ici.
 
 import { CONFIG } from "../config.ts";
 import { ENEMIES, HEROES, type EnemyDef, type SpriteRig } from "../data/game-data.ts";
-import { createAnimatedSprite, overrideReducedMotion, type AnimatedSprite } from "../ui/animated-sprite.ts";
+import { createAnimatedSprite, overrideReducedMotion, shadeFilter, type AnimatedSprite } from "../ui/animated-sprite.ts";
 import { HERO_CANVAS } from "../ui/stage.ts";
 
 interface Character { name: string; url: string; rig: SpriteRig; height: number; facing: 1 | -1; boss: boolean }
@@ -21,9 +22,8 @@ const MARGIN = 8; // marge de la case autour de la toile, en pixels de sprite (p
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const PAUSE = 1200;
 
-// Couleurs des scènes (style.css) : coup reçu, K.O., éclair de l'ennemi qui agit, mort
+// Couleurs des scènes (style.css) : coup reçu, éclair de l'ennemi qui agit, mort
 const HIT_TINT = "brightness(1.8) sepia(0.6) hue-rotate(-30deg)";
-const KO_TINT = "grayscale(1) brightness(0.55)";
 const FLASH = "brightness(2.6)";
 const DEATH_TINT = "sepia(1) saturate(6) hue-rotate(250deg) brightness(0.9)";
 const GLOW = "drop-shadow(0 0 4px #f0c95a)";
@@ -47,28 +47,26 @@ const HERO_SCENARIOS: [string, Scenario][] = [
     color(HIT_TINT, CONFIG.timing.hit);
     await wait(CONFIG.timing.hit + PAUSE);
   }],
-  ["Genou à terre", async ({ sprite, color }) => {
+  ["En danger (provisoire)", async ({ sprite, color }) => {
     sprite.setBase("critical");
     await wait(PAUSE);
     sprite.play("hit");
     color(HIT_TINT, CONFIG.timing.hit);
     await wait(CONFIG.timing.hit + PAUSE);
   }],
-  ["K.O. et réanimation", async ({ sprite, color }) => {
+  ["K.O. et réanimation (provisoire)", async ({ sprite }) => {
     sprite.play("fall");
     sprite.setBase("ko");
-    color(KO_TINT, CONFIG.timing.fall + 2 * PAUSE);
     await wait(CONFIG.timing.fall + 2 * PAUSE);
     sprite.play("revive");
     sprite.setBase("idle");
     await wait(CONFIG.timing.fall + PAUSE);
   }],
-  ["K.O. depuis le genou", async ({ sprite, color }) => {
+  ["K.O. en danger (provisoire)", async ({ sprite }) => {
     sprite.setBase("critical");
     await wait(PAUSE);
     sprite.play("fall");
     sprite.setBase("ko");
-    color(KO_TINT, CONFIG.timing.fall + 2 * PAUSE);
     await wait(CONFIG.timing.fall + 2 * PAUSE);
     sprite.play("revive");
     sprite.setBase("idle");
@@ -144,18 +142,25 @@ function buildCell(character: Character, label: string, scenario: Scenario, px: 
   caption.textContent = label;
   figure.append(box, caption);
 
+  // Filtre du canvas : la couleur du héros éteint (moteur), puis la teinte passagère du scénario
+  let shade = "";
+  let tint = "";
+  const paint = () => { sprite.canvas.style.filter = [shade, tint].filter(Boolean).join(" "); };
   const sprite = createAnimatedSprite({
     url: character.url, rig: character.rig, height: character.height, facing: character.facing,
     onPose(pose) {
       sprite.canvas.style.translate = `${pose.dx * character.facing * px}px ${-pose.dy * px}px`;
+      shade = shadeFilter(pose.shade);
+      paint();
     },
   });
   box.appendChild(sprite.canvas);
   let colorTimer = 0;
   const color = (filter: string, ms: number) => {
-    sprite.canvas.style.filter = filter;
+    tint = filter;
+    paint();
     clearTimeout(colorTimer);
-    colorTimer = window.setTimeout(() => { sprite.canvas.style.filter = ""; }, ms);
+    colorTimer = window.setTimeout(() => { tint = ""; paint(); }, ms);
   };
 
   void sprite.ready.then(async () => {

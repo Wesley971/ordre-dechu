@@ -28,10 +28,9 @@ export interface Stats {
 export type StatName = keyof Stats;
 
 // Squelette d'un sprite pour ses animations en code (MAE-30, src/ui/sprite-motion.ts), en pixels de sprite.
-// La taille sépare le haut du corps (qui respire, se penche, se lève) du bas (qui se replie à genoux).
+// La taille sépare le haut du corps (qui respire, se penche, se lève) du bas (qui ne bouge pas ; un ennemi vaincu s'y affaisse).
 export interface SpriteRig {
   waist: number;   // première rangée du bas du corps, depuis le haut du PNG
-  kneel: number;   // rangées des jambes repliées à genoux (héros)
   breath: number;  // période de la respiration, en secondes
   phase: number;   // décalage de la respiration (0 à 1), pour que les personnages ne respirent pas ensemble
 }
@@ -88,7 +87,7 @@ const memory = (html: string): PageObject => ({ html: `<span class="memory">${ht
 export const HEROES: HeroDef[] = [
   {
     id: "maelor", name: "Maelor", job: "Chevalier déchu", image: "images/maelor.png",
-    rig: { waist: 36, kneel: 9, breath: 2.8, phase: 0 },
+    rig: { waist: 36, breath: 2.8, phase: 0 },
     command: "Gestes",
     stats:  { maxHp: 160, maxMp: 18, atk: 18, def: 10, mag: 6,  res: 6,  spd: 9  },
     growth: { maxHp: 22,  maxMp: 2,  atk: 3,  def: 2,  mag: 1,  res: 1,  spd: 1  },
@@ -96,7 +95,7 @@ export const HEROES: HeroDef[] = [
   },
   {
     id: "corvin", name: "Corvin", job: "Veilleur", image: "images/corvin.png",
-    rig: { waist: 36, kneel: 9, breath: 3.1, phase: 0.2 },
+    rig: { waist: 36, breath: 3.1, phase: 0.2 },
     command: "Lanterne",
     stats:  { maxHp: 95,  maxMp: 40, atk: 8,  def: 5,  mag: 18, res: 12, spd: 11 },
     growth: { maxHp: 12,  maxMp: 6,  atk: 1,  def: 1,  mag: 3,  res: 2,  spd: 1  },
@@ -104,7 +103,7 @@ export const HEROES: HeroDef[] = [
   },
   {
     id: "elwen", name: "Elwen", job: "Source", image: "images/elwen.png",
-    rig: { waist: 36, kneel: 9, breath: 3.4, phase: 0.55 },
+    rig: { waist: 36, breath: 3.4, phase: 0.55 },
     command: "Source",
     feminine: true,
     // bords enflammés du drapé
@@ -208,19 +207,19 @@ export interface EnemyDef {
 export const ENEMIES = {
   sankri: {
     name: "Sankri", image: "images/sankri.png", canvasWidth: 77, canvasHeight: 74,
-    rig: { waist: 48, kneel: 0, breath: 3.8, phase: 0 }, // sous la lance, qui suit le haut du corps
+    rig: { waist: 48, breath: 3.8, phase: 0 }, // sous la lance, qui suit le haut du corps
     maxHp: 70, atk: 14, def: 4, mag: 0, res: 4, spd: 12,
     xp: 18, gil: 25, drop: { item: "potion", chance: 0.4 },
   },
   hesium: {
     name: "Hésium", image: "images/hesium.png", canvasWidth: 57, canvasHeight: 68,
-    rig: { waist: 37, kneel: 0, breath: 4.1, phase: 0 },
+    rig: { waist: 37, breath: 4.1, phase: 0 },
     maxHp: 110, atk: 17, def: 8, mag: 0, res: 6, spd: 8,
     xp: 26, gil: 40, drop: { item: "ether", chance: 0.25 },
   },
   gautik: {
     name: "Gau-Tik", image: "images/gautik.png", canvasWidth: 43, canvasHeight: 78,
-    rig: { waist: 43, kneel: 0, breath: 3.5, phase: 0 },
+    rig: { waist: 43, breath: 3.5, phase: 0 },
     maxHp: 260, atk: 24, def: 10, mag: 0, res: 4, spd: 6,
     elements: { thunder: "weak" },
     skills: [{ skill: "chains", chance: 0.3 }],
@@ -228,7 +227,7 @@ export const ENEMIES = {
   },
   painkush: {
     name: "Painkush", image: "images/painkush.png", canvasWidth: 75, canvasHeight: 80,
-    rig: { waist: 44, kneel: 0, breath: 4.0, phase: 0 },
+    rig: { waist: 44, breath: 4.0, phase: 0 },
     maxHp: 320, atk: 26, def: 12, mag: 0, res: 5, spd: 7,
     skills: [{ skill: "pillar", chance: 0.35 }],
     xp: 70, gil: 110, drop: { item: "ether", chance: 0.5 },
@@ -236,14 +235,14 @@ export const ENEMIES = {
   // L'écho de Maelor (MAE-70) : une épreuve, pas une proie. Ni XP ni Couronnes ; il laisse une Larme dorée.
   maelorEcho: {
     name: "Écho de Maelor", image: "images/maelor-echo.png", canvasWidth: 47, canvasHeight: 66,
-    rig: { waist: 36, kneel: 0, breath: 2.8, phase: 0 },
+    rig: { waist: 36, breath: 2.8, phase: 0 },
     maxHp: 420, atk: 26, def: 14, mag: 0, res: 8, spd: 12,
     skills: [{ skill: "echoBlade", chance: 0.33 }],
     xp: 0, gil: 0, drop: { item: "phoenix", chance: 1 },
   },
   vahn: {
     name: "Le Dragon", image: "images/vahn.png", canvasWidth: 142, canvasHeight: 88, boss: true, spareable: true,
-    rig: { waist: 48, kneel: 0, breath: 4.4, phase: 0 },
+    rig: { waist: 48, breath: 4.4, phase: 0 },
     maxHp: 1800, atk: 30, def: 14, mag: 26, res: 12, spd: 10,
     elements: { ice: "weak", fire: "absorb" },
     pattern: ["attack", "attack", "ashCloud"],
