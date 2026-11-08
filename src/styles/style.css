@@ -650,6 +650,8 @@ body.scene-painted #battle-scene { pointer-events: none; }
 .hud-plate::after  { bottom: 0; }
 
 #party-window  { top: var(--space-6); padding: 16px 40px 18px 24px; }
+/* Pendant les dialogues d'histoire, le groupe se cache ; il reste au combat, à la victoire et à la montée de niveau (MAE-89) */
+body.story-dialog #party-window { visibility: hidden; }
 #action-window { bottom: var(--space-6); padding: 14px 64px 16px 24px; }
 
 /* Barres */
@@ -1447,6 +1449,9 @@ body.defeat-choice .title-option.selected::before {
     background: var(--bg-void);
   }
   #party-window::before { display: none; }
+  /* Dialogues d'histoire : le bandeau noir reste, pour que la scène ne bouge pas ; seules les lignes se cachent */
+  body.story-dialog #party-window { visibility: visible; }
+  body.story-dialog #party-rows   { visibility: hidden; }
 
   .od-hud { gap: 6px; width: auto; }
 

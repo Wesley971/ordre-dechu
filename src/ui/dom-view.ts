@@ -69,8 +69,17 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     return domStage;
   }
 
+  // Pendant les dialogues d'histoire, le groupe se cache (MAE-89) ; il revient au combat, à la victoire (récompenses,
+  // montée de niveau, planche G6) et à la défaite. Un chapitre s'ouvre toujours sur un dialogue d'histoire.
+  // Titre de la victoire en cours : le dialogue qui le porte est celui des récompenses (il peut ne pas venir, s'il n'y a rien à gagner)
+  let rewardsTitle: string | null = null;
+  function storyDialog(on: boolean) {
+    document.body.classList.toggle("story-dialog", on);
+  }
+
   // Retour à l'écran titre : la mémoire graphique est rendue entre deux parties
   function leaveBattleScreen() {
+    storyDialog(false);
     releasePainted();
     stage = domStage;
     showScreen("intro");
@@ -116,6 +125,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
       stage = await selectStage(chapter);
       await stage.showIdle(party, chapter);
       renderHud(party);
+      storyDialog(true);
       showScreen("game");
     },
 
@@ -125,20 +135,28 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     },
 
     async tell(telling) {
+      storyDialog(rewardsTitle === null || telling.title !== rewardsTitle);
+      rewardsTitle = null;
       await Dialog.show(telling);
       hideBanner(); // l'annonce de la victoire reste le temps des récompenses
     },
-    ask: (question) => Dialog.choose(question),
+    ask(question) {
+      storyDialog(true);
+      return Dialog.choose(question);
+    },
     refresh: updateBattleUI,
 
     celebrate(party, title) {
       Sfx.play("victory");
+      storyDialog(false);
+      rewardsTitle = title;
       stage.victory(party);
       showBanner(title, "result");
     },
 
     async showDefeat(telling) {
       Sfx.play("gameOver");
+      storyDialog(false);
       document.body.classList.add("game-over");
       // Le mot « Défaite » est dans le bandeau, pas répété dans la bande (planche G7) ; game-over reste jusqu'au choix (showTitle)
       showBanner(telling.title ?? "", "danger");
@@ -187,6 +205,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
 
     async startBattle(state) {
       Dialog.reset(); // la bande garde la scène en cours : le combat en commence une autre
+      storyDialog(false);
       await stage.showIdle(state.heroes, state.chapter ?? GameState.currentChapter);
       renderHud(state.heroes);
       stage.showBattle(state);
