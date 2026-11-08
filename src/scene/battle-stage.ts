@@ -126,7 +126,8 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
     const created = list.filter((member) => !sprites.has(member.id)).map((member) => {
       const sprite = createAnimatedSprite({
         url: member.image, rig: member.rig, height: member.height, facing: member.side === "hero" ? 1 : -1,
-        phase: member.side === "enemy" ? enemyPhase(enemies.indexOf(member)) : 0, // le rang de l'ennemi, comme en DOM initial: initial(member),
+        phase: member.side === "enemy" ? enemyPhase(enemies.indexOf(member)) : 0, // le rang de l'ennemi, comme en DOM
+        initial: initial(member),
         // La pose a changé : la texture repart vers la carte graphique, et la scène se redessine (mouvement réduit compris)
         onPose: () => { actors?.get(member.id)?.redrawn(); stage.requestRedraw(); },
       });
