@@ -19,6 +19,7 @@ import { canStrike, screenOrder, stepAlong } from "./target-order.ts";
 export interface MenuEntry {
   label: string;
   element?: string; // l'élément d'une capacité, entre son nom et son coût (planche G1)
+  help?: string;    // ce que fait l'entrée, dans l'aide à droite de la liste (MAE-89)
   detail?: string;
   disabled?: boolean;
   select?: () => void; // absent pour « Besace vide »
@@ -51,6 +52,7 @@ function spellEntries(hero: Hero): MenuEntry[] {
     const spell = SPELLS[id];
     return {
       label: spell.name, element: "element" in spell && spell.element ? ELEMENT_NAMES[spell.element] : undefined, detail: `${spell.mp} PS`,
+      help: spell.desc,
       disabled: hero.mp < spell.mp || targetCandidates(hero, spell.target).length === 0,
       select: () => Menu.chooseTarget(spell),
     };
@@ -64,7 +66,7 @@ function itemEntries(hero: Hero): MenuEntry[] {
     .map(([id, quantity]) => {
       const item = ITEMS[id];
       return {
-        label: item.name, detail: `×${quantity}`,
+        label: item.name, detail: `×${quantity}`, help: item.desc,
         disabled: targetCandidates(hero, item.target).length === 0,
         select: () => Menu.chooseTarget(item, id),
       };

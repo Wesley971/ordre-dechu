@@ -186,7 +186,8 @@ export function screenCenter(c: Combatant) {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
 
-function menuList(level: CommandLevel | ListLevel, depth: number, active: boolean) {
+// interactive : false pour la copie inerte affichée pendant le ciblage (ni clic, ni survol, ni lecteur d'écran)
+function menuList(level: CommandLevel | ListLevel, depth: number, active: boolean, interactive = true) {
   const ul = document.createElement("ul");
   ul.className = "menu" + (active ? "" : " inactive");
   level.entries.forEach((entry, i) => {
@@ -196,8 +197,10 @@ function menuList(level: CommandLevel | ListLevel, depth: number, active: boolea
     // Le numéro de la touche est un <kbd> devant le nom : le nom reste le premier <span> de l'entrée
     const key = i < 9 ? `<kbd class="menu-key">${i + 1}</kbd>` : "";
     li.innerHTML = `${key}<span>${entry.label}</span>${element}${entry.detail ? `<span class="detail">${entry.detail}</span>` : ""}`;
-    li.addEventListener("click", () => Menu.clickEntry(depth, i));
-    li.addEventListener("mouseenter", () => Menu.hoverEntry(depth, i));
+    if (interactive) {
+      li.addEventListener("click", () => Menu.clickEntry(depth, i));
+      li.addEventListener("mouseenter", () => Menu.hoverEntry(depth, i));
+    }
     ul.appendChild(li);
   });
   return ul;
@@ -218,6 +221,66 @@ export function updateMenuCursor(menu: MenuController, depth: number) {
   if (level.type === "target") return;
   const container = level.type === "list" ? $("#list-window") : $("#command-window");
   container.querySelectorAll(".menu-item").forEach((li, i) => li.classList.toggle("selected", i === level.cursor));
+  renderHelp(menu);
+}
+
+// Élément et coût d'une capacité : « Glace », « 4 PS »
+function abilityFacts(ability: Ability) {
+  return [
+    "element" in ability && ability.element ? ELEMENT_NAMES[ability.element] : "",
+    "mp" in ability && ability.mp ? `${ability.mp} PS` : "",
+  ].filter(Boolean);
+}
+
+// Rappel des touches, pendant les combats du chapitre I seulement (MAE-89). Deux versions : la longue, et une courte qui
+// tient sur une ligne, montrée par style.css sur les écrans bas pour que la plaque ne monte pas sur les héros
+function keysReminder(menu: MenuController) {
+  const top = menu.level;
+  if (!top) return "";
+  const both = (long: string, short: string) => `<span class="keys-long">${long}</span><span class="keys-short">${short}</span>`;
+  if (top.type === "command") {
+    const keys = "<kbd>1–5</kbd> commandes · <kbd>← →</kbd> cible · <kbd>Échap</kbd> retour";
+    return both(keys, keys);
+  }
+  if (top.type === "list") {
+    const what = top.kind === "spell" ? "capacités" : "objets";
+    const keys = top.entries.length > 1 ? `1–${Math.min(top.entries.length, 9)}` : "1";
+    return both(`<kbd>${keys}</kbd> ${what} · <kbd>Entrée</kbd> valider · <kbd>Échap</kbd> retour`,
+      `<kbd>${keys}</kbd> · <kbd>Entrée</kbd> valider · <kbd>Échap</kbd> retour`);
+  }
+  if (top.all) return both("<kbd>Entrée</kbd> valider · <kbd>Échap</kbd> retour", "<kbd>Entrée</kbd> valider · <kbd>Échap</kbd> retour");
+  return top.relation === "ally"
+    ? both("<kbd>← →</kbd> allié précédent ou suivant, de gauche à droite à l'écran", "<kbd>← →</kbd> allié, de gauche à droite")
+    : both("<kbd>← →</kbd> ennemi précédent ou suivant, dans l'ordre de l'écran · clic pour lancer", "<kbd>← →</kbd> ennemi · clic pour lancer");
+}
+
+// L'aide à droite de la liste, dans la plaque du menu (planches N1 et N2) : l'entrée sous le curseur, ou la capacité qui
+// attend sa cible ; sur téléphone, elle reste cachée par style.css
+function renderHelp(menu: MenuController) {
+  const panel = $("#battle-help");
+  const top = menu.level;
+  if (!menu.hero || !top) {
+    panel.hidden = true;
+    return;
+  }
+  let name: string, facts: string[], text: string;
+  if (top.type === "target") {
+    name = top.ability.name;
+    facts = abilityFacts(top.ability);
+    text = top.ability.desc ?? "";
+  } else {
+    const entry = top.entries[top.cursor];
+    const cost = top.type === "list" && top.kind === "spell" ? entry?.detail : "";
+    name = entry?.label ?? "";
+    facts = [entry?.element ?? "", cost ?? ""].filter(Boolean);
+    text = entry?.help ?? "";
+  }
+  $("#help-title").innerHTML = `<span class="help-name">${name}</span>` + facts.map(fact => `<span class="menu-element"> · ${fact}</span>`).join("");
+  $("#help-text").textContent = text;
+  const keys = GameState.chapterIndex === 0 ? keysReminder(menu) : "";
+  $("#help-keys").innerHTML = keys;
+  $("#help-keys").hidden = !keys;
+  panel.hidden = false;
 }
 
 // Numéros 1, 2, 3 près des alliés visés un par un, dans l'ordre de l'écran : des repères, pas des touches (MAE-89)
@@ -319,6 +382,7 @@ export function renderMenu(menu: MenuController) {
   $("#panel-ps").textContent = hero ? `${hero.mp} PS` : ""; // sur téléphone, les PS du héros qui joue (planche P1)
   commandWindow.hidden = !hero;
   listWindow.hidden = true;
+  renderHelp(menu);
   numberAllies(menu, []);
   const top = menu.level;
   const [root] = menu.stack;
@@ -349,13 +413,21 @@ export function renderMenu(menu: MenuController) {
       }
     }
     commandWindow.hidden = true;
+    // Sur ordinateur, la liste d'où vient la capacité reste à gauche, inerte, et l'aide à droite (planches N1 et N2)
+    const from = menu.stack[menu.stack.length - 2];
+    const copy = $("#target-list");
+    copy.replaceChildren();
+    if (from && from.type !== "target") {
+      const title = from.type === "list" ? `${hero.name} · ${from.kind === "spell" ? hero.command : "Besace"}` : hero.name;
+      copy.insertAdjacentHTML("beforeend", `<div class="window-title">${title}</div>`);
+      const list = menuList(from, menu.stack.length - 2, false, false);
+      list.classList.toggle("root-menu", from.type === "command"); // sur deux colonnes comme le menu principal, sur écran bas
+      copy.appendChild(list);
+    }
     // Nom, élément, coût et aide de la capacité ou de l'objet choisi : au toucher, la liste se ferme aussitôt (MAE-74, planche G2)
     const { ability } = top;
     $("#target-title").textContent = `${hero.name} · Choisir une cible`;
-    const facts = [
-      "element" in ability && ability.element ? ELEMENT_NAMES[ability.element] : "",
-      "mp" in ability && ability.mp ? `${ability.mp} PS` : "",
-    ].filter(Boolean).map(fact => ` · ${fact}`).join("");
+    const facts = abilityFacts(ability).map(fact => ` · ${fact}`).join("");
     const help = ability.desc
       ? `<div class="target-name">${ability.name}<span class="menu-element">${facts}</span></div><div class="target-desc">${ability.desc}</div>`
       : "";

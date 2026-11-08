@@ -97,6 +97,7 @@
   --hud-text-sm:     calc(var(--hud-text) * 0.9);
   --hud-text-lg:     calc(var(--hud-text) * 1.1);
   --hud-text-xs:     calc(var(--hud-text) * 0.75); /* numéros des touches, rappel des touches, info au survol (MAE-89) */
+  --help-width:      calc(var(--plate-width) - 34px); /* l'aide à droite de la liste du menu (MAE-89, planches N1 et N2) */
   --plate-width:     clamp(384px, calc(283.9px + 13.9 * var(--hud-unit)), 460px); /* sous-menu et ciblage, avec une marge : les sprites restent à sa droite */
   --hud-width:       clamp(240px, calc(176.6px + 8.8 * var(--hud-unit)), 288px);
   --boss-width:      560px;
