@@ -1,19 +1,23 @@
-// stage.ts - La partie « scène » de l'affichage : les combattants, leurs poses et leurs animations (MAE-29)
+// stage.ts - La partie « scène » de l'affichage : les combattants, leurs poses et leurs animations (MAE-29, MAE-30)
 //
-// Deux scènes implémentent ce contrat : celle-ci, en DOM (sprites en <img> sur l'image de fond), et la scène
-// peinte en 2,5D (src/scene/battle-stage.ts), choisie par dom-view.ts quand le chapitre déclare un décor.
+// Deux scènes implémentent ce contrat : celle-ci, en DOM (sprites sur l'image de fond), et la scène peinte en 2,5D
+// (src/scene/battle-stage.ts), choisie par dom-view.ts quand le chapitre déclare un décor.
 // Une scène ne joue aucun son et ne touche pas au HUD : dom-view.ts s'en charge, dans le même ordre pour les deux.
 // Chiffres de dégâts, effets, main de ciblage et bouclier sont du DOM posé sur l'« ancre » du combattant :
 // en DOM, le sprite lui-même ; dans la scène peinte, un élément qui suit le sprite à l'écran.
+// Les deux scènes affichent les mêmes images animées (animated-sprite.ts, MAE-30) : chaque pixel vient du PNG, et
+// tout déplacement se fait par pixels de sprite entiers. Les couleurs (coup reçu, éclair, mort) restent en CSS.
 
 import { CONFIG } from "../config.ts";
-import { HEROES } from "../data/game-data.ts";
+import { HEROES, type SpriteRig } from "../data/game-data.ts";
 import type { Ability, Chapter } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import { isAlive } from "../battle/battle.ts";
 import type { BattleState, Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
-import { $, pulse, spriteEl, wait } from "./view.ts";
+import { createAnimatedSprite, shadeFilter, type AnimatedSprite } from "./animated-sprite.ts";
+import type { BaseName } from "./sprite-motion.ts";
+import { $, heroFlags, pulse, spriteEl, wait } from "./view.ts";
 
 export interface Stage {
   showIdle(party: Hero[], chapter: Chapter): Promise<void>; // scène au repos : le groupe seul
@@ -21,7 +25,7 @@ export interface Stage {
   appear(): void;                                            // entrée en combat : les ennemis apparaissent
   refresh(): void;                                           // poses d'après l'état : éteint, en danger, actif, garde
   anchor(c: Combatant): HTMLElement | null;                  // élément DOM posé sur le combattant (chiffres, effets, main)
-  actionStart(actor: Combatant, ability: Ability): Promise<void>; // pas en avant ou clignotement, puis lueur du Souffle
+  actionStart(actor: Combatant, ability: Ability): Promise<void>; // élan et pas en avant, ou bond et éclair, puis lueur du Souffle
   stepBack(actor: Combatant): void;                          // le héros reprend sa place
   hit(target: Combatant, effect: Effect): void;              // recul et teinte d'un coup reçu
   quake(): void;                                             // secousse de la scène (coup critique)
@@ -45,51 +49,38 @@ const HERO_SLOTS: [number, number][] = [[78, 28], [50, 52], [22, 76]];
 // Seule déclaration : style.css la reçoit en variables --canvas-w et --canvas-h, comme pour les ennemis (MAE-21)
 export const HERO_CANVAS = { w: 47, h: 66 };
 
-// Sprite d'un combattant présent sur la scène
-function sceneSprite(c: Combatant) { return $(`[data-sprite="${c.id}"]`); }
+// — Ce que les deux scènes partagent pour animer un combattant (MAE-30) —
 
-function createSprite(c: Combatant, [x, y]: [number, number]) {
-  const sprite = document.createElement("div");
-  sprite.className = `sprite ${c.side}${c.boss ? " boss" : ""}`;
-  sprite.dataset.sprite = c.id;
-  sprite.style.left = x + "%";
-  // Hauteur voulue ; style.css la borne pour que le sprite reste entier dans la scène (voir .sprite.hero, .sprite.enemy)
-  sprite.style.setProperty("--slot-y", y + "%");
-  // Pixel art : la taille à l'écran vient de la toile du PNG (voir .sprite.hero et .sprite.enemy dans style.css)
-  const canvas = c.side === "enemy" ? { w: c.canvasWidth, h: c.canvasHeight } : HERO_CANVAS;
-  sprite.style.setProperty("--canvas-w", String(canvas.w));
-  sprite.style.setProperty("--canvas-h", String(canvas.h));
-  sprite.innerHTML = `<div class="sprite-body"><img class="sprite-img" src="${c.image}" alt="${c.name}">${embersHtml(c)}</div>${overlayHtml(c)}`;
-  sprite.addEventListener("click", () => Menu.clickTarget(c));
-  sprite.addEventListener("mouseenter", () => Menu.hoverTarget(c, true));
-  sprite.addEventListener("mouseleave", () => Menu.hoverTarget(c, false));
-  if (c.side === "hero") {
-    // Un héros déjà éteint quand la scène est construite est posé à terre, sans rejouer sa chute
-    if (!isAlive(c)) sprite.classList.add("ko", "fallen");
-    const img = sprite.querySelector<HTMLImageElement>(".sprite-img");
-    if (img) measureKoLift(img).then(lift => { if (lift !== null) sprite.style.setProperty("--ko-lift", String(lift)); });
-  }
-  return sprite;
+// Squelette des animations : celui du héros dans HEROES, celui de l'ennemi dans sa fiche (copiée dans le combattant)
+export function rigOf(c: Combatant): SpriteRig {
+  if (c.side === "enemy") return c.rig;
+  const def = HEROES.find(hero => hero.id === c.id);
+  if (!def) throw new Error(`Animation : aucun héros ${c.id}`);
+  return def.rig;
 }
 
-// Couché, le héros pivote autour de ses pieds, tête vers les ennemis : sa colonne opaque la plus à droite devient
-// son point le plus bas. Renvoie, en pixels de sprite, ce qu'il faut le remonter pour que ce point touche la ligne
-// de sol ; null si l'image ne se lit pas. Commun aux deux scènes.
-export async function measureKoLift(img: HTMLImageElement): Promise<number | null> {
-  if (!img.complete) await new Promise<void>(resolve => img.addEventListener("load", () => resolve(), { once: true }));
-  const canvas = document.createElement("canvas");
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  const ctx = canvas.getContext("2d");
-  if (!ctx || !canvas.width) return null;
-  ctx.drawImage(img, 0, 0);
-  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  for (let x = canvas.width - 1; x >= 0; x--) {
-    for (let y = 0; y < canvas.height; y++) {
-      if (data[(y * canvas.width + x) * 4 + 3]) return x + 1 - canvas.width / 2;
-    }
+export const facingOf = (c: Combatant): 1 | -1 => (c.side === "hero" ? 1 : -1);
+export const spriteHeight = (c: Combatant) => (c.side === "enemy" ? c.canvasHeight : HERO_CANVAS.h);
+
+// Décalage de respiration d'un ennemi selon son rang : deux ennemis ne respirent pas ensemble
+export const enemyPhase = (index: number) => (index * 0.37) % 1;
+
+// Pose de fond d'un héros d'après l'état du combat ; une extinction joue la chute, un réveil la réanimation
+export function followHero(sprite: AnimatedSprite, flags: { ko: boolean; critical: boolean }, acting: boolean) {
+  if (flags.ko) {
+    if (sprite.base !== "ko") { sprite.play("fall"); sprite.setBase("ko"); }
+    return;
   }
-  return null;
+  const target: BaseName = acting ? "acting" : flags.critical ? "critical" : "idle";
+  if (sprite.base === "ko") sprite.play("revive");
+  if (sprite.base !== target) sprite.setBase(target);
+}
+
+// Pose de départ : un héros déjà éteint quand la scène se construit est posé éteint, sans rejouer sa chute
+export function initialBase(c: Combatant): BaseName {
+  if (c.side !== "hero") return "idle";
+  const flags = heroFlags(c);
+  return flags.ko ? "ko" : flags.critical ? "critical" : "idle";
 }
 
 // Braises qui montent des bords enflammés d'un héros (Elwen), décalées dans le temps. Commun aux deux scènes.
@@ -110,6 +101,8 @@ export function overlayHtml(c: Combatant) {
   return `<div class="od-foe"><span class="od-foe-name">${c.name}</span><span class="od-bar" role="img"><i class="od-trail"></i><i class="od-fill"></i></span></div>`;
 }
 
+const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 // Un pixel de sprite fait un nombre entier de pixels réels, avec la même règle que la scène peinte (framing.ts) :
 // --scene-px, en pixels CSS, vaut donc k / devicePixelRatio
 function syncPixelScale() {
@@ -128,48 +121,167 @@ function snapSprites() {
   }
 }
 
-// La scène DOM : les sprites dans #hero-area et #enemy-area, animés par les classes de style.css
+// Un combattant de la scène DOM : son élément, son image animée, et sa place en pixels de sprite (pas en avant, repli)
+interface DomActor {
+  combatant: Combatant;
+  element: HTMLElement;
+  sprite: AnimatedSprite;
+  x: number;
+  acting: boolean;
+  away: boolean;  // sorti de scène (repli) : refresh() ne le ramène pas
+  slide: number; // requestAnimationFrame du glissement en cours, 0 sans glissement
+}
+
+// La scène DOM : les sprites dans #hero-area et #enemy-area ; les couleurs par les classes de style.css
 export function createDomStage(): Stage {
   syncPixelScale();
   window.addEventListener("resize", () => { syncPixelScale(); snapSprites(); });
+  const actors = new Map<string, DomActor>();
+
+  function actorOf(c: Combatant) {
+    const actor = actors.get(c.id);
+    if (!actor) throw new Error(`Scène DOM : ${c.name} n'est pas en scène`);
+    return actor;
+  }
+
+  function createActor(c: Combatant, [x, y]: [number, number], phase: number): DomActor {
+    const element = document.createElement("div");
+    element.className = `sprite ${c.side}${c.boss ? " boss" : ""}`;
+    element.dataset.sprite = c.id;
+    element.style.left = x + "%";
+    // Hauteur voulue ; style.css la borne pour que le sprite reste entier dans la scène (voir .sprite.hero, .sprite.enemy)
+    element.style.setProperty("--slot-y", y + "%");
+    // Pixel art : la taille à l'écran vient de la toile du PNG (voir .sprite.hero et .sprite.enemy dans style.css)
+    const canvas = c.side === "enemy" ? { w: c.canvasWidth, h: c.canvasHeight } : HERO_CANVAS;
+    element.style.setProperty("--canvas-w", String(canvas.w));
+    element.style.setProperty("--canvas-h", String(canvas.h));
+    element.innerHTML = `<div class="sprite-body"><div class="sprite-img" role="img" aria-label="${c.name}"></div>${embersHtml(c)}</div>${overlayHtml(c)}`;
+    element.addEventListener("click", () => Menu.clickTarget(c));
+    element.addEventListener("mouseenter", () => Menu.hoverTarget(c, true));
+    element.addEventListener("mouseleave", () => Menu.hoverTarget(c, false));
+
+    // L'image : le canvas déborde du rectangle du PNG (.sprite-img) de la marge de la toile, pour se pencher sans
+    // déplacer l'ancre ; le recul et le bond (dx) déplacent aussi l'ombre, le saut (dy) non
+    const holder = $(".sprite-img", element);
+    const facing = facingOf(c);
+    const sprite = createAnimatedSprite({
+      url: c.image, rig: rigOf(c), height: spriteHeight(c), facing, phase, initial: initialBase(c),
+      onPose(pose) {
+        holder.style.setProperty("--pose-dx", String(pose.dx * facing));
+        sprite.canvas.style.setProperty("--pose-dy", String(pose.dy));
+        sprite.canvas.style.filter = shadeFilter(pose.shade);
+      },
+    });
+    holder.appendChild(sprite.canvas);
+    void sprite.ready.then(() => {
+      const { layout } = sprite;
+      for (const [name, value] of [["--frame-x", layout.originX], ["--frame-y", layout.originY], ["--frame-w", layout.width], ["--frame-h", layout.height]] as const) { // as const : paires nom, valeur
+        sprite.canvas.style.setProperty(name, String(value));
+      }
+    }).catch(console.error);
+    return { combatant: c, element, sprite, x: 0, acting: false, away: false, slide: 0 };
+  }
+
+  // Glisse le sprite jusqu'à x (pixels de sprite), par pixels entiers ; d'un coup avec le mouvement réduit (MAE-58)
+  function slideTo(actor: DomActor, target: number, duration: number, ease: (p: number) => number) {
+    cancelAnimationFrame(actor.slide);
+    actor.slide = 0;
+    const from = actor.x;
+    const place = (x: number) => { actor.x = x; actor.element.style.setProperty("--slide", String(Math.round(x))); };
+    if (reducedMotion() || duration <= 0 || from === target) { place(target); return; }
+    const start = performance.now();
+    const step = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      place(from + (target - from) * ease(p));
+      actor.slide = p < 1 ? requestAnimationFrame(step) : 0;
+    };
+    actor.slide = requestAnimationFrame(step);
+  }
+
+  const easeOut = (p: number) => 1 - (1 - p) * (1 - p);
+  const easeIn = (p: number) => p * p;
+  const restingX = (c: Combatant) => (c.side === "hero" && heroFlags(c).active ? CONFIG.scene.battle.activeStep : 0);
+
+  function place(area: string, list: [Combatant, [number, number], number][]) {
+    for (const actor of actors.values()) {
+      if (actor.element.parentElement?.id !== area) continue;
+      actor.sprite.dispose();
+      cancelAnimationFrame(actor.slide);
+      actors.delete(actor.combatant.id);
+    }
+    const created = list.map(([c, slot, phase]) => createActor(c, slot, phase));
+    for (const actor of created) actors.set(actor.combatant.id, actor);
+    $(`#${area}`).replaceChildren(...created.map(actor => actor.element));
+  }
+
+  function refresh() {
+    for (const actor of actors.values()) {
+      const c = actor.combatant;
+      if (c.side !== "hero") continue;
+      const flags = heroFlags(c);
+      followHero(actor.sprite, flags, actor.acting);
+      if (!actor.acting && !actor.away && !flags.ko) {
+        const target = restingX(c);
+        if (target !== actor.x) slideTo(actor, target, CONFIG.timing.slide, easeOut);
+      }
+    }
+    snapSprites();
+  }
 
   return {
     async showIdle(party) {
-      $("#enemy-area").replaceChildren();
-      $("#hero-area").replaceChildren(...party.map((hero, i) => createSprite(hero, HERO_SLOTS[i])));
+      place("enemy-area", []);
+      place("hero-area", party.map((hero, i): [Combatant, [number, number], number] => [hero, HERO_SLOTS[i], 0]));
     },
 
     showBattle(state) {
       const slots = FORMATIONS[state.enemies.length];
-      $("#enemy-area").replaceChildren(...state.enemies.map((enemy, i) => createSprite(enemy, slots[i])));
+      place("enemy-area", state.enemies.map((enemy, i): [Combatant, [number, number], number] => [enemy, slots[i], enemyPhase(i)]));
     },
 
     appear() {
       document.querySelectorAll<HTMLElement>(".sprite.enemy").forEach(el => pulse(el, "appear", CONFIG.timing.appear));
     },
 
-    // Les classes d'état sont posées par updateBattleUI (view.ts) sur chaque [data-sprite] : reste à recaler les sprites
-    refresh: snapSprites,
+    // Les classes d'état sont posées par updateBattleUI (view.ts) sur chaque [data-sprite] : reste la pose de chaque héros
+    refresh,
 
     anchor: spriteEl,
 
     async actionStart(actor, ability) {
-      const sprite = sceneSprite(actor);
+      const a = actorOf(actor);
       if (actor.side === "hero") {
-        sprite.classList.add("acting");
+        a.acting = true;
+        a.element.classList.add("acting");
+        a.sprite.play("attack");
+        a.sprite.setBase("acting");
+        slideTo(a, CONFIG.scene.battle.actingStep, CONFIG.timing.step, easeOut);
         await wait(CONFIG.timing.step);
       } else {
-        await pulse(sprite, "blink", CONFIG.timing.blink);
+        // L'éclair court dit « il agit », le bond vers les héros fait le geste (décision de Wesley du 08/11/2026)
+        a.sprite.play("strike");
+        await pulse(a.element, "blink", CONFIG.timing.blink);
       }
-      if (ability.kind !== "physical") await pulse(sprite, "casting", CONFIG.timing.cast);
+      if (ability.kind !== "physical") {
+        a.sprite.play("cast");
+        await pulse(a.element, "casting", CONFIG.timing.cast);
+      }
     },
 
     stepBack(actor) {
-      spriteEl(actor)?.classList.remove("acting");
+      const a = actors.get(actor.id);
+      if (!a || actor.side !== "hero") return;
+      a.acting = false;
+      a.element.classList.remove("acting");
+      followHero(a.sprite, heroFlags(actor), false);
+      slideTo(a, restingX(actor), CONFIG.timing.slide, easeOut);
     },
 
     hit(target, effect) {
-      if (effect.type === "damage") pulse(spriteEl(target), "damaged", CONFIG.timing.hit);
+      if (effect.type !== "damage") return;
+      const a = actors.get(target.id);
+      a?.sprite.play("hit");
+      pulse(spriteEl(target), "damaged", CONFIG.timing.hit);
     },
 
     quake() {
@@ -177,31 +289,55 @@ export function createDomStage(): Stage {
     },
 
     defeated(enemy) {
-      sceneSprite(enemy).classList.add("defeated");
+      const a = actorOf(enemy);
+      a.sprite.play("slump");
+      a.sprite.setBase("defeated");
+      a.element.classList.add("defeated");
     },
 
     async kill(enemies) {
-      enemies.forEach(enemy => sceneSprite(enemy).classList.add("dying"));
+      for (const enemy of enemies) {
+        const a = actorOf(enemy);
+        a.sprite.play("dissolve");
+        a.sprite.setBase("gone");
+        a.element.classList.add("dying");
+      }
       await wait(CONFIG.timing.death);
-      enemies.forEach(enemy => sceneSprite(enemy).classList.add("dead"));
+      enemies.forEach(enemy => actorOf(enemy).element.classList.add("dead"));
     },
 
+    // Le groupe sort par la gauche, de toute la largeur de l'écran : hors champ à coup sûr
     async flee() {
-      document.querySelectorAll(".sprite.hero").forEach(el => el.classList.add("fleeing"));
+      const px = parseFloat(getComputedStyle($("#battle-scene")).getPropertyValue("--scene-px")) || 1;
+      const distance = Math.ceil(window.innerWidth / px);
+      for (const a of actors.values()) {
+        if (a.combatant.side !== "hero") continue;
+        a.element.classList.add("fleeing");
+        a.away = true;
+        slideTo(a, -distance, CONFIG.timing.fleeSlide, easeIn);
+      }
       await wait(CONFIG.timing.flee);
     },
 
     victory(party) {
-      party.filter(isAlive).forEach(hero => sceneSprite(hero).classList.add("victory"));
+      for (const hero of party.filter(isAlive)) {
+        const a = actors.get(hero.id);
+        a?.element.classList.add("victory");
+        a?.sprite.play("victory");
+      }
     },
 
     async spare(enemy) {
-      const sprite = sceneSprite(enemy);
-      sprite.classList.remove("defeated");
-      await pulse(sprite, "casting", CONFIG.timing.cast);
+      const a = actorOf(enemy);
+      a.element.classList.remove("defeated");
+      a.sprite.play("rise");
+      a.sprite.setBase("idle");
+      await pulse(a.element, "casting", CONFIG.timing.cast);
     },
 
     dispose() {
+      for (const a of actors.values()) { a.sprite.dispose(); cancelAnimationFrame(a.slide); }
+      actors.clear();
       $("#enemy-area").replaceChildren();
       $("#hero-area").replaceChildren();
     },
