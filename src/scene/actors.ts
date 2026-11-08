@@ -1,53 +1,54 @@
-// actors.ts - Personnages en pixel art posés sur la peinture, avec ombres de contact (MAE-28), et leurs poses (MAE-29)
+// actors.ts - Personnages en pixel art posés sur la peinture, avec ombres de contact (MAE-28), et leurs poses (MAE-29, MAE-30)
 //
 // Chaque sprite est dans une scène à part (spriteScene), dessinée APRÈS le flou : le flou ne peut pas le
 // toucher, quelle que soit la fenêtre. Il est mis à l'échelle de sa profondeur, pour qu'un de ses pixels
 // fasse exactement k pixels écran. Pas d'éclairage ni de brouillard : ses couleurs restent celles du PNG.
-// La pose d'un acteur (décalage, rotation, teinte, découpe...) est un objet que la scène de combat modifie,
-// directement ou par une animation ; elle est appliquée à chaque image.
+// Sa texture est l'image animée du combattant (src/ui/animated-sprite.ts, MAE-30), la même que dans la scène DOM :
+// chaque pixel vient du PNG. La pose d'un acteur (décalage entier, teinte, lueur...) est un objet que la scène de
+// combat modifie ; elle est appliquée à chaque image. Aucune rotation ni aucun étirement de l'image.
 
 import {
-  AdditiveBlending, Color, Group, Mesh, MeshBasicMaterial, PlaneGeometry, Vector3, type PerspectiveCamera,
+  AdditiveBlending, Color, Group, Mesh, MeshBasicMaterial, PlaneGeometry, Vector3, type CanvasTexture, type PerspectiveCamera,
 } from "three";
 import { CONFIG } from "../config.ts";
 import type { ImagePoint } from "../data/decors.ts";
+import type { FrameLayout } from "../ui/sprite-frames.ts";
 import { depthOf, type Framing } from "./framing.ts";
-import { context2d, loadImage, pixelTexture, radialTexture, type ResourceBin } from "./materials.ts";
+import { loadImage, pixelTexture, radialTexture, type ResourceBin } from "./materials.ts";
 
 export interface ActorDef {
   id: string;
   src: string;               // fichier du sprite, pour les mesures (tools/check-sprite-sharpness.mjs)
-  image: HTMLImageElement;   // déjà chargée (preloadImages) : la construction est alors synchrone
+  width: number;             // taille du PNG, en pixels de sprite : le rectangle des ancres et des mesures
+  height: number;
+  // Image animée, déjà chargée : un canvas à la taille de la toile des poses, le PNG au repos posé en (originX,
+  // originY), pieds sur la dernière rangée (sprite-frames.ts, frameLayout)
+  frame: { canvas: HTMLCanvasElement; layout: FrameLayout };
   place: ImagePoint;
-  // Respiration : le haut du corps (au-dessus de `cut`, de 0 en bas à 1 en haut) monte d'un pixel net
-  breath: { cut: number; period: number; phase: number };
   // Lueur tenue en main (lanterne, Souffle). at : position sur le sprite, de 0 à 1
   halo?: { color: string; at: [number, number]; size: number };
 }
 
-// Pose d'un acteur. Décalages en pixels de sprite ; x positif vers la droite de l'écran, y positif vers le haut.
+// Pose d'un acteur. Décalages en pixels de sprite entiers ; x positif vers la droite de l'écran, y positif vers le haut.
 export interface ActorPose {
   offsetX: number;
   offsetY: number;
-  rotation: number;   // radians, autour des pieds ; négatif : sens des aiguilles d'une montre
-  scaleY: number;
+  anchorX: number;    // décalage du rectangle des ancres et des mesures (glissement seul, sans recul ni saut)
   visible: boolean;
-  breathing: boolean;
   brightness: number; // 1 : couleurs du PNG
   gray: number;       // 0 à 1 : part de gris
   tint: Color;        // couleur mêlée aux pixels, à hauteur de tintMix
   tintMix: number;
   opacity: number;
-  clipTop: number;    // 0 à 1 : part du haut du sprite découpée (disparition)
   glow: number;       // 0 à 1 : lueur du Souffle derrière le sprite
 }
 
 export interface Actor {
   readonly id: string;
-  readonly width: number;   // pixels de sprite
-  readonly height: number;  // pixels de sprite, sans la rangée de respiration
-  readonly koLift: number;  // couché (rotation d'un quart de tour), ce qu'il faut remonter pour toucher le sol, en pixels de sprite
+  readonly width: number;   // pixels de sprite (PNG)
+  readonly height: number;  // pixels de sprite (PNG)
   pose: ActorPose;          // modifiée librement par la scène de combat, appliquée à chaque image
+  redrawn(): void;          // l'image animée vient de changer : la texture est renvoyée à la carte graphique
 }
 
 export interface ActorBox { id: string; file: string; left: number; top: number; right: number; bottom: number; texels: number }
@@ -58,9 +59,9 @@ export interface ActorsView {
   // surfacePoint : point du relief peint sous les pieds (colonne et ligne de la peinture)
   layout(framing: Framing, surfacePoint: (place: ImagePoint) => Vector3): void;
   rescale(): void; // après un déplacement de la caméra
-  update(t: number, moving: boolean): void; // t en secondes ; moving false : mouvement réduit, poses finales
+  update(t: number, moving: boolean): void; // t en secondes ; moving false : mouvement réduit
   focusRange(): { min: number; max: number } | null; // bande de l'écran occupée, de 0 (bas) à 1 (haut)
-  boxes(deviceWidth: number, deviceHeight: number): ActorBox[]; // en pixels réels du canvas
+  boxes(deviceWidth: number, deviceHeight: number): ActorBox[]; // rectangle du PNG, en pixels réels du canvas
 }
 
 const SHADOW_ORDER = 50; // au-dessus du décor peint, sans test de profondeur : le relief la couperait
@@ -71,25 +72,12 @@ const GLOW_COLOR = "#f0c95a"; // or vif de la palette des personnages : la lueur
 const GLOW_OPACITY = 0.8;
 
 export function defaultPose(): ActorPose {
-  return {
-    offsetX: 0, offsetY: 0, rotation: 0, scaleY: 1, visible: true, breathing: true,
-    brightness: 1, gray: 0, tint: new Color("#ffffff"), tintMix: 0, opacity: 1, clipTop: 0, glow: 0,
-  };
+  return { offsetX: 0, offsetY: 0, anchorX: 0, visible: true, brightness: 1, gray: 0, tint: new Color("#ffffff"), tintMix: 0, opacity: 1, glow: 0 };
 }
 
 export function preloadImages(urls: string[]): Promise<Map<string, HTMLImageElement>> {
   const unique = [...new Set(urls)];
   return Promise.all(unique.map(loadImage)).then((images) => new Map(unique.map((url, i) => [url, images[i]])));
-}
-
-// Colonne opaque la plus à droite, depuis le centre : couché tête vers la droite, c'est le point le plus bas
-function measureKoLift(data: Uint8ClampedArray, width: number, height: number) {
-  for (let x = width - 1; x >= 0; x--) {
-    for (let y = 0; y < height; y++) {
-      if (data[(y * width + x) * 4 + 3]) return x + 1 - width / 2;
-    }
-  }
-  return width / 2;
 }
 
 export function buildActors(
@@ -103,39 +91,25 @@ export function buildActors(
   let cameraDistance = 1;
 
   const views = defs.map((def) => {
-    const { image } = def;
-    const canvas = document.createElement("canvas");
-    canvas.width = image.width;
-    canvas.height = image.height + 1; // rangée vide en haut : la place de la respiration
-    const context = context2d(canvas, { willReadFrequently: true });
-    context.drawImage(image, 0, 1);
-    const koLift = measureKoLift(context.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
-
+    const { layout } = def.frame;
     const pose = defaultPose();
     const uniforms = {
-      uBreath: { value: 0 },
-      uCut: { value: def.breath.cut },
-      uTexel: { value: 1 / canvas.height },
       uBrightness: { value: 1 },
       uGray: { value: 0 },
       uTint: { value: new Color("#ffffff") },
       uTintMix: { value: 0 },
       uOpacity: { value: 1 },
-      uClipTop: { value: 0 },
     };
+    const texture: CanvasTexture = bin.add(pixelTexture(def.frame.canvas));
     // transparent : l'opacité de la pose se mêle au décor ; alphaTest garde les bords nets
-    const material = bin.add(new MeshBasicMaterial({ map: bin.add(pixelTexture(canvas)), alphaTest: 0.5, transparent: true, fog: false }));
+    const material = bin.add(new MeshBasicMaterial({ map: texture, alphaTest: 0.5, transparent: true, fog: false }));
     material.onBeforeCompile = (shader) => {
       Object.assign(shader.uniforms, uniforms);
       shader.fragmentShader = [
-        "uniform float uBreath; uniform float uCut; uniform float uTexel; uniform float uBrightness; uniform float uGray;",
-        "uniform vec3 uTint; uniform float uTintMix; uniform float uOpacity; uniform float uClipTop;",
+        "uniform float uBrightness; uniform float uGray; uniform vec3 uTint; uniform float uTintMix; uniform float uOpacity;",
         shader.fragmentShader
           .replace("#include <map_fragment>", /* glsl */ `
-            if ( vMapUv.y > 1.0 - uClipTop ) discard;
-            vec2 breathUv = vMapUv;
-            if ( breathUv.y > uCut ) breathUv.y -= uBreath * uTexel;
-            vec4 spriteTexel = texture2D( map, breathUv );
+            vec4 spriteTexel = texture2D( map, vMapUv );
             float luma = dot( spriteTexel.rgb, vec3( 0.299, 0.587, 0.114 ) );
             spriteTexel.rgb = mix( spriteTexel.rgb, vec3( luma ), uGray ) * uBrightness;
             spriteTexel.rgb = mix( spriteTexel.rgb, uTint, uTintMix );
@@ -144,12 +118,14 @@ export function buildActors(
           .replace("#include <alphatest_fragment>", "#include <alphatest_fragment>\n diffuseColor.a *= uOpacity;"),
       ].join("\n");
     };
-    material.customProgramCacheKey = () => "game-sprite-pose";
+    material.customProgramCacheKey = () => "game-sprite-frame";
 
-    const width = canvas.width * pixel;
-    const height = canvas.height * pixel;
-    const geometry = bin.add(new PlaneGeometry(width, height));
-    geometry.translate(0, height / 2, 0); // origine aux pieds
+    // Le plan a la taille de la toile des poses ; ses pieds (dernière rangée) à l'origine, centré comme le PNG
+    // (marges égales à gauche et à droite)
+    const width = def.width * pixel;
+    const height = def.height * pixel;
+    const geometry = bin.add(new PlaneGeometry(layout.width * pixel, layout.height * pixel));
+    geometry.translate(0, (layout.height * pixel) / 2, 0); // origine aux pieds
     const sprite = new Mesh(geometry, material);
     sprite.rotation.x = -pitch; // face à la caméra : sans cela, le sprite serait écrasé en hauteur
     spriteParent.add(sprite);
@@ -191,19 +167,21 @@ export function buildActors(
     const glowMaterial = framePlane(GLOW_COLOR, Math.max(width, height) * 1.5, 0, 0, height * 0.5);
     parent.add(root);
 
-    const actor: Actor = { id: def.id, width: canvas.width, height: image.height, koLift, pose };
-    return { def, actor, root, frame, sprite, blob, contact, uniforms, haloMaterial, glowMaterial, width, height, feet: new Vector3() };
+    const actor: Actor = { id: def.id, width: def.width, height: def.height, pose, redrawn: () => { texture.needsUpdate = true; } };
+    return { def, actor, root, frame, sprite, blob, contact, uniforms, haloMaterial, glowMaterial, width, height, feet: new Vector3(), anchorShift: new Vector3() };
   });
 
   function applyPose(view: (typeof views)[number]) {
     const { pose } = view.actor;
     const scale = depthOf(camera, view.feet) / cameraDistance;
-    const worldX = pose.offsetX * pixel * scale;
-    const worldY = pose.offsetY * pixel * scale;
+    // Pixels de sprite entiers : un pixel de sprite fait k pixels réels, le sprite reste sur la grille
+    const worldX = Math.round(pose.offsetX) * pixel * scale;
+    const worldY = Math.round(pose.offsetY) * pixel * scale;
     view.root.position.set(view.feet.x + worldX, view.feet.y, view.feet.z);
     view.sprite.position.set(view.feet.x + worldX, view.feet.y + worldY, view.feet.z);
-    view.sprite.rotation.z = pose.rotation;
-    view.sprite.scale.set(scale, scale * pose.scaleY, 1);
+    // Écart entre le sprite posé et le rectangle de son ancre, en coordonnées du monde (boxes)
+    view.anchorShift.set((Math.round(pose.anchorX) * pixel * scale) - worldX, -worldY, 0);
+    view.sprite.scale.setScalar(scale);
     view.frame.scale.setScalar(scale);
     const shadow = scale * SHADOW_BOOST;
     view.blob.scale.set(view.width * 0.75 * shadow, Math.min(0.9, view.width * 0.4) * shadow, 1);
@@ -214,7 +192,6 @@ export function buildActors(
     view.uniforms.uTint.value.copy(pose.tint);
     view.uniforms.uTintMix.value = pose.tintMix;
     view.uniforms.uOpacity.value = pose.opacity;
-    view.uniforms.uClipTop.value = pose.clipTop;
     view.glowMaterial.opacity = GLOW_OPACITY * pose.glow;
   }
 
@@ -234,10 +211,7 @@ export function buildActors(
     rescale,
     update(t, moving) {
       views.forEach((view, i) => {
-        const { period, phase } = view.def.breath;
-        const breathing = moving && view.actor.pose.breathing && Math.sin((t / period + phase) * Math.PI * 2) > 0.15;
-        view.uniforms.uBreath.value = breathing ? 1 : 0;
-        if (view.haloMaterial) view.haloMaterial.opacity = HALO_OPACITY * (1 + 0.12 * Math.sin(t * 1.3 + i * 1.7));
+        if (view.haloMaterial) view.haloMaterial.opacity = HALO_OPACITY * (moving ? 1 + 0.12 * Math.sin(t * 1.3 + i * 1.7) : 1);
         applyPose(view);
       });
     },
@@ -255,20 +229,21 @@ export function buildActors(
       }
       return { min, max };
     },
-    // Boîte à l'écran du sprite tel qu'il est posé (décalé, tourné, mis à l'échelle)
+    // Boîte à l'écran du rectangle du PNG à la place de son ancre (glissement compris, sans recul ni saut), mis à
+    // l'échelle : sans la marge de la toile. Les mesures de netteté se prennent au repos, où les deux se confondent.
     boxes(deviceWidth, deviceHeight) {
       const corner = new Vector3();
       return views.map((view) => {
         view.sprite.updateMatrixWorld();
         let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
         for (const [x, y] of [[-view.width / 2, 0], [view.width / 2, 0], [-view.width / 2, view.height], [view.width / 2, view.height]]) {
-          corner.set(x, y, 0).applyMatrix4(view.sprite.matrixWorld).project(camera);
+          corner.set(x, y, 0).applyMatrix4(view.sprite.matrixWorld).add(view.anchorShift).project(camera);
           const screenX = ((corner.x + 1) / 2) * deviceWidth;
           const screenY = ((1 - corner.y) / 2) * deviceHeight;
           left = Math.min(left, screenX); right = Math.max(right, screenX);
           top = Math.min(top, screenY); bottom = Math.max(bottom, screenY);
         }
-        return { id: view.def.id, file: view.def.src, left, top, right, bottom, texels: Math.round(view.width / pixel) };
+        return { id: view.def.id, file: view.def.src, left, top, right, bottom, texels: view.def.width };
       });
     },
   };

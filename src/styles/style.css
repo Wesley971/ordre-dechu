@@ -241,7 +241,7 @@ body.game-over #battle-scene { filter: grayscale(0.85) brightness(0.6); }
 }
 
 #painted-stage.ready { opacity: 1; }
-#painted-stage.quake { animation: shake 0.4s ease; }
+#painted-stage.quake { animation: scene-shake 0.4s steps(1); } /* --scene-px posé par battle-stage.ts */
 
 body.game-over #painted-stage { filter: grayscale(0.85) brightness(0.6); }
 
@@ -359,11 +359,6 @@ body.scene-painted #battle-scene { pointer-events: none; }
 @keyframes scene-shake {
   25% { transform: translateX(calc(-2px * var(--scene-px, 1))); }
   75% { transform: translateX(calc(2px * var(--scene-px, 1))); }
-}
-
-@keyframes shake {
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
 }
 
 .ember { display: none; }
