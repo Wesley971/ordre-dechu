@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { composeFrame, frameLayout, leanShift, REST_BODY, type BodyPose, type FrameRig, type PixelImage } from "../ui/sprite-frames.ts";
 import { createMotion, FRAME_MS, type MotionRig } from "../ui/sprite-motion.ts";
 import { CONFIG } from "../config.ts";
+import { ENEMIES, HEROES, type EnemyDef, type SpriteRig } from "../data/game-data.ts";
 import { decodePng } from "./png-pixels.ts";
 import maelor from "../../public/images/maelor.png?inline";
 import corvin from "../../public/images/corvin.png?inline";
@@ -112,6 +113,14 @@ const SPRITES: [string, string, 1 | -1][] = [
   ["hesium", hesium, -1], ["gautik", gautik, -1], ["painkush", painkush, -1], ["vahn", vahn, -1],
 ];
 
+// Squelette de chaque sprite, tel que les données du jeu le déclarent (MAE-30)
+function rigOf(name: string): SpriteRig {
+  const image = `images/${name}.png`;
+  const def = HEROES.find((hero) => hero.image === image) ?? Object.values<EnemyDef>(ENEMIES).find((enemy) => enemy.image === image);
+  if (!def) throw new Error(`Aucun personnage pour ${image}`);
+  return def.rig;
+}
+
 const POSES: Partial<BodyPose>[] = [
   {}, { lift: 1 }, { lift: 2, lean: -1 }, { lift: -1, lean: 2 }, { lean: 5 }, { lean: -2 }, { fold: 6, lean: 1 },
   { fold: 6, lean: 5 }, { clipTop: 20 }, { lying: true },
@@ -128,11 +137,11 @@ function colors(image: PixelImage) {
 const opaque = (image: PixelImage) => image.data.filter((_, i) => i % 4 === 3 && image.data[i] > 0).length;
 
 describe("les 9 sprites du jeu, dans chaque pose : aucun pixel inventé", () => {
-  it.each(SPRITES)("%s", async (_name, url, facing) => {
+  it.each(SPRITES)("%s", async (name, url, facing) => {
     const source = await decodePng(url);
     const palette = colors(source);
     const layout = frameLayout(source.width, source.height);
-    const rig: FrameRig = { waist: Math.round(source.height * 0.55), facing };
+    const rig: FrameRig = { waist: rigOf(name).waist, facing };
     for (const part of POSES) {
       if (part.lying && facing < 0) continue; // seuls les héros se couchent (K.O.)
       const frame = composeFrame(source, rig, pose(part), layout);
@@ -148,13 +157,14 @@ const HERO_MOTIONS = { bases: ["idle", "acting", "critical", "ko"], gestures: ["
 const ENEMY_MOTIONS = { bases: ["idle", "defeated", "gone"], gestures: ["strike", "cast", "hit", "slump", "rise", "dissolve"] } as const; // as const : idem
 
 describe("les 9 sprites du jeu, dans toutes leurs animations : rien ne sort de la toile", () => {
-  it.each(SPRITES)("%s", async (_name, url, facing) => {
+  it.each(SPRITES)("%s", async (name, url, facing) => {
     const source = await decodePng(url);
     const layout = frameLayout(source.width, source.height);
     // La même image sur une toile bien plus grande : tout pixel coupé au bord de la vraie toile y apparaîtrait
     const wide = { width: layout.width + 60, height: layout.height + 60, originX: layout.originX + 30, originY: layout.originY + 30 };
-    const frameRig: FrameRig = { waist: Math.round(source.height * 0.55), facing };
-    const rig: MotionRig = { height: source.height, waist: frameRig.waist, kneel: 9, breath: { period: 2.8, phase: 0 } };
+    const data = rigOf(name);
+    const frameRig: FrameRig = { waist: data.waist, facing };
+    const rig: MotionRig = { height: source.height, waist: data.waist, kneel: data.kneel, breath: { period: data.breath, phase: data.phase } };
     const { bases, gestures } = facing > 0 ? HERO_MOTIONS : ENEMY_MOTIONS;
     for (const base of bases) {
       for (const gesture of gestures) {
@@ -167,5 +177,16 @@ describe("les 9 sprites du jeu, dans toutes leurs animations : rien ne sort de l
         }
       }
     }
+  });
+});
+
+describe("squelettes des données (MAE-30)", () => {
+  it.each(SPRITES)("%s : taille dans le sprite, jambes assez longues pour se replier", async (name, url) => {
+    const source = await decodePng(url);
+    const rig = rigOf(name);
+    expect(rig.waist).toBeGreaterThan(0);
+    expect(rig.waist).toBeLessThan(source.height);
+    expect(rig.kneel).toBeLessThan(source.height - rig.waist);
+    expect(rig.breath).toBeGreaterThan(0);
   });
 });

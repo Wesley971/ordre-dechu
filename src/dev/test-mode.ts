@@ -1,6 +1,7 @@
 // test-mode.ts - Mode test, en local seulement : départ à un chapitre (?chapitre=N), jeu accéléré (?vitesse=X),
 // pouvoir du Cœur déjà choisi (?pouvoir=pris ou refuse), combats gagnés ou perdus d'office (?combat=gagne ou perdu), scène peinte seule
-// (?scene=lisiere), rendu DOM forcé (?rendu=dom) et compteur d'images/s pendant le jeu (?compteur=1)
+// (?scene=lisiere), rendu DOM forcé (?rendu=dom), compteur d'images/s pendant le jeu (?compteur=1) et aperçu des
+// animations des combattants (?animations=1, MAE-30)
 // Le site en ligne sert le même build que `npm run preview` : le mode se décide donc au nom d'hôte, à l'exécution.
 
 import { CONFIG } from "../config.ts";
@@ -21,12 +22,13 @@ const MAX_SPEED = 10;
 // sceneQuality : niveau de qualité de cette scène (?qualite=1, 2 ou 3), undefined pour le réglage par défaut
 // domOnly : les chapitres avec décor s'affichent quand même en DOM (MAE-29), pour comparer deux versions du jeu
 // counter : compteur d'images/s à l'écran pendant les chapitres joués dans la scène peinte (MAE-29)
+// animations : aperçu des animations des combattants, à la place du jeu (MAE-30)
 // active : au moins un paramètre de test valide, vitesse comprise ; la sauvegarde n'est alors ni lue ni écrite (MAE-11)
 export const TestMode: {
   active: boolean; startChapter: number | null; power: PowerState | null; winBattles: boolean; loseBattles: boolean;
-  scene: DecorId | null; sceneQuality: 1 | 2 | 3 | undefined; domOnly: boolean; counter: boolean;
+  scene: DecorId | null; sceneQuality: 1 | 2 | 3 | undefined; domOnly: boolean; counter: boolean; animations: boolean;
 } = {
-  active: false, startChapter: null, power: null, winBattles: false, loseBattles: false, scene: null, sceneQuality: undefined, domOnly: false, counter: false,
+  active: false, startChapter: null, power: null, winBattles: false, loseBattles: false, scene: null, sceneQuality: undefined, domOnly: false, counter: false, animations: false,
 };
 const POWER_PARAM: Record<string, PowerState> = { pris: "taken", refuse: "refused" };
 
@@ -42,7 +44,8 @@ export function setupTestMode() {
   const scene = readScene(params);
   const domOnly = readFlag(params, "rendu", "dom");
   const counter = readFlag(params, "compteur", "1");
-  if (chapter === null && speed === null && power === null && battleOutcome === null && scene === null && !domOnly && !counter) return;
+  const animations = readFlag(params, "animations", "1");
+  if (chapter === null && speed === null && power === null && battleOutcome === null && scene === null && !domOnly && !counter && !animations) return;
 
   TestMode.active = true;
   if (chapter !== null) TestMode.startChapter = chapter - 1;
@@ -52,6 +55,7 @@ export function setupTestMode() {
   TestMode.scene = scene;
   TestMode.domOnly = domOnly;
   TestMode.counter = counter;
+  TestMode.animations = animations;
   if (scene !== null) TestMode.sceneQuality = readSceneQuality(params);
   if (speed !== null && speed !== 1) applySpeed(speed);
   document.title = `[Test] ${document.title}`;
