@@ -182,7 +182,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
       await wait(CONFIG.timing.step);
     },
 
-    animatePowerReturn() { Sfx.play("memory"); }, // l'animation viendra avec MAE-30
+    animatePowerReturn() { Sfx.play("memory"); }, // l'animation viendra avec MAE-95
 
     // — Combat —
 

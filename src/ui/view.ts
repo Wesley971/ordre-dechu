@@ -134,8 +134,6 @@ export function updateBattleUI() {
       if (sprite) sprite.classList.toggle(flag, on);
       if (row) row.classList.toggle(flag, on);
     }
-    // relevé : sa prochaine extinction rejouera la chute
-    if (sprite && !flags.ko) sprite.classList.remove("fallen");
     if (row) {
       row.classList.toggle("leveled", levelUps.some(entry => entry.heroId === hero.id));
       setBar($(".od-bar", row), (hero.hp / hero.maxHp) * 100, flags.ko ? `${hero.name} est à terre` : `${hero.hp} PV sur ${hero.maxHp}`);

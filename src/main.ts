@@ -16,6 +16,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  // Aperçu des animations des combattants, à la place du jeu (MAE-30)
+  if (TestMode.animations) {
+    void import("./dev/animation-preview.ts").then(({ openAnimationPreview }) => openAnimationPreview()).catch(console.error);
+    return;
+  }
+
   // En mode test (local), la scène peinte expose ses mesures au bot ; ?rendu=dom la désactive, ?compteur=1 affiche les images/s
   const view = createDomView({ domOnly: TestMode.domOnly, counter: TestMode.counter, expose: TestMode.active });
   startGame(view, { startChapter: TestMode.startChapter, power: TestMode.power, winBattles: TestMode.winBattles, loseBattles: TestMode.loseBattles });
