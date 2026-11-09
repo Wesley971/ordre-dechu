@@ -70,7 +70,7 @@ Les mentions « proposition » sont à juger sur l'image Gemini.
   - souvenirs gravés : il grave des signes sur ses écailles pour ne pas oublier, corps couvert de griffures ;
   - écailles qui tombent par plaques, peau doucement dorée dessous (le sang ancien) ;
   - il crache de la cendre (son feu s'est éteint : nuage de cendre et de braises sombres).
-- Capacité : « Nuée de cendre » (ex-« Flammes ardentes »). La cendre se fera en animation (MAE-95), pas sur le sprite.
+- Capacité : « Nuée de cendre » (ex-« Flammes ardentes »). La cendre est animée (MAE-95), pas sur le sprite : un nuage de cendre et de braises part de sa gueule vers les héros.
 - Écailles : noires à reflets dorés. Yeux : rose violet (couleurs d'Elwen).
 - Touche braise sombre : la gorge, lueur sourde sous les écailles du cou.
 - Palette : écailles `#0d0a07` et `#2a2018`, or `#c9a84c`, yeux `#a8325e` et `#9b6fd0`, gorge et braises `#7a2a14`, cendre `#45403a`.
@@ -90,5 +90,5 @@ Fiche du 02/11/2026 (MAE-70).
 - Palette : rampe d'or brun d'ombre `#2a2018`, or ancien `#c9a84c`, parchemin `#f1e4c3` ; contour `#140f12` et cheveux gardés tels quels ; valeurs complètes en section 8 de `docs/character-palette.md`.
 - Ne doit pas ressembler à : Dark Link (Zelda : silhouette noire aux yeux rouges), l'ombre noire du Prince de Perse, les Ombres de Persona.
 - Lisible : reconnaissable comme Maelor au premier regard, et visiblement « pas lui » : doré, en miroir.
-- Combat (MAE-73) : 420 PV, Atq 26, Déf 14, Souffle 0, Rés 8, Vit 12 ; capacité « Kardrov » : Vordrak à l'envers, la technique de Maelor en miroir (MAE-74, MAE-75). Vaincu, il disparaît comme un ennemi ordinaire : il se défait en lumière (animation dorée prévue dans MAE-95), puis les pages 8 et 9 et le choix du pouvoir suivent.
+- Combat (MAE-73) : 420 PV, Atq 26, Déf 14, Souffle 0, Rés 8, Vit 12 ; capacité « Kardrov » : Vordrak à l'envers, la technique de Maelor en miroir (MAE-74, MAE-75). Vaincu, il se défait en lumière (MAE-95) : il passe en or, puis s'efface depuis le haut en lâchant des pixels dorés ; viennent ensuite les pages 8 et 9 et le choix du pouvoir (la lueur qui reste jusqu'au choix : MAE-97).
 - Récompense (décision de Wesley du 03/11/2026) : aucune XP, aucune Couronne, une Larme dorée (larme d'immortel, dorée comme les échos du Souffle). Le groupe arrive ainsi devant le Dragon au même niveau qu'avant le chapitre IV (268 XP, niveau 4).
