@@ -7,6 +7,7 @@
 // en DOM, le sprite lui-même ; dans la scène peinte, un élément qui suit le sprite à l'écran.
 // Les deux scènes affichent les mêmes images animées (animated-sprite.ts, MAE-30) : chaque pixel vient du PNG, et
 // tout déplacement se fait par pixels de sprite entiers. Les couleurs (coup reçu, éclair, mort) restent en CSS.
+// Les effets spéciaux (MAE-95) sont dessinés dans une couche à part (fx-layer.ts), la même dans les deux scènes.
 
 import { CONFIG } from "../config.ts";
 import { HEROES, type SpriteRig } from "../data/game-data.ts";
@@ -15,9 +16,12 @@ import type { Hero } from "../party/heroes.ts";
 import { isAlive } from "../battle/battle.ts";
 import type { BattleState, Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
-import { createAnimatedSprite, type AnimatedSprite } from "./animated-sprite.ts";
+import { createAnimatedSprite, isReducedMotion, type AnimatedSprite } from "./animated-sprite.ts";
+import { ashCloud, ashVeil, goldStream, lightRise, streamsGold } from "./battle-fx.ts";
+import { createFxLayer, type FxLayer } from "./fx-layer.ts";
+import type { OpaqueRuns } from "./sprite-frames.ts";
 import { followHero } from "./hero-pose.ts";
-import type { BaseName } from "./sprite-motion.ts";
+import { frameCount, unravelCleared, type BaseName } from "./sprite-motion.ts";
 import { $, heroFlags, pulse, spriteEl, wait } from "./view.ts";
 
 export interface Stage {
@@ -35,6 +39,7 @@ export interface Stage {
   flee(): Promise<void>;                                     // le groupe sort de scène
   victory(party: Hero[]): void;
   spare(enemy: Enemy): Promise<void>;                        // un ennemi à terre se relève, apaisé
+  powerReturn(hero: Hero): void;                             // l'or quitte le héros vers l'ennemi à l'écran, ou un éclat doré (MAE-95)
   dispose(): void;                                           // retire ses éléments de la page
 }
 
@@ -85,6 +90,41 @@ export function initialBase(c: Combatant): BaseName {
   if (c.side !== "hero") return "idle";
   const flags = heroFlags(c);
   return flags.ko ? "ko" : flags.critical ? "critical" : "idle";
+}
+
+// Nuée de cendre du Dragon (MAE-95), commune aux deux scènes : de sa gueule (`mouth`, en pixels de son PNG) vers le
+// haut du corps des héros visés ; avec le mouvement réduit, un voile fixe sur eux. caster et targets : les éléments
+// qui couvrent exactement leur PNG (DOM : .sprite-img ; scène peinte : l'ancre). Joué sans être attendu.
+export function playAshCloud(fx: FxLayer, caster: Element, mouth: { x: number; y: number }, targets: Element[]) {
+  const measure = fx.measure(caster);
+  const from = measure(caster);
+  const boxes = targets.map(measure);
+  const count = frameCount(CONFIG.timing.ashCloud);
+  const at = { x: from.left + mouth.x, y: from.top + mouth.y };
+  const reduced = isReducedMotion();
+  fx.play((seed) => (reduced ? ashVeil(boxes, count, seed) : ashCloud(at, boxes, count, seed)));
+}
+
+// L'écho de Maelor se défait en lumière (MAE-95), commun aux deux scènes : les pixels dorés qui partent des rangées
+// effacées par le geste unravel de son image animée. png : l'élément qui couvre exactement son PNG. Sans mouvement
+// réduit seulement (avec, l'écho passe en or puis disparaît d'un coup, sans particule). Joué sans être attendu.
+export function playLightRise(fx: FxLayer, png: Element, sprite: AnimatedSprite) {
+  const box = fx.measure(png)(png);
+  const rows = sprite.rows();
+  const count = frameCount(CONFIG.timing.unravel);
+  fx.play((seed) => lightRise(box, rows, (frame) => unravelCleared(frame, count, rows.length), count, seed));
+}
+
+// L'or quitte Maelor (MAE-95), commun aux deux scènes : de sa poitrine vers le Dragon (écailles et sol devant lui) s'il
+// est à l'écran, sans mouvement réduit (streamsGold) ; sinon rien ici. Le héros jette son éclat doré dans tous les
+// cas (couleurs : côté scène). Pour Maelor et le Dragon : element, l'élément qui couvre exactement leur PNG ; rows, leur
+// image affichée (AnimatedSprite.shownRows), d'où part l'or et où il se pose. dragon null : pas de Dragon à l'écran.
+interface Shown { element: Element; rows: OpaqueRuns[] }
+export function playGoldStream(fx: FxLayer, hero: Shown, dragon: Shown | null) {
+  if (!streamsGold(dragon !== null, isReducedMotion()) || !dragon) return; // !dragon : déjà dit par streamsGold, pour le type
+  const measure = fx.measure(hero.element);
+  const from = measure(hero.element), to = measure(dragon.element);
+  fx.play((seed) => goldStream(from, hero.rows, to, dragon.rows, frameCount(CONFIG.timing.powerReturn), seed));
 }
 
 // Braises qui montent des bords enflammés d'un héros (Elwen), décalées dans le temps. Commun aux deux scènes.
@@ -142,6 +182,10 @@ export function createDomStage(): Stage {
   syncPixelScale();
   window.addEventListener("resize", () => { syncPixelScale(); snapSprites(); });
   const actors = new Map<string, DomActor>();
+  // Couche des effets spéciaux (MAE-95), sur toute la scène ; un pixel de sprite y vaut --scene-px
+  const scene = $("#battle-scene");
+  const fx = createFxLayer(scene, () => parseFloat(getComputedStyle(scene).getPropertyValue("--scene-px")));
+  const pngOf = (a: DomActor) => $(".sprite-img", a.element);
 
   function actorOf(c: Combatant) {
     const actor = actors.get(c.id);
@@ -268,6 +312,10 @@ export function createDomStage(): Stage {
         await pulse(a.element, "blink", CONFIG.timing.blink);
       }
       if (ability.kind !== "physical") {
+        if (ability.visual === "ash" && actor.side === "enemy" && actor.mouth) {
+          const heroes = [...actors.values()].filter((h) => h.combatant.side === "hero" && isAlive(h.combatant));
+          playAshCloud(fx, pngOf(a), actor.mouth, heroes.map(pngOf));
+        }
         a.sprite.play("cast");
         await pulse(a.element, "casting", CONFIG.timing.cast);
       }
@@ -301,14 +349,28 @@ export function createDomStage(): Stage {
     },
 
     async kill(enemies) {
+      const reduced = isReducedMotion();
+      const light = enemies.filter((enemy) => enemy.vanish === "light");
       for (const enemy of enemies) {
         const a = actorOf(enemy);
-        a.sprite.play("dissolve");
+        if (enemy.vanish === "light") {
+          // L'écho se défait en lumière (MAE-95) ; avec le mouvement réduit, il passe en or, puis disparaît d'un coup
+          a.element.classList.add("unraveling");
+          if (reduced) continue;
+          a.sprite.play("unravel");
+          playLightRise(fx, pngOf(a), a.sprite);
+        } else {
+          a.sprite.play("dissolve");
+          a.element.classList.add("dying");
+        }
         a.sprite.setBase("gone");
-        a.element.classList.add("dying");
       }
-      await wait(CONFIG.timing.death);
-      enemies.forEach(enemy => actorOf(enemy).element.classList.add("dead"));
+      await wait(light.length > 0 ? Math.max(CONFIG.timing.death, CONFIG.timing.unravel) : CONFIG.timing.death);
+      for (const enemy of enemies) {
+        const a = actorOf(enemy);
+        a.sprite.setBase("gone");
+        a.element.classList.add("dead");
+      }
     },
 
     // Le groupe sort par la gauche, de toute la largeur de l'écran : hors champ à coup sûr
@@ -343,7 +405,16 @@ export function createDomStage(): Stage {
       await pulse(a.element, "casting", CONFIG.timing.cast);
     },
 
+    powerReturn(hero) {
+      const a = actors.get(hero.id);
+      if (!a) return;
+      const dragon = [...actors.values()].find((e) => e.combatant.side === "enemy" && !e.element.classList.contains("dead"));
+      playGoldStream(fx, { element: pngOf(a), rows: a.sprite.shownRows() }, dragon ? { element: pngOf(dragon), rows: dragon.sprite.shownRows() } : null);
+      void pulse(a.element, "gilded", CONFIG.timing.gild); // l'éclat n'est pas attendu
+    },
+
     dispose() {
+      fx.dispose();
       for (const a of actors.values()) { a.sprite.dispose(); cancelAnimationFrame(a.slide); }
       actors.clear();
       $("#enemy-area").replaceChildren();

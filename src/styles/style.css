@@ -404,6 +404,22 @@ body.scene-painted #battle-scene { pointer-events: none; }
 .sprite.dying .sprite-body  { animation: enemy-dissolve 0.7s ease-in forwards; }
 .sprite.dead                { visibility: hidden; pointer-events: none; }
 
+/* L'écho de Maelor vaincu se défait en lumière (MAE-95) : il passe en or le premier quart, puis ses rangées s'effacent
+   (image animée, sprite-motion.ts) en lâchant des pixels dorés (fx-layer.ts). Durée : CONFIG.timing.unravel */
+.sprite.unraveling .sprite-body { animation: echo-unravel 1.2s steps(3, jump-end) forwards; }
+@keyframes echo-unravel {
+  0%   { filter: brightness(1) sepia(0) saturate(1) hue-rotate(0deg); }
+  25%, 100% { filter: brightness(1.45) sepia(1) saturate(2.2) hue-rotate(-8deg); }
+}
+
+/* L'or quitte Maelor (MAE-95) : un éclat doré, pendant que les pixels d'or partent vers le Dragon (fx-layer.ts).
+   Durée : CONFIG.timing.gild. Avec le mouvement réduit, l'éclat reste, sans montée ni descente */
+.sprite.gilded .sprite-body { animation: hero-gild 0.7s steps(4, jump-none); }
+@keyframes hero-gild {
+  0%, 100% { filter: brightness(1) sepia(0) saturate(1) hue-rotate(0deg); }
+  50%      { filter: brightness(1.45) sepia(1) saturate(2.2) hue-rotate(-8deg); }
+}
+
 /* Vaincu mais pas mort (Vahn) : il reste à terre, grisé, en attendant le choix du joueur */
 .sprite.enemy .sprite-img          { transition: filter 0.6s ease; }
 .sprite.enemy.defeated .sprite-img { filter: grayscale(0.5) brightness(0.55); }
@@ -431,6 +447,8 @@ body.scene-painted #battle-scene { pointer-events: none; }
   .sprite.appear .sprite-body { animation: none; }
   .sprite.blink .sprite-body  { animation: none; filter: brightness(2); }
   .sprite.dying .sprite-body  { animation: none; filter: sepia(1) saturate(6) hue-rotate(250deg) brightness(0.9); opacity: 0.6; }
+  .sprite.unraveling .sprite-body { animation: none; filter: brightness(1.45) sepia(1) saturate(2.2) hue-rotate(-8deg); }
+  .sprite.gilded .sprite-body { animation: none; filter: brightness(1.45) sepia(1) saturate(2.2) hue-rotate(-8deg); }
   .sprite.enemy .sprite-img   { transition: none; }
 }
 
@@ -497,6 +515,19 @@ body.scene-painted #battle-scene { pointer-events: none; }
 /* « Mouvement réduit » : le chiffre reste fixe à sa place, puis view.ts le retire (MAE-58) */
 @media (prefers-reduced-motion: reduce) {
   .popup { animation: none; }
+}
+
+/* ─── EFFETS SPÉCIAUX (MAE-95) ─────────────────────────────────────── */
+
+/* Couche des effets spéciaux du combat (fx-layer.ts) : un pixel du canvas par pixel de sprite, agrandi sans lissage.
+   Sans z-index, posée après les combattants : elle passe devant eux, sous l'interface (#game et ses plaques).
+   Scène peinte : les chiffres, effets des souffles, marques ▼ et barres des ennemis des ancres passent devant elle.
+   DOM : chaque .sprite a son propre empilement (transform), avec ces surimpressions dedans : la couche passe devant
+   elles aussi, le temps d'un effet (choix du 09/11/2026, MAE-95, à confirmer par Wesley au contrôle à l'œil) */
+.fx-layer {
+  position: absolute;
+  pointer-events: none;
+  image-rendering: pixelated;
 }
 
 /* ─── EFFETS DE SOUFFLES ───────────────────────────────────────────── */
@@ -758,6 +789,7 @@ body.story-dialog #party-window { visibility: hidden; }
 .targeted > .od-foe .od-foe-name { color: var(--gold-bright); }
 
 .dying > .od-foe,
+.unraveling > .od-foe,
 .defeated > .od-foe { display: none; }
 .appear > .od-foe   { animation: foe-appear 0.6s ease-out both; }
 

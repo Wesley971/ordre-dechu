@@ -10,7 +10,7 @@
 import { CONFIG } from "../config.ts";
 import type { DrawnPose, DrawnPoseName, SpriteRig } from "../data/game-data.ts";
 import {
-  AT_REST, composeFrame, drawnPlacement, footprint, footShadow, frameLayout, type FrameLayout, type Footprint, type FrameRig, type PixelImage, type Placement,
+  AT_REST, composeFrame, drawnPlacement, footprint, footShadow, frameLayout, opaqueRuns, type OpaqueRuns, type FrameLayout, type Footprint, type FrameRig, type PixelImage, type Placement,
 } from "./sprite-frames.ts";
 import { createMotion, type BaseName, type GestureName, type MotionPose, type SpriteMotion } from "./sprite-motion.ts";
 
@@ -34,6 +34,10 @@ export interface AnimatedSprite {
   // sprite (vers la droite de l'écran) et rapport de largeur. Sans pose dessinée : { shift: 0, stretch: 1 }
   shadow(): ContactShadow;
   shown(): ShownImage;            // image affichée (PNG debout ou pose dessinée), pour le contour du survol
+  rows(): OpaqueRuns[];           // segments opaques de chaque rangée du PNG debout (vide avant ready) : d'où part la lumière de l'écho (MAE-95)
+  // Les mêmes, pour l'image affichée en ce moment (pose comprise : le Dragon affaissé), par rapport au coin du PNG debout,
+  // une entrée par rangée du PNG (vide avant ready) : là où se pose l'or de Maelor (MAE-95)
+  shownRows(): OpaqueRuns[];
   setBase(name: BaseName): void;
   play(name: GestureName): void;  // avant setBase pour une transition (fall puis ko, sprite-motion.ts)
   dispose(): void;
@@ -58,8 +62,14 @@ export function overrideReducedMotion(reduced: boolean | null) {
   reducedOverride = reduced;
 }
 
+// Mouvement réduit en ce moment : le réglage du système, ou celui que simule l'aperçu (mode test). Les effets spéciaux
+// des scènes le suivent aussi (MAE-95)
+export function isReducedMotion() {
+  return reducedOverride ?? reducedMotion?.matches ?? false;
+}
+
 function frame(nowMs: number) {
-  const moving = !(reducedOverride ?? reducedMotion?.matches ?? false);
+  const moving = !isReducedMotion();
   for (const sprite of running) sprite.tick(nowMs, moving);
   loop = running.size > 0 ? requestAnimationFrame(frame) : 0;
 }
@@ -163,7 +173,7 @@ export function createAnimatedSprite(options: AnimatedSpriteOptions): AnimatedSp
     context = canvas.getContext("2d");
     if (!context) throw new Error("Animation : canvas 2D indisponible");
     buffer = context.createImageData(layout.width, layout.height);
-    sprite.tick(performance.now(), !(reducedOverride ?? reducedMotion?.matches ?? false));
+    sprite.tick(performance.now(), !isReducedMotion());
     start(sprite);
   })();
 
@@ -177,6 +187,13 @@ export function createAnimatedSprite(options: AnimatedSpriteOptions): AnimatedSp
     shown() {
       const drawn = current?.drawn ? drawnImages.get(current.drawn) : undefined;
       return drawn ? { url: drawn.url, ...drawn.at } : { url: options.url, ...AT_REST };
+    },
+    rows() {
+      return source ? opaqueRuns(source) : [];
+    },
+    shownRows() {
+      if (!source || !buffer) return [];
+      return opaqueRuns(buffer, layout.originX, layout.originY, source.height);
     },
     setBase: (name) => motion.setBase(name),
     play: (name) => motion.play(name, performance.now()),

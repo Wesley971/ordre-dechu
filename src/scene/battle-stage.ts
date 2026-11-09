@@ -13,10 +13,11 @@ import { Color } from "three";
 import { CONFIG } from "../config.ts";
 import type { Decor } from "../data/decors.ts";
 import type { Hero } from "../party/heroes.ts";
-import type { Combatant } from "../battle/battle.ts";
-import { createAnimatedSprite, type AnimatedSprite } from "../ui/animated-sprite.ts";
+import { isAlive, type Combatant } from "../battle/battle.ts";
+import { createAnimatedSprite, isReducedMotion, type AnimatedSprite } from "../ui/animated-sprite.ts";
 import type { BaseName } from "../ui/sprite-motion.ts";
-import { enemyPhase, facingOf, showPose, type Stage } from "../ui/stage.ts";
+import { createFxLayer } from "../ui/fx-layer.ts";
+import { enemyPhase, facingOf, playAshCloud, playGoldStream, playLightRise, showPose, type Stage } from "../ui/stage.ts";
 import { followHero } from "../ui/hero-pose.ts";
 import { preloadImages, type ActorDef, type ActorsView } from "./actors.ts";
 import { actorDefs, castExtent, enemyMember, heroMember, type CastMember } from "./cast.ts";
@@ -41,6 +42,7 @@ export interface BattleStage extends Stage {
 const BODY_CLASS = "scene-painted";
 const DAMAGE_TINT = new Color("#ff8c3c");  // coup reçu : brightness(1.8) sepia(0.6) hue-rotate(-30deg) des sprites DOM
 const DEATH_TINT = new Color("#7a4fd6");   // mort : sepia(1) saturate(6) hue-rotate(250deg)
+const GOLD_TINT = new Color("#f0c95a");    // l'écho se défait en lumière (MAE-95) : or vif, comme CSS echo-unravel
 const DEFEATED_BRIGHTNESS = 0.55;          // vaincu mais pas mort : grayscale(0.5) brightness(0.55) des sprites DOM
 const DEFEATED_GRAY = 0.5;
 
@@ -94,6 +96,8 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
   let extent: ReturnType<typeof castExtent> = [];
   let lastSafe = { top: -1, height: -1, clearBottom: 0, clearLeft: 0 };
   let stopCounter: (() => void) | null = null;
+  // Couche des effets spéciaux (MAE-95), sur la couche des ancres ; un pixel de sprite comme les sprites peints
+  const fx = createFxLayer(layer, () => { const info = stage.measure(); return info.spritePixel / info.ratio; });
 
   // — Zone de cadrage : le rectangle de la scène, et la place à laisser libre pour la bande et les plaques (style.css) —
 
@@ -388,6 +392,11 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
         await wait(CONFIG.timing.blink);
       }
       if (ability.kind !== "physical") {
+        const caster = anchors.get(actor.id);
+        if (ability.visual === "ash" && actor.side === "enemy" && actor.mouth && caster) {
+          const heroes = [...states.values()].filter((h) => h.combatant.side === "hero" && h.visible && isAlive(h.combatant));
+          playAshCloud(fx, caster, actor.mouth, heroes.flatMap((h) => anchors.get(h.combatant.id) ?? []));
+        }
         setClass(actor, "casting", true);
         sprite?.play("cast");
         animate(actor.id, CONFIG.timing.cast, (p) => { s.glow = Math.sin(Math.PI * p); },
@@ -436,10 +445,30 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
     },
 
     async kill(enemies) {
+      const reduced = isReducedMotion();
+      const light = enemies.some((enemy) => enemy.vanish === "light");
       for (const enemy of enemies) {
         const s = stateOf(enemy);
-        setClass(enemy, "dying", true);
         const sprite = spriteOf(enemy);
+        if (enemy.vanish === "light") {
+          // L'écho se défait en lumière (MAE-95) : il passe en or le premier quart, puis ses rangées s'effacent (image
+          // animée) en lâchant des pixels dorés. Mouvement réduit : en or, puis il disparaît d'un coup
+          setClass(enemy, "unraveling", true);
+          animate(enemy.id, CONFIG.timing.unravel, (p) => {
+            const toward = Math.min(1, Math.floor((p / 0.25) * 3) / 3); // trois paliers, comme CSS echo-unravel steps(3)
+            s.tint.copy(GOLD_TINT);
+            s.tintMix = 0.6 * toward;
+            s.brightness = 1 + 0.35 * toward;
+          });
+          const anchor = anchors.get(enemy.id);
+          if (!reduced && sprite) {
+            sprite.play("unravel");
+            sprite.setBase("gone");
+            if (anchor) playLightRise(fx, anchor, sprite);
+          }
+          continue;
+        }
+        setClass(enemy, "dying", true);
         sprite?.play("dissolve"); // les rangées s'effacent depuis le haut : dans l'image animée
         sprite?.setBase("gone");
         animate(enemy.id, CONFIG.timing.death, (p) => {
@@ -451,9 +480,10 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
           s.opacity = 1 - fade;
         });
       }
-      await wait(CONFIG.timing.death);
+      await wait(light ? Math.max(CONFIG.timing.death, CONFIG.timing.unravel) : CONFIG.timing.death);
       for (const enemy of enemies) {
         const s = stateOf(enemy);
+        spriteOf(enemy)?.setBase("gone");
         s.visible = false;
         setClass(enemy, "dead", true);
       }
@@ -502,9 +532,39 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       await wait(CONFIG.timing.cast);
     },
 
+    powerReturn(hero) {
+      const anchor = anchors.get(hero.id);
+      if (!anchor || !states.has(hero.id)) return;
+      const dragon = [...states.values()].find((e) => e.combatant.side === "enemy" && e.visible);
+      const dragonAnchor = dragon ? anchors.get(dragon.combatant.id) : undefined;
+      const dragonSprite = dragon ? spriteOf(dragon.combatant) : null;
+      const heroRows = spriteOf(hero)?.shownRows() ?? [];
+      playGoldStream(fx, { element: anchor, rows: heroRows }, dragonAnchor && dragonSprite ? { element: dragonAnchor, rows: dragonSprite.shownRows() } : null);
+      // Éclat doré (comme CSS hero-gild) : l'or monte puis retombe. Mouvement réduit : les transitions sautent à leur
+      // fin, l'éclat serait invisible ; il est donc tenu fixe le temps de sa durée
+      const s = stateOf(hero);
+      if (isReducedMotion()) {
+        s.tint.copy(GOLD_TINT);
+        s.tintMix = 0.6;
+        s.brightness = 1.35;
+        stage.requestRedraw();
+        void wait(CONFIG.timing.gild).then(() => { s.tintMix = 0; s.brightness = 1; stage.requestRedraw(); });
+        return;
+      }
+      animate(`${hero.id}:gild`, CONFIG.timing.gild, (p) => {
+        // Paliers de CSS hero-gild (steps(4, jump-none) sur chaque moitié) : 0, 1/3, 2/3, 1, puis retour
+        const half = (q: number) => Math.min(1, Math.floor(q * 4) / 3);
+        const level = p < 0.5 ? half(p * 2) : 1 - half((p - 0.5) * 2);
+        s.tint.copy(GOLD_TINT);
+        s.tintMix = 0.6 * level;
+        s.brightness = 1 + 0.35 * level;
+      }, () => { s.tintMix = 0; s.brightness = 1; });
+    },
+
     measure: () => stage.measure(),
 
     dispose() {
+      fx.dispose();
       stopCounter?.();
       for (const sprite of sprites.values()) sprite.dispose();
       sprites.clear();

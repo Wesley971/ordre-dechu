@@ -71,6 +71,7 @@ interface AbilityBase {
   mp?: number;
   element?: ElementName;
   desc?: string;
+  visual?: "ash"; // effet spécial dessiné en plus de celui de l'élément (MAE-95) : la Nuée de cendre du Dragon
 }
 export interface PhysicalAbility extends AbilityBase { kind: "physical"; power: number; pierce?: boolean }
 export interface MagicAbility    extends AbilityBase { kind: "magic"; power: number; element: ElementName }
@@ -192,7 +193,7 @@ export type ItemId = keyof typeof ITEMS;
 export const ENEMY_SKILLS = {
   chains:     { name: "Chaînes",          kind: "physical", power: 1.6, target: "foe" }, // Gau-Tik
   pillar:     { name: "Pilier",           kind: "physical", power: 1.6, target: "foe" }, // Painkush, même effet
-  ashCloud:   { name: "Nuée de cendre",   kind: "magic", power: 34, element: "fire", target: "all-foes" },
+  ashCloud:   { name: "Nuée de cendre",   kind: "magic", power: 34, element: "fire", target: "all-foes", visual: "ash" },
   echoBlade:  { name: "Kardrov",          kind: "physical", power: 2, pierce: true, target: "foe" }, // Vordrak à l'envers : la technique de Maelor, en miroir
 } satisfies Record<string, Ability>;
 export type EnemySkillId = keyof typeof ENEMY_SKILLS;
@@ -224,6 +225,8 @@ export interface EnemyDef {
   boss?: boolean;
   spareable?: boolean;
   rig: SpriteRig;       // squelette des animations en code (MAE-30)
+  mouth?: { x: number; y: number }; // gueule, en pixels du PNG : d'où part la Nuée de cendre (MAE-95)
+  vanish?: "light"; // vaincu, il se défait en lumière dorée au lieu de disparaître comme un ennemi ordinaire (MAE-95)
 }
 
 export const ENEMIES = {
@@ -258,6 +261,7 @@ export const ENEMIES = {
   maelorEcho: {
     name: "Écho de Maelor", image: "images/maelor-echo.png", canvasWidth: 47, canvasHeight: 66,
     rig: { waist: 36, breath: 2.8, phase: 0 },
+    vanish: "light",
     maxHp: 420, atk: 26, def: 14, mag: 0, res: 8, spd: 12,
     skills: [{ skill: "echoBlade", chance: 0.33 }],
     xp: 0, gil: 0, drop: { item: "phoenix", chance: 1 },
@@ -265,6 +269,7 @@ export const ENEMIES = {
   vahn: {
     name: "Le Dragon", image: "images/vahn.png", canvasWidth: 142, canvasHeight: 88, boss: true, spareable: true,
     rig: { waist: 48, breath: 4.4, phase: 0 },
+    mouth: { x: 2, y: 25 }, // entre les mâchoires, au bout du museau (le Dragon regarde vers la gauche)
     maxHp: 1800, atk: 30, def: 14, mag: 26, res: 12, spd: 10,
     elements: { ice: "weak", fire: "absorb" },
     pattern: ["attack", "attack", "ashCloud"],
