@@ -17,7 +17,7 @@ import { isAlive, type Combatant } from "../battle/battle.ts";
 import { createAnimatedSprite, isReducedMotion, type AnimatedSprite } from "../ui/animated-sprite.ts";
 import type { BaseName } from "../ui/sprite-motion.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
-import { enemyPhase, facingOf, playAshCloud, playLightRise, showPose, type Stage } from "../ui/stage.ts";
+import { enemyPhase, facingOf, playAshCloud, playGoldStream, playLightRise, showPose, type Stage } from "../ui/stage.ts";
 import { followHero } from "../ui/hero-pose.ts";
 import { preloadImages, type ActorDef, type ActorsView } from "./actors.ts";
 import { actorDefs, castExtent, enemyMember, heroMember, type CastMember } from "./cast.ts";
@@ -530,6 +530,32 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       animate(`${enemy.id}:glow`, CONFIG.timing.cast, (p) => { s.glow = Math.sin(Math.PI * p); },
         () => { s.glow = 0; setClass(enemy, "casting", false); });
       await wait(CONFIG.timing.cast);
+    },
+
+    powerReturn(hero) {
+      const anchor = anchors.get(hero.id);
+      if (!anchor || !states.has(hero.id)) return;
+      const dragon = [...states.values()].find((e) => e.combatant.side === "enemy" && e.visible);
+      playGoldStream(fx, anchor, dragon ? anchors.get(dragon.combatant.id) ?? null : null);
+      // Éclat doré (comme CSS hero-gild) : l'or monte puis retombe. Mouvement réduit : les transitions sautent à leur
+      // fin, l'éclat serait invisible ; il est donc tenu fixe le temps de sa durée
+      const s = stateOf(hero);
+      if (isReducedMotion()) {
+        s.tint.copy(GOLD_TINT);
+        s.tintMix = 0.6;
+        s.brightness = 1.35;
+        stage.requestRedraw();
+        void wait(CONFIG.timing.gild).then(() => { s.tintMix = 0; s.brightness = 1; stage.requestRedraw(); });
+        return;
+      }
+      animate(`${hero.id}:gild`, CONFIG.timing.gild, (p) => {
+        // Paliers de CSS hero-gild (steps(4, jump-none) sur chaque moitié) : 0, 1/3, 2/3, 1, puis retour
+        const half = (q: number) => Math.min(1, Math.floor(q * 4) / 3);
+        const level = p < 0.5 ? half(p * 2) : 1 - half((p - 0.5) * 2);
+        s.tint.copy(GOLD_TINT);
+        s.tintMix = 0.6 * level;
+        s.brightness = 1 + 0.35 * level;
+      }, () => { s.tintMix = 0; s.brightness = 1; });
     },
 
     measure: () => stage.measure(),

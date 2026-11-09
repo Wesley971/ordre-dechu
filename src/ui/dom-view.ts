@@ -184,7 +184,11 @@ export function createDomView(options: DomViewOptions = {}): GameView {
       await wait(CONFIG.timing.step);
     },
 
-    animatePowerReturn() { Sfx.play("memory"); }, // l'animation viendra avec MAE-95
+    // L'or quitte Maelor (MAE-95) : vers le Dragon s'il est à l'écran, sinon un éclat doré sur place
+    animatePowerReturn(hero) {
+      Sfx.play("memory");
+      stage.powerReturn(hero);
+    },
 
     // — Combat —
 

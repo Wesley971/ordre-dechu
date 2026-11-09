@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { CONFIG } from "../config.ts";
 import palette from "../../docs/character-palette.md?raw";
-import { along, ashCloud, ashVeil, between, FX_COLORS, lightRise, pick, seeded, type FxBox, type FxPlan, type RowSpan } from "../ui/battle-fx.ts";
+import { along, ashCloud, ashVeil, between, FX_COLORS, goldStream, lightRise, pick, seeded, streamsGold, type FxBox, type FxPlan, type RowSpan } from "../ui/battle-fx.ts";
 import { frameCount, unravelCleared } from "../ui/sprite-motion.ts";
 import { layerGeometry } from "../ui/fx-layer.ts";
 
@@ -180,5 +180,50 @@ describe("l'écho se défait en lumière", () => {
         expect(x).toBeGreaterThanOrEqual(png.left + 10);
       }
     }
+  });
+});
+
+describe("l'or quitte Maelor", () => {
+  const maelor = { left: 60, top: 90, right: 107, bottom: 156 };
+  const dragon = { left: 260, top: 70, right: 402, bottom: 158 };
+  const count = frameCount(CONFIG.timing.powerReturn);
+  const all = (plan: FxPlan) => Array.from({ length: plan.count }, (_, i) => plan.frame(i));
+  const golds: string[] = [FX_COLORS.parchment, FX_COLORS.brightGold, FX_COLORS.oldGold];
+
+  it("sans Dragon à l'écran, ou avec le mouvement réduit : l'éclat doré sur place, sans or qui part", () => {
+    expect(streamsGold(false, false)).toBe(false);
+    expect(streamsGold(false, true)).toBe(false);
+    expect(streamsGold(true, true)).toBe(false);
+    expect(streamsGold(true, false)).toBe(true);
+  });
+
+  it("ne tire jamais Math.random, et rend les mêmes images pour la même graine", () => {
+    const spy = vi.spyOn(Math, "random");
+    try {
+      expect(all(goldStream(maelor, dragon, count, 8))).toEqual(all(goldStream(maelor, dragon, count, 8)));
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("part de la poitrine de Maelor, en pixels entiers et dorés, et se pose sur le Dragon et le sol devant lui", () => {
+    const frames = all(goldStream(maelor, dragon, count, 9));
+    expect(frames[0].length).toBeGreaterThan(0);
+    for (const { x, y } of frames[0]) {
+      expect(x >= maelor.left && x < maelor.right && y >= maelor.top && y < maelor.bottom).toBe(true);
+    }
+    for (const { x, y, color } of frames.flat()) {
+      expect(Number.isInteger(x) && Number.isInteger(y)).toBe(true);
+      expect(golds).toContain(color);
+      expect(x).toBeGreaterThanOrEqual(maelor.left);
+      expect(x).toBeLessThan(dragon.right);
+      expect(y).toBeLessThan(dragon.bottom);
+    }
+    const middle = frames[Math.round(count * 0.75)];
+    const onScales = middle.filter(({ x, y }) => x >= dragon.left && x < dragon.right && y >= dragon.top && y < dragon.bottom - 3);
+    const onGround = middle.filter(({ y }) => y >= dragon.bottom - 3);
+    expect(onScales.length).toBeGreaterThan(0);
+    expect(onGround.length).toBeGreaterThan(0);
   });
 });

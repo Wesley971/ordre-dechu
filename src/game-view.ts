@@ -66,7 +66,7 @@ export interface GameView {
   showDefeat(telling: Telling): Promise<void>;          // la scène s'éteint, puis les pages de la défaite
   animateSpare(enemy: Enemy): Promise<void>;            // un ennemi à terre se relève, apaisé
   animateFinishingBlow(hero: Hero, enemy: Enemy): Promise<void>;
-  animatePowerReturn(hero: Hero): void;                 // l'or quitte Maelor (un son aujourd'hui, l'animation : MAE-95)
+  animatePowerReturn(hero: Hero): void;                 // l'or quitte Maelor, vers le Dragon (MAE-95), avec un son ; non attendu
 
   // — Combat —
   // Horloge du combat : callback est appelé à chaque image avec le temps écoulé depuis la précédente, en millisecondes

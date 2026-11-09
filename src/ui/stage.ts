@@ -17,7 +17,7 @@ import { isAlive } from "../battle/battle.ts";
 import type { BattleState, Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
 import { createAnimatedSprite, isReducedMotion, type AnimatedSprite } from "./animated-sprite.ts";
-import { ashCloud, ashVeil, lightRise } from "./battle-fx.ts";
+import { ashCloud, ashVeil, goldStream, lightRise, streamsGold } from "./battle-fx.ts";
 import { createFxLayer, type FxLayer } from "./fx-layer.ts";
 import { followHero } from "./hero-pose.ts";
 import { frameCount, unravelCleared, type BaseName } from "./sprite-motion.ts";
@@ -38,6 +38,7 @@ export interface Stage {
   flee(): Promise<void>;                                     // le groupe sort de scène
   victory(party: Hero[]): void;
   spare(enemy: Enemy): Promise<void>;                        // un ennemi à terre se relève, apaisé
+  powerReturn(hero: Hero): void;                             // l'or quitte le héros vers l'ennemi à l'écran, ou un éclat doré (MAE-95)
   dispose(): void;                                           // retire ses éléments de la page
 }
 
@@ -111,6 +112,16 @@ export function playLightRise(fx: FxLayer, png: Element, sprite: AnimatedSprite)
   const rows = sprite.rows();
   const count = frameCount(CONFIG.timing.unravel);
   fx.play((seed) => lightRise(box, rows, (frame) => unravelCleared(frame, count, rows.length), count, seed));
+}
+
+// L'or quitte Maelor (MAE-95), commun aux deux scènes : de sa poitrine vers le Dragon (écailles et sol devant lui) s'il
+// est à l'écran, sans mouvement réduit (streamsGold) ; sinon rien ici. Le héros jette son éclat doré dans tous les
+// cas (couleurs : côté scène). hero et dragon : les éléments qui couvrent exactement leur PNG.
+export function playGoldStream(fx: FxLayer, hero: Element, dragon: Element | null) {
+  if (!dragon || !streamsGold(true, isReducedMotion())) return;
+  const measure = fx.measure(hero);
+  const from = measure(hero), to = measure(dragon);
+  fx.play((seed) => goldStream(from, to, frameCount(CONFIG.timing.powerReturn), seed));
 }
 
 // Braises qui montent des bords enflammés d'un héros (Elwen), décalées dans le temps. Commun aux deux scènes.
@@ -389,6 +400,14 @@ export function createDomStage(): Stage {
       a.sprite.play("rise");
       a.sprite.setBase("idle");
       await pulse(a.element, "casting", CONFIG.timing.cast);
+    },
+
+    powerReturn(hero) {
+      const a = actors.get(hero.id);
+      if (!a) return;
+      const dragon = [...actors.values()].find((e) => e.combatant.side === "enemy" && !e.element.classList.contains("dead"));
+      playGoldStream(fx, pngOf(a), dragon ? pngOf(dragon) : null);
+      pulse(a.element, "gilded", CONFIG.timing.gild);
     },
 
     dispose() {

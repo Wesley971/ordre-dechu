@@ -5,7 +5,8 @@
 // (teinte du coup reçu, éclair, mort) imitent celles des scènes. Les héros tombent, sont à genoux ou au sol dans
 // leurs poses dessinées (MAE-94), comme dans les scènes.
 // Les effets spéciaux (MAE-95) ont leur case : la Nuée de cendre du Dragon vise un héros posé dans la même case, et
-// l'écho de Maelor se défait en lumière.
+// l'écho de Maelor se défait en lumière, et l'or quitte Maelor vers le Dragon posé dans sa case (ou, sans Dragon, son
+// éclat doré seul).
 // Une case « Mouvement réduit » simule le réglage du système (MAE-58), effets spéciaux compris. ?vitesse=X accélère les animations, comme en jeu
 // (pas les pauses entre deux tours de boucle). Le pas en avant d'un héros qui agit est fait par la scène : pas ici.
 
@@ -13,14 +14,14 @@ import { CONFIG } from "../config.ts";
 import { ENEMIES, HEROES, type EnemyDef, type SpriteRig } from "../data/game-data.ts";
 import { createAnimatedSprite, isReducedMotion, overrideReducedMotion, type AnimatedSprite } from "../ui/animated-sprite.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
-import { HERO_CANVAS, playAshCloud, playLightRise } from "../ui/stage.ts";
+import { HERO_CANVAS, playAshCloud, playGoldStream, playLightRise } from "../ui/stage.ts";
 
-interface Character { name: string; url: string; rig: SpriteRig; height: number; facing: 1 | -1; boss: boolean; mouth?: { x: number; y: number }; vanish?: "light" }
+interface Character { name: string; url: string; rig: SpriteRig; height: number; facing: 1 | -1; boss: boolean; mouth?: { x: number; y: number }; vanish?: "light"; gold?: boolean }
 
 // Un scénario joue une animation, puis attend, en boucle ; color : filtre CSS à poser pendant ms millisecondes ;
 // ash : lance la Nuée de cendre vers le héros de la case (seulement dans la case qui en a un) ; light : les pixels
-// dorés de l'écho qui se défait (seulement dans la case qui a ses effets)
-interface Cell { sprite: AnimatedSprite; color(filter: string, ms: number): void; ash(): void; light(): void }
+// dorés de l'écho qui se défait ; gold : l'or qui quitte Maelor (seulement dans les cases qui ont leurs effets)
+interface Cell { sprite: AnimatedSprite; color(filter: string, ms: number): void; ash(): void; light(): void; gold(): void }
 type Scenario = (cell: Cell) => Promise<void>;
 
 const MARGIN = 8; // marge de la case autour de la toile, en pixels de sprite (pas en avant, bond, saut)
@@ -136,8 +137,17 @@ const LIGHT_SCENARIO: [string, Scenario] = ["Se défait en lumière", async ({ s
   sprite.setBase("idle");
   await wait(PAUSE);
 }];
-// Place du héros visé, à gauche du Dragon, en pixels de sprite
-const TARGET_SPACE = 70;
+// L'or quitte Maelor (MAE-95) : vers le Dragon posé à sa droite ; sans Dragon à l'écran, ou avec le mouvement réduit,
+// l'éclat doré seul, sur place (comme en combat, stage.ts, playGoldStream)
+const GOLD_SCENARIO = (label: string): [string, Scenario] => [label, async ({ color, gold }) => {
+  gold();
+  color(GOLD, CONFIG.timing.gild);
+  await wait(CONFIG.timing.powerReturn + PAUSE);
+}];
+const GOLD_TO_DRAGON = GOLD_SCENARIO("L'or le quitte");
+const GOLD_ALONE = GOLD_SCENARIO("L'or le quitte, sans Dragon");
+// Écart entre le personnage et ce qu'il vise dans la case, en pixels de sprite
+const TARGET_GAP = 23;
 
 const SPARE_SCENARIO: [string, Scenario] = ["Vaincu, puis épargné", async ({ sprite, color }) => {
   sprite.play("slump");
@@ -152,7 +162,7 @@ const SPARE_SCENARIO: [string, Scenario] = ["Vaincu, puis épargné", async ({ s
 
 function characters(): Character[] {
   return [
-    ...HEROES.map((hero) => ({ name: hero.name, url: hero.image, rig: hero.rig, height: HERO_CANVAS.h, facing: 1 as const, boss: false })), // as const : le sens du regard, de type 1 | -1
+    ...HEROES.map((hero) => ({ name: hero.name, url: hero.image, rig: hero.rig, height: HERO_CANVAS.h, facing: 1 as const, boss: false, gold: hero.id === "maelor" })), // as const : le sens du regard, de type 1 | -1
     ...Object.values<EnemyDef>(ENEMIES).map((enemy) => ({
       name: enemy.name, url: enemy.image, rig: enemy.rig, height: enemy.canvasHeight, facing: -1 as const, boss: enemy.spareable === true, // as const : idem
       mouth: enemy.mouth, vanish: enemy.vanish,
@@ -168,8 +178,11 @@ function cssPixel() {
   return Math.max(1, Math.round(zoom * ratio)) / ratio;
 }
 
-// target : la case montre aussi ce héros, à gauche, que vise la Nuée de cendre ; effects : la case a une couche d'effets
-function buildCell(character: Character, label: string, scenario: Scenario, px: number, target?: { url: string }, effects = !!target) {
+// Ce que vise un effet dans la case, fixe : un héros à gauche du Dragon (Nuée de cendre), le Dragon à droite de Maelor (or)
+interface Target { url: string; width: number; height: number; side: "left" | "right" }
+
+// target : la case le montre aussi ; effects : la case a une couche d'effets
+function buildCell(character: Character, label: string, scenario: Scenario, px: number, target?: Target, effects = !!target) {
   const figure = document.createElement("figure");
   figure.className = "anim-cell";
   const box = document.createElement("div");
@@ -188,21 +201,23 @@ function buildCell(character: Character, label: string, scenario: Scenario, px: 
     },
   });
   box.appendChild(sprite.canvas);
-  const space = target ? TARGET_SPACE : 0;
-  // Le héros visé, fixe, et le rectangle exact du PNG du personnage : les effets partent de lui (stage.ts, playAshCloud)
-  const hero = document.createElement("img");
+  const space = target ? target.width + TARGET_GAP : 0;
+  const before = target?.side === "left" ? space : 0; // place à gauche du personnage
+  // Ce que vise l'effet, fixe, et le rectangle exact du PNG du personnage : les effets partent de lui (stage.ts)
+  const aimed = document.createElement("img");
   const png = document.createElement("div");
   png.className = "anim-png";
   if (target) {
-    hero.src = target.url;
-    hero.className = "anim-target";
-    Object.assign(hero.style, { width: `${HERO_CANVAS.w * px}px`, height: `${HERO_CANVAS.h * px}px`, left: `${MARGIN * px}px` });
-    box.append(hero);
+    aimed.src = target.url;
+    aimed.className = "anim-target";
+    Object.assign(aimed.style, { width: `${target.width * px}px`, height: `${target.height * px}px` });
+    box.append(aimed);
   }
   if (effects) box.append(png);
   const fx = effects ? createFxLayer(box, () => px) : null; // seulement dans les cases des effets spéciaux
-  const ash = () => { if (fx && target && character.mouth) playAshCloud(fx, png, character.mouth, [hero]); };
+  const ash = () => { if (fx && target && character.mouth) playAshCloud(fx, png, character.mouth, [aimed]); };
   const light = () => { if (fx) playLightRise(fx, png, sprite); };
+  const gold = () => { if (fx) playGoldStream(fx, png, target ? aimed : null); };
   let colorTimer = 0;
   const color = (filter: string, ms: number) => {
     tint = filter;
@@ -213,17 +228,21 @@ function buildCell(character: Character, label: string, scenario: Scenario, px: 
 
   void sprite.ready.then(async () => {
     const { layout } = sprite;
-    Object.assign(box.style, { width: `${(layout.width + 2 * MARGIN + space) * px}px`, height: `${(layout.height + MARGIN) * px}px` });
+    const height = Math.max(layout.height, (target?.height ?? 0) + MARGIN);
+    Object.assign(box.style, { width: `${(layout.width + 2 * MARGIN + space) * px}px`, height: `${(height + MARGIN) * px}px` });
     Object.assign(sprite.canvas.style, {
-      width: `${layout.width * px}px`, height: `${layout.height * px}px`, left: `${(MARGIN + space) * px}px`, top: `${MARGIN * px}px`,
+      width: `${layout.width * px}px`, height: `${layout.height * px}px`, left: `${(MARGIN + before) * px}px`, top: `${(MARGIN + height - layout.height) * px}px`,
     });
-    // Le PNG au repos dans la toile : (originX, originY), le bas sur la dernière rangée ; le héros visé a les pieds au même niveau
+    // Le PNG au repos dans la toile : (originX, originY), le bas sur la dernière rangée ; ce qui est visé a les pieds au même niveau
     Object.assign(png.style, {
-      left: `${(MARGIN + space + layout.originX) * px}px`, top: `${(MARGIN + layout.originY) * px}px`,
+      left: `${(MARGIN + before + layout.originX) * px}px`, top: `${(MARGIN + height - layout.height + layout.originY) * px}px`,
       width: `${(layout.width - 2 * layout.originX) * px}px`, height: `${(layout.height - layout.originY) * px}px`,
     });
-    hero.style.top = `${(MARGIN + layout.height - HERO_CANVAS.h) * px}px`;
-    for (;;) await scenario({ sprite, color, ash, light });
+    if (target) {
+      const left = target.side === "left" ? MARGIN : MARGIN + layout.width + TARGET_GAP;
+      Object.assign(aimed.style, { left: `${left * px}px`, top: `${(MARGIN + height - target.height) * px}px` });
+    }
+    for (;;) await scenario({ sprite, color, ash, light, gold });
   }).catch((error: unknown) => { caption.textContent = `${label} : ${String(error)}`; });
   return { figure, sprite };
 }
@@ -266,11 +285,16 @@ export function openAnimationPreview() {
     title.textContent = character.name;
     const row = document.createElement("div");
     row.className = "anim-row";
-    const scenarios = character.facing > 0 ? HERO_SCENARIOS
+    const scenarios = character.facing > 0 ? [...HERO_SCENARIOS, ...(character.gold ? [GOLD_TO_DRAGON, GOLD_ALONE] : [])]
       : [...ENEMY_SCENARIOS, ...(character.mouth ? [ASH_SCENARIO] : []), ...(character.vanish ? [LIGHT_SCENARIO] : []), ...(character.boss ? [SPARE_SCENARIO] : [])];
     for (const [label, scenario] of scenarios) {
-      const target = scenario === ASH_SCENARIO[1] ? { url: HEROES[0].image } : undefined;
-      const cell = buildCell(character, label, scenario, px, target, !!target || scenario === LIGHT_SCENARIO[1]);
+      const dragon = Object.values<EnemyDef>(ENEMIES).find((enemy) => enemy.mouth);
+      const target: Target | undefined =
+        scenario === ASH_SCENARIO[1] ? { url: HEROES[0].image, width: HERO_CANVAS.w, height: HERO_CANVAS.h, side: "left" }
+        : scenario === GOLD_TO_DRAGON[1] && dragon ? { url: dragon.image, width: dragon.canvasWidth, height: dragon.canvasHeight, side: "right" }
+        : undefined;
+      const effects = !!target || scenario === LIGHT_SCENARIO[1] || scenario === GOLD_ALONE[1];
+      const cell = buildCell(character, label, scenario, px, target, effects);
       row.appendChild(cell.figure);
       sprites.push(cell.sprite);
     }

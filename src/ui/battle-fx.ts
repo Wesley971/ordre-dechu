@@ -183,3 +183,52 @@ export function lightRise(png: FxBox, rows: readonly RowSpan[], cleared: (frame:
     },
   };
 }
+
+// — L'or quitte Maelor (MAE-95) —
+// Quand Maelor rend le pouvoir devant le Dragon, des pixels d'or partent de sa poitrine par vagues, montent en arc et
+// retombent sur les écailles du Dragon et sur le sol devant lui (les ossements) : « l'or quitte son corps et se répand
+// sur les ossements, sur les blasons brisés, sur les écailles du Dragon ». Posés, ils scintillent (or vif, or ancien)
+// puis s'éteignent un à un. Maelor jette en même temps un éclat doré (couleurs : côté scène). Sans Dragon à l'écran,
+// ou avec le mouvement réduit, l'éclat seul, sur place (décision de Wesley du 09/11/2026) : streamsGold.
+const GOLD_MOTES = 44;
+const GOLD_ON_SCALES = 0.6; // part de l'or qui se pose sur le Dragon ; le reste, sur le sol devant lui
+
+// L'or part-il vers le Dragon ? L'éclat doré de Maelor, lui, est toujours joué (par les scènes)
+export function streamsGold(dragonOnScreen: boolean, reduced: boolean): boolean {
+  return dragonOnScreen && !reduced;
+}
+
+export function goldStream(hero: FxBox, dragon: FxBox, count: number, seed: number): FxPlan {
+  const random = seeded(seed);
+  const width = hero.right - hero.left, height = hero.bottom - hero.top;
+  const motes = Array.from({ length: GOLD_MOTES }, () => {
+    const start = Math.floor(random() * 0.4 * (count - 1)) / Math.max(1, count - 1);
+    const flight = 0.25 + random() * 0.2;
+    const onScales = random() < GOLD_ON_SCALES;
+    const to = onScales
+      ? { x: between(random, dragon.left, dragon.right - 1), y: between(random, dragon.top + Math.round((dragon.bottom - dragon.top) * 0.2), dragon.bottom - 4) }
+      : { x: between(random, dragon.left - 12, dragon.right - 1), y: dragon.bottom - between(random, 1, 3) }; // les trois rangées de ses pieds
+    return {
+      start, flight, end: Math.min(1, start + flight + 0.15 + random() * 0.4),
+      from: { x: hero.left + between(random, Math.round(width * 0.3), Math.round(width * 0.7)), y: hero.top + between(random, Math.round(height * 0.25), Math.round(height * 0.55)) },
+      to, arc: between(random, 10, 26), twinkle: between(random, 0, 1),
+    };
+  });
+  return {
+    count,
+    frame(index) {
+      const t = count <= 1 ? 1 : index / (count - 1);
+      const pixels: FxPixel[] = [];
+      for (const mote of motes) {
+        if (t < mote.start || t >= mote.end) continue;
+        const p = (t - mote.start) / mote.flight;
+        const at = along(mote.from, mote.to, p, mote.arc);
+        // En vol : or vif ou parchemin ; posé : il scintille, or vif et or ancien une image sur deux
+        const color = p < 1 ? (mote.twinkle ? FX_COLORS.parchment : FX_COLORS.brightGold)
+          : (index + mote.twinkle) % 2 === 0 ? FX_COLORS.brightGold : FX_COLORS.oldGold;
+        pixels.push({ ...at, color });
+      }
+      return pixels;
+    },
+  };
+}
