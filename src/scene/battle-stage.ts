@@ -15,7 +15,7 @@ import type { Decor } from "../data/decors.ts";
 import type { Hero } from "../party/heroes.ts";
 import type { Combatant } from "../battle/battle.ts";
 import { createAnimatedSprite, type AnimatedSprite } from "../ui/animated-sprite.ts";
-import { shadeColor, type BaseName } from "../ui/sprite-motion.ts";
+import type { BaseName } from "../ui/sprite-motion.ts";
 import { enemyPhase, facingOf, showPose, type Stage } from "../ui/stage.ts";
 import { followHero } from "../ui/hero-pose.ts";
 import { preloadImages, type ActorDef, type ActorsView } from "./actors.ts";
@@ -202,7 +202,6 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       const sprite = sprites.get(actor.id);
       if (!s || !sprite) continue;
       const motion = sprite.pose();
-      const shade = shadeColor(motion.shade); // héros éteint : gris et assombri, une couleur (MAE-30)
       const { pose } = actor;
       pose.offsetX = Math.round(s.x) + motion.dx * facingOf(s.combatant);
       pose.anchorX = Math.round(s.x); // l'ancre suit le glissement, pas le recul ni le saut (comme .sprite en DOM)
@@ -210,8 +209,8 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       const shadow = sprite.shadow(); // l'ombre suit le héros au sol (MAE-94)
       pose.shadowShift = shadow.shift; // vers la droite de l'écran, comme le canvas (jamais retourné)
       pose.shadowStretch = shadow.stretch;
-      pose.brightness = s.brightness * shade.brightness;
-      pose.gray = Math.max(s.gray, shade.gray);
+      pose.brightness = s.brightness;
+      pose.gray = s.gray;
       pose.tint.copy(s.tint);
       pose.tintMix = s.tintMix;
       pose.opacity = s.opacity;

@@ -9,6 +9,7 @@ Chaque image, police, musique ou son du jeu est listé ici, avec son origine et 
 | `public/images/maelor.png`, `corvin.png`, `elwen.png` | Générées avec Gemini (Google), puis retravaillées | Autorisé par les conditions de Google |
 | `public/images/sankri.png`, `hesium.png`, `gautik.png`, `painkush.png`, `vahn.png` | Générées avec Gemini (Google), puis réduites | Autorisé par les conditions de Google |
 | `public/images/maelor-echo.png` | Dérivée de `maelor.png` par un script | Comme `maelor.png` |
+| `public/images/maelor-stagger.png`, `-kneel.png`, `-down.png` (et de même pour `corvin` et `elwen`, 9 images) | Générées avec Gemini (Google), puis retravaillées | Autorisé par les conditions de Google |
 | `public/images/background.png`, `preview.png` | Générées avec ChatGPT (OpenAI) | Autorisé par les conditions d'OpenAI |
 | `public/images/cursor.ico`, `cursor-hand.ico` | Générés avec ChatGPT (OpenAI) | Autorisé par les conditions d'OpenAI |
 | `public/images/backdrops/lisiere/` (12 images) | Générée avec Gemini (Google), retravaillée ; côtés tirés de `background.png` (ChatGPT, OpenAI) | Autorisé par les conditions de Google et d'OpenAI |
@@ -53,6 +54,18 @@ Les images générées par IA peuvent ne pas être protégées par le droit d'au
 - Un script les a réduites en pixel art : 47 × 66 pixels, fond transparent, palette limitée, contour d'un pixel.
 - Les retouches, choisies une à une, sont appliquées pixel par pixel par ce même script : yeux, peau, marque du front, pointes des cheveux, mains de Corvin.
 - Corvin a la tête de sa première version, greffée sur le corps de la seconde.
+
+**Poses dessinées des héros (MAE-94), générées avec Gemini (Google) puis retravaillées.** Trois poses par héros : flanche, à genoux et au sol, pour la mort et le danger.
+
+| Images | Personnage | Origine |
+|---|---|---|
+| `public/images/maelor-stagger.png`, `maelor-kneel.png`, `maelor-down.png` | Maelor | Références `mae94/maelor-flanche-ia-v1.jpg`, `maelor-genou-ia-v1.jpg`, `maelor-sol-ia-v1.jpg` |
+| `public/images/corvin-stagger.png`, `corvin-kneel.png`, `corvin-down.png` | Corvin | Références `mae94/corvin-flanche-ia-v1.jpg`, `corvin-genou-ia-v1.jpg`, `corvin-sol-ia-v1.jpg` |
+| `public/images/elwen-stagger.png`, `elwen-kneel.png`, `elwen-down.png` | Elwen | Références `mae94/elwen-flanche-ia-v1.jpg`, `elwen-genou-ia-v1.jpg`, `elwen-sol-ia-v1.jpg` |
+
+- Les références ont été générées avec Gemini le 09/11/2026, à partir des références `-base-ia-v3` des héros ci-dessus. Elles sont gardées hors du dépôt, dans le labo du projet.
+- Un script du labo (`tools/reduce-poses.mjs`) les a réduites en pixel art à la même échelle que les sprites debout (calée sur la tête, ou sur le buste pour Elwen à genoux), avec la palette du sprite debout.
+- Retouches appliquées par ce même script : flammes d'Elwen affaiblies en flanche, robe d'Elwen à genoux qui couvre la jambe, lanterne de Corvin reprise du sprite debout, vitre assombrie.
 
 ### Ennemis
 

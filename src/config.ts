@@ -97,7 +97,7 @@ export const CONFIG = {
     flee:          700,  // sortie de scène du groupe (glissement des scènes, fleeSlide compris)
     // Gestes des combattants, dans les deux scènes (sprite-motion.ts et les glissements des scènes, MAE-30)
     appearDelay:   500,  // les ennemis apparaissent après ce délai, jusqu'à la fin de appear (CSS enemy-appear)
-    fall:          400,  // un héros s'éteint, ou se rallume quand il est ranimé (sprite-motion.ts)
+    fall:          400,  // un héros flanche puis tombe à genoux, ou passe à genoux quand il est ranimé (sprite-motion.ts)
     slide:         200,  // pas en avant et retour à sa place
     victoryHop:    450,  // un saut de victoire, joué quatre fois
     defeatedPose:  600,  // le Dragon s'affaisse, puis se relève (sprite-motion.ts ; sa teinte : CSS .sprite.enemy .sprite-img)

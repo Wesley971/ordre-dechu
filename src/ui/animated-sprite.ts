@@ -12,7 +12,7 @@ import type { DrawnPose, DrawnPoseName, SpriteRig } from "../data/game-data.ts";
 import {
   AT_REST, composeFrame, drawnPlacement, footprint, footShadow, frameLayout, type FrameLayout, type Footprint, type FrameRig, type PixelImage, type Placement,
 } from "./sprite-frames.ts";
-import { createMotion, shadeColor, type BaseName, type GestureName, type MotionPose, type SpriteMotion } from "./sprite-motion.ts";
+import { createMotion, type BaseName, type GestureName, type MotionPose, type SpriteMotion } from "./sprite-motion.ts";
 
 export interface AnimatedSpriteOptions {
   url: string;                 // PNG du personnage
@@ -44,13 +44,6 @@ const NO_SHIFT: Readonly<ContactShadow> = { shift: 0, stretch: 1 };
 
 // Image affichée : son adresse, et la place de son coin haut gauche par rapport au PNG debout (pixels de sprite)
 export interface ShownImage { url: string; x: number; y: number }
-
-// Filtre CSS du héros éteint (MotionPose.shade) : gris et assombri, une couleur, sans flou ; vide s'il est allumé
-export function shadeFilter(shade: number) {
-  if (shade <= 0) return "";
-  const { gray, brightness } = shadeColor(shade);
-  return `grayscale(${gray}) brightness(${brightness})`;
-}
 
 // — Boucle commune —
 
@@ -98,7 +91,7 @@ function loadPixels(url: string): Promise<PixelImage> {
 
 const samePose = (a: MotionPose, b: MotionPose) =>
   a.dx === b.dx && a.dy === b.dy && a.lift === b.lift && a.lean === b.lean && a.fold === b.fold && a.clipTop === b.clipTop
-  && a.shade === b.shade && a.drawn === b.drawn;
+  && a.drawn === b.drawn;
 
 export function createAnimatedSprite(options: AnimatedSpriteOptions): AnimatedSprite {
   const canvas = document.createElement("canvas");

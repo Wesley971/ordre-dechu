@@ -2,14 +2,14 @@
 //
 // Chaque personnage joue chacune de ses animations en boucle, dans sa case : un pixel de sprite fait un nombre entier
 // de pixels réels (?zoom=1 à 4 ; 2 par défaut sur ordinateur, 1 sur téléphone ; ?zoom=3 : l'échelle d'un grand écran). Les couleurs
-// (teinte du coup reçu, éclair, mort) imitent celles des scènes ; le héros qui s'éteint prend la couleur du moteur
-// (shadeFilter), la même que dans les scènes.
+// (teinte du coup reçu, éclair, mort) imitent celles des scènes. Les héros tombent, sont à genoux ou au sol dans
+// leurs poses dessinées (MAE-94), comme dans les scènes.
 // Une case « Mouvement réduit » simule le réglage du système (MAE-58). ?vitesse=X accélère les animations, comme en jeu
 // (pas les pauses entre deux tours de boucle). Le pas en avant d'un héros qui agit est fait par la scène : pas ici.
 
 import { CONFIG } from "../config.ts";
 import { ENEMIES, HEROES, type EnemyDef, type SpriteRig } from "../data/game-data.ts";
-import { createAnimatedSprite, overrideReducedMotion, shadeFilter, type AnimatedSprite } from "../ui/animated-sprite.ts";
+import { createAnimatedSprite, overrideReducedMotion, type AnimatedSprite } from "../ui/animated-sprite.ts";
 import { HERO_CANVAS } from "../ui/stage.ts";
 
 interface Character { name: string; url: string; rig: SpriteRig; height: number; facing: 1 | -1; boss: boolean }
@@ -47,14 +47,14 @@ const HERO_SCENARIOS: [string, Scenario][] = [
     color(HIT_TINT, CONFIG.timing.hit);
     await wait(CONFIG.timing.hit + PAUSE);
   }],
-  ["En danger (provisoire)", async ({ sprite, color }) => {
+  ["En danger", async ({ sprite, color }) => {
     sprite.setBase("critical");
     await wait(PAUSE);
     sprite.play("hit");
     color(HIT_TINT, CONFIG.timing.hit);
     await wait(CONFIG.timing.hit + PAUSE);
   }],
-  ["K.O. et réanimation (provisoire)", async ({ sprite }) => {
+  ["K.O. et réanimation", async ({ sprite }) => {
     sprite.play("fall");
     sprite.setBase("ko");
     await wait(CONFIG.timing.fall + 2 * PAUSE);
@@ -62,7 +62,7 @@ const HERO_SCENARIOS: [string, Scenario][] = [
     sprite.setBase("idle");
     await wait(CONFIG.timing.fall + PAUSE);
   }],
-  ["K.O. en danger (provisoire)", async ({ sprite }) => {
+  ["K.O. en danger", async ({ sprite }) => {
     sprite.setBase("critical");
     await wait(PAUSE);
     sprite.play("fall");
@@ -142,16 +142,13 @@ function buildCell(character: Character, label: string, scenario: Scenario, px: 
   caption.textContent = label;
   figure.append(box, caption);
 
-  // Filtre du canvas : la couleur du héros éteint (moteur), puis la teinte passagère du scénario
-  let shade = "";
+  // Filtre du canvas : la teinte passagère du scénario
   let tint = "";
-  const paint = () => { sprite.canvas.style.filter = [shade, tint].filter(Boolean).join(" "); };
+  const paint = () => { sprite.canvas.style.filter = tint; };
   const sprite = createAnimatedSprite({
     url: character.url, rig: character.rig, height: character.height, facing: character.facing,
     onPose(pose) {
       sprite.canvas.style.translate = `${pose.dx * character.facing * px}px ${-pose.dy * px}px`;
-      shade = shadeFilter(pose.shade);
-      paint();
     },
   });
   box.appendChild(sprite.canvas);

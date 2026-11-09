@@ -232,7 +232,8 @@ describe("les 9 sprites du jeu, dans toutes leurs animations : rien ne sort de l
       for (const gesture of gestures) {
         const motion = createMotion(rig, () => CONFIG.timing, base);
         motion.play(gesture, 0);
-        // Le geste, puis la pose de fond seule pendant plus d'une respiration (genou à terre compris)
+        // Le geste, puis la pose de fond seule pendant plus d'une respiration (image debout ; les poses dessinées sont
+        // contrôlées plus bas, « poses dessinées des héros »)
         for (let k = 0, t = 0; t < 6000; k++, t = Math.ceil(k * FRAME_MS)) { // millisecondes entières : aucune image sautée
           const body = motion.poseAt(t, true);
           expect(opaque(composeFrame(source, frameRig, body, layout))).toBe(opaque(composeFrame(source, frameRig, body, wide)));
@@ -255,23 +256,41 @@ function silhouetteHeight(image: PixelImage) {
   return { top, bottom, height: bottom - top + 1 };
 }
 
-describe("genou à terre et héros éteint (décisions du 08/11/2026) : la silhouette garde sa taille", () => {
-  it.each(SPRITES.filter(([, , facing]) => facing > 0))("%s", async (name, url, facing) => {
-    const source = await decodePng(url);
-    const layout = frameLayout(source.width, source.height);
-    const data = rigOf(name);
-    const rig: MotionRig = { height: source.height, waist: data.waist, breath: { period: data.breath, phase: data.phase } };
-    const rest = silhouetteHeight(composeFrame(source, { waist: data.waist, facing }, REST_BODY, layout));
-    // Poses de fond, et gestes qui y mènent ou en reviennent (chute, réanimation)
-    const cases = [["critical", null], ["ko", null], ["idle", "fall"], ["critical", "fall"], ["ko", "revive"]] as const; // as const : BaseName et GestureName
-    for (const [base, gesture] of cases) {
-      const motion = createMotion(rig, () => CONFIG.timing, base);
-      if (gesture) motion.play(gesture, 0);
-      for (let t = 0; t < 6000; t += 10) {
-        const shape = silhouetteHeight(composeFrame(source, { waist: data.waist, facing }, motion.poseAt(t, true), layout));
-        expect(shape.bottom).toBe(rest.bottom); // les pieds ne bougent pas
-        expect(rest.height - shape.height).toBeLessThanOrEqual(3); // quelques pixels de moins, pas un personnage rétréci
+// Poses dessinées des héros, telles que publiées (MAE-94), en data URL comme les imports « ?inline »
+const DRAWN_FILES = import.meta.glob<string>("../../public/images/*-{stagger,kneel,down}.png", { query: "?inline", import: "default", eager: true });
+const HERO_SPRITES = SPRITES.filter(([, , facing]) => facing > 0);
+
+describe("poses dessinées des héros (MAE-94)", () => {
+  it.each(HERO_SPRITES)("%s : chaque pose déclarée existe, avec les couleurs du sprite debout, le bas sur la même rangée", async (name, url) => {
+    const standing = await decodePng(url);
+    const palette = colors(standing);
+    const rest = silhouetteHeight(standing);
+    const poses = rigOf(name).poses ?? {};
+    expect(Object.keys(poses).sort()).toEqual(["down", "kneel", "stagger"]);
+    for (const pose of Object.values(poses)) {
+      const file = DRAWN_FILES[`../../public/${pose.image}`];
+      expect(file, `${pose.image} absente de public/`).toBeDefined();
+      const image = await decodePng(file);
+      for (const color of colors(image)) expect(palette.has(color)).toBe(true); // aucune couleur nouvelle
+      expect(drawnPlacement(standing, image).y + silhouetteHeight(image).bottom).toBe(rest.bottom);
+      expect(pose.waist).toBeGreaterThanOrEqual(0);
+      expect(pose.waist).toBeLessThan(image.height);
+    }
+  });
+
+  it.each(HERO_SPRITES)("%s : chaque pose dessinée tient entière dans la toile, en respirant ou en reculant", async (name, url) => {
+    const standing = await decodePng(url);
+    const drawn = await Promise.all(Object.values(rigOf(name).poses ?? {}).map(async (pose) => ({ pose, image: await decodePng(DRAWN_FILES[`../../public/${pose.image}`]) })));
+    const layout = frameLayout(standing.width, standing.height, drawn.map(({ image }) => image));
+    const wide = { width: layout.width + 60, height: layout.height + 60, originX: layout.originX + 30, originY: layout.originY + 30 };
+    for (const { pose, image } of drawn) {
+      const at = drawnPlacement(standing, image);
+      for (const part of [{}, { lift: 1 }, { lean: -2 }, { lean: -1 }]) { // repos, respiration à genoux, coup reçu
+        const body = { ...REST_BODY, ...part };
+        const rig = { waist: pose.waist, facing: 1 as const }; // as const : le sens du regard, de type 1 | -1
+        expect(opaque(composeFrame(image, rig, body, layout, undefined, at))).toBe(opaque(composeFrame(image, rig, body, wide, undefined, at)));
       }
+      expect(opaque(composeFrame(image, { waist: pose.waist, facing: 1 }, REST_BODY, layout, undefined, at))).toBe(opaque(image));
     }
   });
 });

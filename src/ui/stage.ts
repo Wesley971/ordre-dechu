@@ -15,7 +15,7 @@ import type { Hero } from "../party/heroes.ts";
 import { isAlive } from "../battle/battle.ts";
 import type { BattleState, Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
-import { createAnimatedSprite, shadeFilter, type AnimatedSprite } from "./animated-sprite.ts";
+import { createAnimatedSprite, type AnimatedSprite } from "./animated-sprite.ts";
 import { followHero } from "./hero-pose.ts";
 import type { BaseName } from "./sprite-motion.ts";
 import { $, heroFlags, pulse, spriteEl, wait } from "./view.ts";
@@ -174,7 +174,6 @@ export function createDomStage(): Stage {
       onPose(pose) {
         holder.style.setProperty("--pose-dx", String(pose.dx * facing));
         sprite.canvas.style.setProperty("--pose-dy", String(pose.dy));
-        sprite.canvas.style.filter = shadeFilter(pose.shade);
         showPose(element, sprite);
       },
     });
