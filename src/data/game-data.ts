@@ -33,6 +33,16 @@ export interface SpriteRig {
   waist: number;   // première rangée du bas du corps, depuis le haut du PNG
   breath: number;  // période de la respiration, en secondes
   phase: number;   // décalage de la respiration (0 à 1), pour que les personnages ne respirent pas ensemble
+  poses?: Partial<Record<DrawnPoseName, DrawnPose>>; // poses dessinées qui remplacent celles du code (MAE-94)
+}
+
+// Poses dessinées d'un héros (MAE-94) : flanche (pendant la chute), à genoux (en danger), au sol (K.O.)
+export type DrawnPoseName = "stagger" | "kneel" | "down";
+
+// Une pose dessinée : son PNG, centré sur le PNG debout, le bas sur la même rangée (il peut être plus large ou moins haut)
+export interface DrawnPose {
+  image: string;
+  waist: number;   // première rangée du bas du corps dans cette image (respiration à genoux)
 }
 
 export interface HeroDef {

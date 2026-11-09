@@ -175,18 +175,77 @@ describe("couleur du héros éteint", () => {
   });
 });
 
-describe("images dessinées à la place du code (MAE-94)", () => {
-  it("la chute dessinée montre ses images dans l'ordre, puis la pose ko sa dernière image", () => {
-    const motion = createMotion({ ...rig, drawn: { fall: 3, ko: 2 } }, timings);
+describe("poses dessinées à la place du code (MAE-94)", () => {
+  const drawnRig: MotionRig = { ...rig, drawn: ["stagger", "kneel", "down"] };
+
+  // Poses dessinées montrées pendant le geste, dans l'ordre, sans répétition
+  function drawnDuring(motion: ReturnType<typeof createMotion>, start: number) {
+    const seen: (string | null)[] = [];
+    for (let t = start; motion.busy(t); t += 1) {
+      const { drawn } = motion.poseAt(t, true);
+      if (seen.at(-1) !== drawn) seen.push(drawn);
+    }
+    return seen;
+  }
+
+  it.each([0, 1040])("la chute (lancée à %i ms) : flanche puis à genoux, chacune montrée, puis au sol tenu, sans s'éteindre", (start) => {
+    const motion = createMotion(drawnRig, timings);
+    motion.play("fall", start);
+    motion.setBase("ko");
+    expect(drawnDuring(motion, start)).toEqual(["stagger", "kneel"]);
+    for (const t of [start + CONFIG.timing.fall + FRAME_MS, 60000]) {
+      expect(motion.poseAt(t, true)).toEqual({ ...REST_BODY, dx: 0, dy: 0, shade: 0, drawn: "down" });
+    }
+  });
+
+  it("un héros en danger, déjà à genoux, ne flanche pas avant de tomber", () => {
+    const motion = createMotion(drawnRig, timings, "critical");
     motion.play("fall", 0);
     motion.setBase("ko");
-    const seen: (number | undefined)[] = [];
-    for (let t = 0; motion.busy(t); t += 10) {
-      const index = motion.poseAt(t, true).drawn?.index;
-      if (seen.at(-1) !== index) seen.push(index);
+    expect(drawnDuring(motion, 0)).toEqual(["kneel"]);
+  });
+
+  it("en danger : à genoux, avec une respiration lente d'un pixel", () => {
+    const motion = createMotion(drawnRig, timings, "critical");
+    const lifts = new Set<number>();
+    for (let t = 0; t < 20000; t += 10) {
+      const pose = motion.poseAt(t, true);
+      expect(pose).toMatchObject({ drawn: "kneel", lean: 0, fold: 0, shade: 0 });
+      lifts.add(pose.lift);
     }
-    expect(seen).toEqual([0, 1, 2]);
-    expect(motion.poseAt(CONFIG.timing.fall + 2 * FRAME_MS, true).drawn).toEqual({ name: "ko", index: 1 });
-    expect(createMotion(rig, timings).poseAt(0, true).drawn).toBeNull();
+    expect([...lifts].sort((a, b) => a - b)).toEqual([0, 1]);
+  });
+
+  it("un coup reçu à genoux garde l'image à genoux, avec le recul", () => {
+    const motion = createMotion(drawnRig, timings, "critical");
+    motion.play("hit", 0);
+    expect(motion.poseAt(10, true)).toMatchObject({ drawn: "kneel", dx: -2 });
+  });
+
+  it("la réanimation passe par la pose à genoux, puis revient à l'attente debout", () => {
+    const motion = createMotion(drawnRig, timings, "ko");
+    motion.play("revive", 0);
+    motion.setBase("idle");
+    expect(drawnDuring(motion, 0)).toEqual(["kneel"]);
+    expect(motion.poseAt(CONFIG.timing.fall + FRAME_MS, true).drawn).toBeNull();
+  });
+
+  it("mouvement réduit : la pose de fond dessinée directement, immobile", () => {
+    const motion = createMotion(drawnRig, timings);
+    motion.play("fall", 0);
+    motion.setBase("ko");
+    expect(motion.poseAt(0, false)).toEqual({ ...REST_BODY, dx: 0, dy: 0, shade: 0, drawn: "down" });
+    const critical = createMotion(drawnRig, timings, "critical");
+    for (let t = 0; t < 8000; t += 50) expect(critical.poseAt(t, false)).toMatchObject({ drawn: "kneel", lift: 0 });
+  });
+
+  it("sans toutes les images d'une transition, l'animation du code reste ; sans poses dessinées, rien ne change", () => {
+    const partial = createMotion({ ...rig, drawn: ["kneel", "down"] }, timings);
+    partial.play("fall", 0);
+    partial.setBase("ko");
+    expect(partial.poseAt(0, true)).toMatchObject({ drawn: null, lift: -1, lean: 1 });
+    expect(partial.poseAt(CONFIG.timing.fall + FRAME_MS, true).drawn).toBe("down");
+    const plain = createMotion(rig, timings, "critical");
+    expect(plain.poseAt(0, true)).toMatchObject({ drawn: null, lift: -3, lean: 2 });
   });
 });

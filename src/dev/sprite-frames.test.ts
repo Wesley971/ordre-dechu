@@ -1,6 +1,8 @@
 // sprite-frames.test.ts - Images des poses, composées à partir des PNG (MAE-30) : chaque pixel affiché est un pixel du PNG
 import { describe, expect, it } from "vitest";
-import { composeFrame, frameLayout, leanShift, REST_BODY, type BodyPose, type FrameRig, type PixelImage } from "../ui/sprite-frames.ts";
+import {
+  composeFrame, drawnPlacement, FRAME_MARGIN, frameLayout, leanShift, REST_BODY, type BodyPose, type FrameRig, type PixelImage,
+} from "../ui/sprite-frames.ts";
 import { createMotion, FRAME_MS, type MotionRig } from "../ui/sprite-motion.ts";
 import { CONFIG } from "../config.ts";
 import { ENEMIES, HEROES, type EnemyDef, type SpriteRig } from "../data/game-data.ts";
@@ -94,6 +96,62 @@ describe("composition des poses sur une image de test", () => {
     expect(at(7)).toEqual([1, 5]); // la taille recouvre la rangée 7 des jambes
     expect(at(8)).toEqual([1, 8]);
     expect(at(9)).toEqual([1, 9]);
+  });
+});
+
+describe("poses dessinées (MAE-94) : recopiées telles quelles, centrées sur le PNG debout, le bas sur la même rangée", () => {
+  const standing = grid(6, 10);
+  const rig: FrameRig = { waist: 6, facing: 1 };
+
+  it("sans pose dessinée, la toile est celle d'avant", () => {
+    expect(frameLayout(6, 10, [])).toEqual(frameLayout(6, 10));
+  });
+
+  it("une pose plus large et moins haute (au sol) : la toile s'élargit des deux côtés, l'image debout ne bouge pas", () => {
+    const down = grid(12, 4);
+    const at = drawnPlacement(standing, down);
+    expect(at).toEqual({ x: -3, y: 6 });
+    const layout = frameLayout(6, 10, [down]);
+    expect(layout).toMatchObject({ width: 12 + 2 * FRAME_MARGIN, height: 10 + FRAME_MARGIN, originX: FRAME_MARGIN + 3, originY: FRAME_MARGIN });
+    const frame = composeFrame(down, { waist: 0, facing: 1 }, REST_BODY, layout, undefined, at);
+    for (let y = 0; y < 4; y++) {
+      for (let x = 0; x < 12; x++) expect(sourceAt(frame, FRAME_MARGIN + x, layout.originY + 6 + y)).toEqual([x, y]);
+    }
+    expect(opaque(frame)).toBe(12 * 4); // rien d'autre
+    // Le bas de la pose au sol est sur la dernière rangée de la toile, comme les pieds debout
+    expect(layout.originY + at.y + down.height).toBe(layout.height);
+    const rest = composeFrame(standing, rig, REST_BODY, layout);
+    expect(sourceAt(rest, layout.originX, layout.originY)).toEqual([0, 0]);
+  });
+
+  it("un écart de largeur impair : la toile reste centrée sur le PNG debout, et la pose y tient entière", () => {
+    const wide = grid(11, 4);
+    const at = drawnPlacement(standing, wide);
+    expect(at.x).toBe(-3);
+    const layout = frameLayout(6, 10, [wide]);
+    expect(layout.originX).toBe(layout.width - layout.originX - 6); // marges égales de part et d'autre du PNG debout
+    const frame = composeFrame(wide, rig, REST_BODY, layout, undefined, at);
+    expect(opaque(frame)).toBe(11 * 4);
+  });
+
+  it("une pose plus haute que le PNG debout : la toile s'agrandit vers le haut, le bas reste sur la même rangée", () => {
+    const tall = grid(6, 13);
+    const layout = frameLayout(6, 10, [tall]);
+    expect(layout).toMatchObject({ height: 13 + FRAME_MARGIN, originY: FRAME_MARGIN + 3 });
+    const frame = composeFrame(tall, rig, REST_BODY, layout, undefined, drawnPlacement(standing, tall));
+    expect(sourceAt(frame, layout.originX, layout.height - 1)).toEqual([0, 12]);
+    expect(sourceAt(frame, layout.originX, FRAME_MARGIN)).toEqual([0, 0]);
+  });
+
+  it("une pose dessinée respire sur sa propre taille", () => {
+    const kneel = grid(6, 8);
+    const layout = frameLayout(6, 10, [kneel]);
+    const at = drawnPlacement(standing, kneel);
+    const frame = composeFrame(kneel, { waist: 4, facing: 1 }, pose({ lift: 1 }), layout, undefined, at);
+    const cell = (x: number, y: number) => sourceAt(frame, layout.originX + at.x + x, layout.originY + at.y + y);
+    expect(cell(1, -1)).toEqual([1, 0]);
+    expect(cell(1, 3)).toEqual([1, 3]); // l'écart, comblé par la dernière rangée du haut
+    expect(cell(1, 4)).toEqual([1, 4]);
   });
 });
 

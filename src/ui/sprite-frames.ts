@@ -40,8 +40,26 @@ export interface FrameLayout {
 
 export const FRAME_MARGIN = 6;
 
-export function frameLayout(width: number, height: number): FrameLayout {
-  return { width: width + 2 * FRAME_MARGIN, height: height + FRAME_MARGIN, originX: FRAME_MARGIN, originY: FRAME_MARGIN };
+interface Size { readonly width: number; readonly height: number }
+// Coin haut gauche d'une image dessinée (MAE-94) par rapport au PNG debout : centrée sur lui, le bas sur la même rangée
+export interface Placement { x: number; y: number }
+export const AT_REST: Readonly<Placement> = { x: 0, y: 0 };
+
+export function drawnPlacement(standing: Size, image: Size): Placement {
+  return { x: Math.floor((standing.width - image.width) / 2), y: standing.height - image.height };
+}
+
+// Toile commune au PNG debout et à ses images dessinées (others) : assez grande pour chacune, avec la marge.
+// Elle reste centrée sur le PNG debout (même marge à gauche et à droite, même pour un écart de largeur impair) :
+// la scène peinte centre son plan sur la toile (actors.ts)
+export function frameLayout(width: number, height: number, others: readonly Size[] = []): FrameLayout {
+  const placed = others.map((image) => ({ ...drawnPlacement({ width, height }, image), ...image }));
+  const side = Math.max(0, ...placed.map((p) => Math.max(-p.x, p.x + p.width - width)));
+  const minY = Math.min(0, ...placed.map((p) => p.y));
+  return {
+    width: width + 2 * (side + FRAME_MARGIN), height: height - minY + FRAME_MARGIN,
+    originX: FRAME_MARGIN + side, originY: FRAME_MARGIN - minY,
+  };
 }
 
 // Arrondi symétrique : -0,5 et 0,5 s'éloignent tous deux de zéro, pour que les deux sens du regard se correspondent
@@ -67,16 +85,17 @@ function put(source: PixelImage, sx: number, sy: number, out: Uint8ClampedArray,
   out[to + 3] = source.data[from + 3];
 }
 
-function putRow(source: PixelImage, row: number, out: Uint8ClampedArray, layout: FrameLayout, destRow: number, shift: number) {
-  for (let x = 0; x < source.width; x++) put(source, x, row, out, layout, layout.originX + x + shift, destRow);
-}
-
-// Compose l'image de la pose. out, s'il est donné, est réutilisé (layout.width × layout.height × 4 octets)
+// Compose l'image de la pose. out, s'il est donné, est réutilisé (layout.width × layout.height × 4 octets).
+// at : où poser source par rapport au PNG debout (une image dessinée, drawnPlacement) ; rig.waist est alors sa taille à elle
 export function composeFrame(
   source: PixelImage, rig: FrameRig, pose: BodyPose, layout: FrameLayout = frameLayout(source.width, source.height),
-  out: Uint8ClampedArray = new Uint8ClampedArray(layout.width * layout.height * 4),
+  out: Uint8ClampedArray = new Uint8ClampedArray(layout.width * layout.height * 4), at: Placement = AT_REST,
 ): PixelImage {
   out.fill(0);
+  const left = layout.originX + at.x, top = layout.originY + at.y;
+  const putRow = (row: number, destRow: number, shift: number) => {
+    for (let x = 0; x < source.width; x++) put(source, x, row, out, layout, left + x + shift, top + destRow);
+  };
   const { height } = source;
   const waist = Math.max(0, Math.min(height, rig.waist));
   const fold = Math.max(0, Math.min(height - waist, Math.round(pose.fold)));
@@ -84,14 +103,14 @@ export function composeFrame(
   const lean = Math.round(pose.lean);
   const clipTop = Math.max(0, Math.round(pose.clipTop));
   // Bas du corps, sans les rangées repliées
-  for (let row = Math.max(waist + fold, clipTop); row < height; row++) putRow(source, row, out, layout, layout.originY + row, 0);
+  for (let row = Math.max(waist + fold, clipTop); row < height; row++) putRow(row, row, 0);
   // Haut du corps levé : l'écart avec le bas se comble en répétant la dernière rangée du haut
   if (lift > 0 && waist > 0 && waist - 1 >= clipTop) {
-    for (let k = 0; k < lift; k++) putRow(source, waist - 1, out, layout, layout.originY + waist + fold - lift + k, 0);
+    for (let k = 0; k < lift; k++) putRow(waist - 1, waist + fold - lift + k, 0);
   }
   // Haut du corps, descendu des rangées repliées, levé ou affaissé, penché en escalier ; il passe devant le bas
   for (let row = clipTop; row < waist; row++) {
-    putRow(source, row, out, layout, layout.originY + row + fold - lift, lean === 0 ? 0 : rig.facing * leanShift(row, waist, lean));
+    putRow(row, row + fold - lift, lean === 0 ? 0 : rig.facing * leanShift(row, waist, lean));
   }
   return { width: layout.width, height: layout.height, data: out };
 }
