@@ -2,7 +2,8 @@
 //
 // Assemble les fenêtres et menus (view.ts), le dialogue (dialog.ts), le menu de combat (battle-menu.ts), les bruitages,
 // la musique, les contrôles et la scène (stage.ts) : les combattants en DOM, ou dans la scène peinte en 2,5D quand le
-// chapitre déclare un décor (MAE-29, src/scene/battle-stage.ts). C'est le seul endroit qui relie la logique à la page.
+// chapitre déclare un décor (MAE-29, src/scene/battle-stage.ts), ou que le mode test en impose un (?decor=, MAE-95).
+// C'est le seul endroit qui relie la logique à la page.
 // Les sons sont joués ici, au même rang quelle que soit la scène.
 
 import { CONFIG } from "../config.ts";
@@ -23,6 +24,7 @@ import {
 
 // Options du mode test (src/dev/test-mode.ts), toutes neutres hors mode test
 export interface DomViewOptions {
+  decor?: DecorId;   // ?decor=lisiere : ce décor peint pour chaque chapitre, même sans décor déclaré (mode test, MAE-95)
   domOnly?: boolean; // ?rendu=dom : les chapitres avec décor s'affichent quand même en DOM
   counter?: boolean; // ?compteur=1 : images/s à l'écran dans la scène peinte
   expose?: boolean;  // la scène peinte expose ses mesures au bot (window.battleStage)
@@ -44,10 +46,10 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     stage = domStage; // jamais une scène libérée entre les mains de la vue, même le temps d'un chargement
   }
 
-  // La scène du chapitre : peinte s'il déclare un décor et que la scène se charge, DOM sinon (MAE-29).
-  // Three.js et le décor ne se chargent qu'ici, au début d'un chapitre avec décor.
+  // La scène du chapitre : peinte s'il déclare un décor, ou si le mode test en impose un (?decor=, MAE-95), et que
+  // la scène se charge ; DOM sinon (MAE-29). Three.js et le décor ne se chargent qu'ici, au début d'un tel chapitre.
   async function selectStage(chapter: Chapter): Promise<Stage> {
-    const decorId = chapter.decor;
+    const decorId = options.decor ?? chapter.decor;
     const wantPainted = decorId !== undefined && !options.domOnly && !paintedUnavailable;
     if (wantPainted && painted?.decorId === decorId) return painted.stage;
     releasePainted();

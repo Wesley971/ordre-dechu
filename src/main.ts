@@ -23,6 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // En mode test (local), la scène peinte expose ses mesures au bot ; ?rendu=dom la désactive, ?compteur=1 affiche les images/s
-  const view = createDomView({ domOnly: TestMode.domOnly, counter: TestMode.counter, expose: TestMode.active });
+  const view = createDomView({ decor: TestMode.decor ?? undefined, domOnly: TestMode.domOnly, counter: TestMode.counter, expose: TestMode.active });
   startGame(view, { startChapter: TestMode.startChapter, power: TestMode.power, winBattles: TestMode.winBattles, loseBattles: TestMode.loseBattles });
 });
