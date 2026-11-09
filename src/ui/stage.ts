@@ -410,7 +410,7 @@ export function createDomStage(): Stage {
       if (!a) return;
       const dragon = [...actors.values()].find((e) => e.combatant.side === "enemy" && !e.element.classList.contains("dead"));
       playGoldStream(fx, { element: pngOf(a), rows: a.sprite.shownRows() }, dragon ? { element: pngOf(dragon), rows: dragon.sprite.shownRows() } : null);
-      pulse(a.element, "gilded", CONFIG.timing.gild);
+      void pulse(a.element, "gilded", CONFIG.timing.gild); // l'éclat n'est pas attendu
     },
 
     dispose() {

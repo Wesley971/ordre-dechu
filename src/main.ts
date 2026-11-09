@@ -6,7 +6,7 @@ import { createDomView } from "./ui/dom-view.ts";
 import { setupTestMode, TestMode } from "./dev/test-mode.ts";
 
 document.addEventListener("DOMContentLoaded", () => {
-  setupTestMode(); // local seulement : ?chapitre=N et ?vitesse=X (voir CLAUDE.md)
+  setupTestMode(); // local seulement : ?chapitre=N, ?vitesse=X, ?decor=, ?animations=1... (liste complète : CLAUDE.md, « Mode test »)
   SaveGame.enabled = !TestMode.active; // en mode test, la sauvegarde du navigateur n'est ni lue ni écrite (MAE-11)
 
   // Scène peinte seule, à la place du jeu. Import à la demande : Three.js ne se charge que dans ce cas (MAE-28)

@@ -113,7 +113,7 @@ export function ashCloud(mouth: FxPoint, targets: readonly FxBox[], count: numbe
         const fall = p > 1 ? Math.floor(((t - grain.start - grain.flight) * (count - 1)) / 2) : 0;
         if (p < 1) {
           for (const back of ASH_TRAIL) {
-            const behind = along(grain.from, grain.to, p - back / (count * grain.flight), grain.arc);
+            const behind = along(grain.from, grain.to, p - back / (Math.max(1, count - 1) * grain.flight), grain.arc);
             pixels.push({ ...behind, color: FX_COLORS.shadow });
           }
         }
