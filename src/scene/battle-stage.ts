@@ -13,10 +13,11 @@ import { Color } from "three";
 import { CONFIG } from "../config.ts";
 import type { Decor } from "../data/decors.ts";
 import type { Hero } from "../party/heroes.ts";
-import type { Combatant } from "../battle/battle.ts";
+import { isAlive, type Combatant } from "../battle/battle.ts";
 import { createAnimatedSprite, type AnimatedSprite } from "../ui/animated-sprite.ts";
 import type { BaseName } from "../ui/sprite-motion.ts";
-import { enemyPhase, facingOf, showPose, type Stage } from "../ui/stage.ts";
+import { createFxLayer } from "../ui/fx-layer.ts";
+import { enemyPhase, facingOf, playAshCloud, showPose, type Stage } from "../ui/stage.ts";
 import { followHero } from "../ui/hero-pose.ts";
 import { preloadImages, type ActorDef, type ActorsView } from "./actors.ts";
 import { actorDefs, castExtent, enemyMember, heroMember, type CastMember } from "./cast.ts";
@@ -94,6 +95,8 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
   let extent: ReturnType<typeof castExtent> = [];
   let lastSafe = { top: -1, height: -1, clearBottom: 0, clearLeft: 0 };
   let stopCounter: (() => void) | null = null;
+  // Couche des effets spéciaux (MAE-95), sur la couche des ancres ; un pixel de sprite comme les sprites peints
+  const fx = createFxLayer(layer, () => { const info = stage.measure(); return info.spritePixel / info.ratio; });
 
   // — Zone de cadrage : le rectangle de la scène, et la place à laisser libre pour la bande et les plaques (style.css) —
 
@@ -388,6 +391,11 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
         await wait(CONFIG.timing.blink);
       }
       if (ability.kind !== "physical") {
+        const caster = anchors.get(actor.id);
+        if (ability.visual === "ash" && actor.side === "enemy" && actor.mouth && caster) {
+          const heroes = [...states.values()].filter((h) => h.combatant.side === "hero" && h.visible && isAlive(h.combatant));
+          playAshCloud(fx, caster, actor.mouth, heroes.flatMap((h) => anchors.get(h.combatant.id) ?? []));
+        }
         setClass(actor, "casting", true);
         sprite?.play("cast");
         animate(actor.id, CONFIG.timing.cast, (p) => { s.glow = Math.sin(Math.PI * p); },
@@ -505,6 +513,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
     measure: () => stage.measure(),
 
     dispose() {
+      fx.dispose();
       stopCounter?.();
       for (const sprite of sprites.values()) sprite.dispose();
       sprites.clear();

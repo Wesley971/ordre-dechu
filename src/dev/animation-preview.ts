@@ -4,18 +4,21 @@
 // de pixels réels (?zoom=1 à 4 ; 2 par défaut sur ordinateur, 1 sur téléphone ; ?zoom=3 : l'échelle d'un grand écran). Les couleurs
 // (teinte du coup reçu, éclair, mort) imitent celles des scènes. Les héros tombent, sont à genoux ou au sol dans
 // leurs poses dessinées (MAE-94), comme dans les scènes.
-// Une case « Mouvement réduit » simule le réglage du système (MAE-58). ?vitesse=X accélère les animations, comme en jeu
+// Les effets spéciaux (MAE-95) ont leur case : la Nuée de cendre du Dragon vise un héros posé dans la même case.
+// Une case « Mouvement réduit » simule le réglage du système (MAE-58), effets spéciaux compris. ?vitesse=X accélère les animations, comme en jeu
 // (pas les pauses entre deux tours de boucle). Le pas en avant d'un héros qui agit est fait par la scène : pas ici.
 
 import { CONFIG } from "../config.ts";
 import { ENEMIES, HEROES, type EnemyDef, type SpriteRig } from "../data/game-data.ts";
 import { createAnimatedSprite, overrideReducedMotion, type AnimatedSprite } from "../ui/animated-sprite.ts";
-import { HERO_CANVAS } from "../ui/stage.ts";
+import { createFxLayer } from "../ui/fx-layer.ts";
+import { HERO_CANVAS, playAshCloud } from "../ui/stage.ts";
 
-interface Character { name: string; url: string; rig: SpriteRig; height: number; facing: 1 | -1; boss: boolean }
+interface Character { name: string; url: string; rig: SpriteRig; height: number; facing: 1 | -1; boss: boolean; mouth?: { x: number; y: number } }
 
-// Un scénario joue une animation, puis attend, en boucle ; color : filtre CSS à poser pendant ms millisecondes
-interface Cell { sprite: AnimatedSprite; color(filter: string, ms: number): void }
+// Un scénario joue une animation, puis attend, en boucle ; color : filtre CSS à poser pendant ms millisecondes ;
+// ash : lance la Nuée de cendre vers le héros de la case (seulement dans la case qui en a un)
+interface Cell { sprite: AnimatedSprite; color(filter: string, ms: number): void; ash(): void }
 type Scenario = (cell: Cell) => Promise<void>;
 
 const MARGIN = 8; // marge de la case autour de la toile, en pixels de sprite (pas en avant, bond, saut)
@@ -105,6 +108,19 @@ const ENEMY_SCENARIOS: [string, Scenario][] = [
   }],
 ];
 
+// Nuée de cendre (MAE-95) : l'éclair et le bond, puis le sort ; le nuage part au début du sort, comme en combat
+const ASH_SCENARIO: [string, Scenario] = ["Nuée de cendre", async ({ sprite, color, ash }) => {
+  sprite.play("strike");
+  color(FLASH, CONFIG.timing.blink / 4);
+  await wait(CONFIG.timing.blink);
+  ash();
+  sprite.play("cast");
+  color(GLOW, CONFIG.timing.cast);
+  await wait(CONFIG.timing.ashCloud + PAUSE);
+}];
+// Place du héros visé, à gauche du Dragon, en pixels de sprite
+const TARGET_SPACE = 70;
+
 const SPARE_SCENARIO: [string, Scenario] = ["Vaincu, puis épargné", async ({ sprite, color }) => {
   sprite.play("slump");
   sprite.setBase("defeated");
@@ -121,6 +137,7 @@ function characters(): Character[] {
     ...HEROES.map((hero) => ({ name: hero.name, url: hero.image, rig: hero.rig, height: HERO_CANVAS.h, facing: 1 as const, boss: false })), // as const : le sens du regard, de type 1 | -1
     ...Object.values<EnemyDef>(ENEMIES).map((enemy) => ({
       name: enemy.name, url: enemy.image, rig: enemy.rig, height: enemy.canvasHeight, facing: -1 as const, boss: enemy.spareable === true, // as const : idem
+      mouth: enemy.mouth,
     })),
   ];
 }
@@ -133,7 +150,8 @@ function cssPixel() {
   return Math.max(1, Math.round(zoom * ratio)) / ratio;
 }
 
-function buildCell(character: Character, label: string, scenario: Scenario, px: number) {
+// target : la case montre aussi ce héros, à gauche, que vise la Nuée de cendre
+function buildCell(character: Character, label: string, scenario: Scenario, px: number, target?: { url: string }) {
   const figure = document.createElement("figure");
   figure.className = "anim-cell";
   const box = document.createElement("div");
@@ -152,6 +170,19 @@ function buildCell(character: Character, label: string, scenario: Scenario, px: 
     },
   });
   box.appendChild(sprite.canvas);
+  const space = target ? TARGET_SPACE : 0;
+  // Le héros visé, fixe, et le rectangle exact du PNG du personnage : les effets partent de lui (stage.ts, playAshCloud)
+  const hero = document.createElement("img");
+  const png = document.createElement("div");
+  png.className = "anim-png";
+  if (target) {
+    hero.src = target.url;
+    hero.className = "anim-target";
+    Object.assign(hero.style, { width: `${HERO_CANVAS.w * px}px`, height: `${HERO_CANVAS.h * px}px`, left: `${MARGIN * px}px` });
+    box.append(hero, png);
+  }
+  const fx = target ? createFxLayer(box, () => px) : null; // seulement dans la case qui a un héros visé
+  const ash = () => { if (fx && character.mouth) playAshCloud(fx, png, character.mouth, [hero]); };
   let colorTimer = 0;
   const color = (filter: string, ms: number) => {
     tint = filter;
@@ -162,11 +193,17 @@ function buildCell(character: Character, label: string, scenario: Scenario, px: 
 
   void sprite.ready.then(async () => {
     const { layout } = sprite;
-    Object.assign(box.style, { width: `${(layout.width + 2 * MARGIN) * px}px`, height: `${(layout.height + MARGIN) * px}px` });
+    Object.assign(box.style, { width: `${(layout.width + 2 * MARGIN + space) * px}px`, height: `${(layout.height + MARGIN) * px}px` });
     Object.assign(sprite.canvas.style, {
-      width: `${layout.width * px}px`, height: `${layout.height * px}px`, left: `${MARGIN * px}px`, top: `${MARGIN * px}px`,
+      width: `${layout.width * px}px`, height: `${layout.height * px}px`, left: `${(MARGIN + space) * px}px`, top: `${MARGIN * px}px`,
     });
-    for (;;) await scenario({ sprite, color });
+    // Le PNG au repos dans la toile : (originX, originY), le bas sur la dernière rangée ; le héros visé a les pieds au même niveau
+    Object.assign(png.style, {
+      left: `${(MARGIN + space + layout.originX) * px}px`, top: `${(MARGIN + layout.originY) * px}px`,
+      width: `${(layout.width - 2 * layout.originX) * px}px`, height: `${(layout.height - layout.originY) * px}px`,
+    });
+    hero.style.top = `${(MARGIN + layout.height - HERO_CANVAS.h) * px}px`;
+    for (;;) await scenario({ sprite, color, ash });
   }).catch((error: unknown) => { caption.textContent = `${label} : ${String(error)}`; });
   return { figure, sprite };
 }
@@ -180,7 +217,9 @@ const STYLE = `
   #animation-preview .anim-row { display: flex; flex-wrap: wrap; gap: 8px; }
   #animation-preview .anim-cell { margin: 0; }
   #animation-preview .anim-box { position: relative; background: #1b232c; border-bottom: 2px solid #3a4652; overflow: hidden; }
-  #animation-preview .sprite-canvas { position: absolute; image-rendering: pixelated; }
+  #animation-preview .sprite-canvas, #animation-preview .anim-target { position: absolute; image-rendering: pixelated; }
+  #animation-preview .anim-target { opacity: 0.6; }
+  #animation-preview .anim-png { position: absolute; pointer-events: none; }
   #animation-preview figcaption { font-size: 12px; color: #a9a294; padding-top: 2px; }
 `;
 
@@ -207,9 +246,10 @@ export function openAnimationPreview() {
     title.textContent = character.name;
     const row = document.createElement("div");
     row.className = "anim-row";
-    const scenarios = character.facing > 0 ? HERO_SCENARIOS : [...ENEMY_SCENARIOS, ...(character.boss ? [SPARE_SCENARIO] : [])];
+    const scenarios = character.facing > 0 ? HERO_SCENARIOS
+      : [...ENEMY_SCENARIOS, ...(character.mouth ? [ASH_SCENARIO] : []), ...(character.boss ? [SPARE_SCENARIO] : [])];
     for (const [label, scenario] of scenarios) {
-      const cell = buildCell(character, label, scenario, px);
+      const cell = buildCell(character, label, scenario, px, scenario === ASH_SCENARIO[1] ? { url: HEROES[0].image } : undefined);
       row.appendChild(cell.figure);
       sprites.push(cell.sprite);
     }

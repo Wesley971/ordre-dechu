@@ -1,7 +1,8 @@
 // battle-fx.test.ts - Effets spéciaux du combat en pixel art (MAE-95), sans DOM
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { CONFIG } from "../config.ts";
 import palette from "../../docs/character-palette.md?raw";
-import { along, between, FX_COLORS, pick, seeded } from "../ui/battle-fx.ts";
+import { along, ashCloud, ashVeil, between, FX_COLORS, pick, seeded, type FxBox, type FxPlan } from "../ui/battle-fx.ts";
 import { layerGeometry } from "../ui/fx-layer.ts";
 
 describe("moteur des effets", () => {
@@ -70,5 +71,63 @@ describe("couche des effets : netteté", () => {
     expect(layerGeometry(host, { left: 0, top: 0 }, 2, 1.3).px).toBe(1.5);
     expect(layerGeometry(host, { left: 0, top: 0 }, 2, 0).px).toBe(1); // inconnue : 1 pixel CSS
     expect(layerGeometry(host, { left: 0, top: 0 }, 2, 0.1).px).toBe(0.5);
+  });
+});
+
+describe("Nuée de cendre", () => {
+  it("dure au plus le sort et la lecture des chiffres : finie avant l'action suivante", () => {
+    expect(CONFIG.timing.ashCloud).toBeLessThanOrEqual(CONFIG.timing.cast + CONFIG.timing.effect);
+  });
+
+  const mouth = { x: 300, y: 120 };
+  const heroes = [{ left: 40, top: 100, right: 87, bottom: 166 }, { left: 100, top: 80, right: 147, bottom: 146 }];
+  const COUNT = 12;
+  const colors: string[] = Object.values(FX_COLORS);
+  const all = (plan: FxPlan) => Array.from({ length: plan.count }, (_, i) => plan.frame(i));
+
+  it("ne tire jamais Math.random, et rend les mêmes images pour la même graine", () => {
+    const spy = vi.spyOn(Math, "random");
+    try {
+      expect(all(ashCloud(mouth, heroes, COUNT, 4))).toEqual(all(ashCloud(mouth, heroes, COUNT, 4)));
+      expect(all(ashVeil(heroes, COUNT, 4))).toEqual(all(ashVeil(heroes, COUNT, 4)));
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("part de la gueule, en pixels entiers aux couleurs des fiches, et reste entre la gueule et les héros", () => {
+    const frames = all(ashCloud(mouth, heroes, COUNT, 1));
+    expect(frames).toHaveLength(COUNT);
+    expect(frames[0].length).toBeGreaterThan(0);
+    for (const { x, y } of frames[0]) {
+      expect(Math.abs(x - mouth.x)).toBeLessThanOrEqual(2);
+      expect(Math.abs(y - mouth.y)).toBeLessThanOrEqual(1);
+    }
+    for (const pixel of frames.flat()) {
+      expect(Number.isInteger(pixel.x) && Number.isInteger(pixel.y)).toBe(true);
+      expect(colors).toContain(pixel.color);
+      expect(pixel.x).toBeGreaterThanOrEqual(40);
+      expect(pixel.x).toBeLessThanOrEqual(mouth.x + 2);
+      expect(pixel.y).toBeGreaterThanOrEqual(80 - 11);   // arc de 10 pixels au plus au-dessus du trajet
+      expect(pixel.y).toBeLessThanOrEqual(166 + COUNT);  // posé, il retombe d'un pixel toutes les deux images
+    }
+  });
+
+  it("se pose sur chaque héros visé, puis s'éteint avant la fin", () => {
+    const frames = all(ashCloud(mouth, heroes, COUNT, 2));
+    const inside = (box: FxBox) => frames.some((frame) => frame.some(({ x, y }) => x >= box.left && x < box.right && y >= box.top && y < box.bottom));
+    for (const box of heroes) expect(inside(box)).toBe(true);
+    expect(frames[COUNT - 1].length).toBeLessThan(frames[Math.floor(COUNT / 2)].length);
+  });
+
+  it("mouvement réduit : un voile fixe sur le haut du corps des héros, le même à chaque image", () => {
+    const frames = all(ashVeil(heroes, COUNT, 3));
+    for (const frame of frames) expect(frame).toEqual(frames[0]);
+    for (const { x, y, color } of frames[0]) {
+      expect(colors).toContain(color);
+      expect(heroes.some((box) => x >= box.left && x < box.right && y >= box.top && y < box.top + (box.bottom - box.top) * 0.7)).toBe(true);
+    }
+    for (const box of heroes) expect(frames[0].some(({ x }) => x >= box.left && x < box.right)).toBe(true);
   });
 });

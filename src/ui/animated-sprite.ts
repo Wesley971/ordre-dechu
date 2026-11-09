@@ -58,8 +58,14 @@ export function overrideReducedMotion(reduced: boolean | null) {
   reducedOverride = reduced;
 }
 
+// Mouvement réduit en ce moment : le réglage du système, ou celui que simule l'aperçu (mode test). Les effets spéciaux
+// des scènes le suivent aussi (MAE-95)
+export function isReducedMotion() {
+  return reducedOverride ?? reducedMotion?.matches ?? false;
+}
+
 function frame(nowMs: number) {
-  const moving = !(reducedOverride ?? reducedMotion?.matches ?? false);
+  const moving = !isReducedMotion();
   for (const sprite of running) sprite.tick(nowMs, moving);
   loop = running.size > 0 ? requestAnimationFrame(frame) : 0;
 }
@@ -163,7 +169,7 @@ export function createAnimatedSprite(options: AnimatedSpriteOptions): AnimatedSp
     context = canvas.getContext("2d");
     if (!context) throw new Error("Animation : canvas 2D indisponible");
     buffer = context.createImageData(layout.width, layout.height);
-    sprite.tick(performance.now(), !(reducedOverride ?? reducedMotion?.matches ?? false));
+    sprite.tick(performance.now(), !isReducedMotion());
     start(sprite);
   })();
 

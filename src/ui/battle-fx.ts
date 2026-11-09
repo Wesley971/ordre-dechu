@@ -63,3 +63,69 @@ export function along(from: FxPoint, to: FxPoint, p: number, arc = 0): FxPoint {
     y: Math.round(from.y + (to.y - from.y) * q - arc * 4 * q * (1 - q)),
   };
 }
+
+// — Nuée de cendre du Dragon (MAE-95) —
+// Le nuage part de la gueule vers chaque héros visé : des grains de cendre, d'ombre et quelques braises partent par
+// vagues, traversent en arc, se posent sur le haut du corps des héros, y retombent d'un pixel toutes les deux images,
+// puis s'éteignent un à un avant la fin. En vol, un grain laisse derrière lui une traînée de deux pixels d'ombre sur
+// son trajet : à douze images par seconde, il franchit l'écran par grands sauts, et la traînée dit d'où il vient.
+// Les grains se posent pour l'essentiel vers la fin du sort (CONFIG.timing.cast), quand l'impact frappe les héros.
+// L'impact garde l'effet de feu des souffles (décision de Wesley du 09/11/2026 ; les effets sur les cibles : MAE-31).
+const ASH_GRAINS: readonly (readonly [FxColor, number])[] = [[FX_COLORS.ash, 6], [FX_COLORS.shadow, 2], [FX_COLORS.ember, 2]];
+export const ASH_GRAINS_PER_TARGET = 36;
+export const ASH_VEIL_PER_TARGET = 48; // voile du mouvement réduit : un peu plus dense, puisqu'il ne bouge pas
+const ASH_REACH = 0.7; // part haute du héros où se posent les grains
+const ASH_TRAIL = [0.35, 0.7]; // traînée d'un grain en vol : ses positions d'il y a 0,35 et 0,7 image
+
+// Point de la cible où se pose un grain : dans le haut du corps de son rectangle
+function landing(random: () => number, box: FxBox): FxPoint {
+  const bottom = Math.max(box.top, Math.round(box.top + (box.bottom - box.top) * ASH_REACH) - 1);
+  return { x: between(random, box.left, box.right - 1), y: between(random, box.top, bottom) };
+}
+
+export function ashCloud(mouth: FxPoint, targets: readonly FxBox[], count: number, seed: number): FxPlan {
+  const random = seeded(seed);
+  const grains = targets.flatMap((box) => Array.from({ length: ASH_GRAINS_PER_TARGET }, () => {
+    const start = Math.floor(random() * 0.15 * (count - 1)) / Math.max(1, count - 1); // départ, sur une image : la première vague part dès la première
+    const flight = 0.2 + random() * 0.12;                 // trajet jusqu'au héros : posé entre 20 et 47 % de l'effet
+    const end = Math.min(1, start + flight + 0.15 + random() * 0.4); // le grain s'éteint
+    return {
+      start, flight, end,
+      from: { x: mouth.x + between(random, -1, 1), y: mouth.y + between(random, -1, 1) },
+      to: landing(random, box),
+      arc: between(random, -4, 10),
+      wide: random() < 0.3,                               // un grain sur trois fait deux pixels de large
+      color: pick(random, ASH_GRAINS),
+    };
+  }));
+  return {
+    count,
+    frame(index) {
+      const t = count <= 1 ? 1 : index / (count - 1);
+      const pixels: FxPixel[] = [];
+      for (const grain of grains) {
+        if (t < grain.start || t >= grain.end) continue;
+        const p = (t - grain.start) / grain.flight;
+        const at = along(grain.from, grain.to, p, grain.arc);
+        // Posé : il retombe d'un pixel toutes les deux images
+        const fall = p > 1 ? Math.floor(((t - grain.start - grain.flight) * (count - 1)) / 2) : 0;
+        if (p < 1) {
+          for (const back of ASH_TRAIL) {
+            const behind = along(grain.from, grain.to, p - back / (count * grain.flight), grain.arc);
+            pixels.push({ ...behind, color: FX_COLORS.shadow });
+          }
+        }
+        pixels.push({ x: at.x, y: at.y + fall, color: grain.color });
+        if (grain.wide) pixels.push({ x: at.x + 1, y: at.y + fall, color: grain.color });
+      }
+      return pixels;
+    },
+  };
+}
+
+// Mouvement réduit : un voile fixe sur le haut du corps des héros, le même à chaque image, montré tout l'effet
+export function ashVeil(targets: readonly FxBox[], count: number, seed: number): FxPlan {
+  const random = seeded(seed);
+  const pixels: FxPixel[] = targets.flatMap((box) => Array.from({ length: ASH_VEIL_PER_TARGET }, () => ({ ...landing(random, box), color: pick(random, ASH_GRAINS) })));
+  return { count, frame: () => pixels };
+}
