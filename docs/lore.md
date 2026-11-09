@@ -51,7 +51,7 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 
 ## Le voyage
 - Une rumeur au village dit qu'une bête folle ravage le Val. Maelor y va pour comprendre ; le blason confirme le chemin.
-- Chapitres : I La Lisière ; II le lieu d'enterrement des Hésiums (un Tyrdrak de l'Ordre y est enterré ; seulement des Hésiums dans le combat) ; III le pont des Gau-Tik ; IV le Cœur d'Aure-Hin (nouveau, v1) ; V La Pierre Nue ; VI Le Puits des Anciens (un vieux puits au milieu de la roche, îlot de vie dans l'aride) ; VII l'antre de Vahn.
+- Chapitres : I La Lisière ; II le lieu d'enterrement des Hésiums (un Tyrdrak de l'Ordre y est enterré ; seulement des Hésiums dans le combat) ; III le pont des Gau-Tik ; IV le Cœur d'Aure-Hin ; V La Pierre Nue ; VI Le Puits des Anciens (un vieux puits au milieu de la roche, îlot de vie dans l'aride) ; VII l'antre de Vahn.
 - Pierre-Noire : ce n'est pas de la pierre, mais un matériau très ancien qu'on prend pour de la pierre noire. En jeu, seulement suggéré, jamais expliqué (pas de mot « technologie »). Son origine n'est pas décidée.
 - Au Cœur d'Aure-Hin, dans l'ordre : une révélation (la nature d'Elwen, le sang de Maelor, une partie du cycle) ; une épreuve (un écho de Maelor né du Souffle) ; un choix (prendre ou non le pouvoir du Souffle). Prendre rend le groupe plus fort au combat, mais ferme la vraie fin.
 
@@ -59,7 +59,7 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 - Direction visuelle définitive (décision de Wesley du 03/11/2026) : chaque décor est une peinture dans le style de `public/images/background.png` (dessin un peu réaliste, nuit féerique), générée par Wesley avec Gemini, une image par lieu.
 - Chaque peinture est montée en relief 2,5D, avec brume, lucioles et feuillages animés. Pas de vraie 3D.
 - Les personnages restent en pixel art. Ce mélange, décor peint et personnages en pixel art, est l'identité visuelle du jeu.
-- Prototype de référence : `combat-lisiere.html`, dans le labo `ordre-dechu-lab`.
+- État : la Lisière peinte en 2,5D est dans le jeu (MAE-2, PR #38), et le chapitre I s'y joue (MAE-29, PR #44). Le moteur est dans `src/scene/` (aperçu en local avec `?scene=lisiere`). Les autres chapitres gardent l'affichage DOM jusqu'à leur décor : II (MAE-3), III (MAE-4), IV (MAE-77), V (MAE-78), VI (MAE-5), VII (MAE-6).
 
 ## Les fins
 - Vraie fin : refuser le pouvoir, puis épargner Vahn. La mémoire revient à Vahn et à Maelor ensemble ; le Souffle revient peu à peu, le lien entre hommes et Tyrdrak est renoué, Maelor devient gardien de la mémoire.
@@ -80,15 +80,20 @@ Décisions de Wesley du 03/11/2026 (MAE-74, MAE-75). Les noms des capacités en 
 - Maelor : ses gestes de combat viennent de son grand-père. L'oubli avait pris sa mémoire, pas son corps, et il les lui a appris sans en connaître le sens. Les vrais noms reviennent avec le blason.
 - Noms des capacités : Maelor, Vordrak (« côte à côte ») et Édrag (« la garde ») ; Corvin, Mèche, Nuit blanche, Tocsin, Soufre ; Elwen, Nios (« soin »), Aurésor (« rosée d'or »), Liéver (« réveil »). L'écho de Maelor lance Kardrov (Vordrak à l'envers).
 
-## Textes du jeu à réécrire
-- Prologue : présenter le Souffle en une phrase ; Corvin « au regard de nuit ».
+## Textes du jeu : état
+Tout nouveau texte du jeu suit cette bible.
+
+Fait (MAE-65, MAE-66, MAE-71, 02 et 03/11/2026) :
+- Prologue : le Souffle présenté en une phrase ; Corvin « au regard de nuit ».
 - Chapitre I : les Sankri défendent la forêt (plus de rires, de bourse, de « gobelins »).
-- Chapitre II : voir MAE-65.
-- Chapitre III : retirer l'Hésium du combat ; plus de « ogre » ni de massue.
+- Chapitre II : réécrit (MAE-65).
+- Chapitre III : l'Hésium retiré du combat ; plus de « ogre » ni de massue.
 - Fragments de mémoire : l'Ordre dit « Tyrdrak ».
 - Puits : dans la roche, plus de clairière.
 - Antre de Vahn : braises mourantes ; « Il n'est pas fou » gardé.
 - Fin Épargner : la mémoire revient aux deux.
+
+À faire : rien à ce jour.
 
 ## Questions ouvertes
 - Le lien entre Elwen et Vahn (mystère voulu).
