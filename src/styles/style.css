@@ -499,6 +499,19 @@ body.scene-painted #battle-scene { pointer-events: none; }
   .popup { animation: none; }
 }
 
+/* ─── EFFETS SPÉCIAUX (MAE-95) ─────────────────────────────────────── */
+
+/* Couche des effets spéciaux du combat (fx-layer.ts) : un pixel du canvas par pixel de sprite, agrandi sans lissage.
+   Sans z-index, posée après les combattants : elle passe devant eux, sous l'interface (#game et ses plaques).
+   Scène peinte : les chiffres, effets des souffles, marques ▼ et barres des ennemis des ancres passent devant elle.
+   DOM : chaque .sprite a son propre empilement (transform), avec ces surimpressions dedans : la couche passe devant
+   elles aussi, le temps d'un effet (choix du 09/11/2026, MAE-95, à confirmer par Wesley au contrôle à l'œil) */
+.fx-layer {
+  position: absolute;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
 /* ─── EFFETS DE SOUFFLES ───────────────────────────────────────────── */
 
 .fx {

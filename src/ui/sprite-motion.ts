@@ -88,7 +88,11 @@ export const FRAME_MS = 1000 / FRAMES_PER_SECOND;
 
 // Numéro de l'image de la grille commune à un instant (un instant pile sur une marque peut, par arrondi, tomber
 // sur l'image d'avant : sans effet, performance.now() n'y tombe jamais)
-const frameAt = (nowMs: number) => Math.floor((nowMs * FRAMES_PER_SECOND) / 1000);
+export const frameAt = (nowMs: number) => Math.floor((nowMs * FRAMES_PER_SECOND) / 1000);
+
+// Première image d'un geste ou d'un effet lancé à cet instant : la prochaine marque de la grille. Il dure ainsi un
+// nombre entier d'images, et au moins sa durée, même lancé entre deux images (fx-layer.ts s'en sert aussi, MAE-95)
+export const startFrame = (nowMs: number) => Math.ceil((nowMs * FRAMES_PER_SECOND) / 1000);
 
 // Nombre d'images de la grille d'un geste : au moins sa durée
 export function frameCount(durationMs: number) {
@@ -228,7 +232,7 @@ export function createMotion(rig: MotionRig, timings: () => MotionTimings, initi
       // et le geste dure au moins sa durée, même lancé entre deux images. Avant le départ, sa première image est montrée.
       const def = GESTURES[name];
       const count = def.frames ? def.frames(timings()) : frameCount(def.duration(timings()));
-      gesture = { name, from: base, start: Math.ceil((nowMs * FRAMES_PER_SECOND) / 1000), count };
+      gesture = { name, from: base, start: startFrame(nowMs), count };
     },
     busy: running,
     poseAt(nowMs, moving) {
