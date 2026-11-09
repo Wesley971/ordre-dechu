@@ -2,7 +2,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { CONFIG } from "../config.ts";
 import palette from "../../docs/character-palette.md?raw";
-import { along, ashCloud, ashVeil, between, FX_COLORS, pick, seeded, type FxBox, type FxPlan } from "../ui/battle-fx.ts";
+import { along, ashCloud, ashVeil, between, FX_COLORS, lightRise, pick, seeded, type FxBox, type FxPlan, type RowSpan } from "../ui/battle-fx.ts";
+import { frameCount, unravelCleared } from "../ui/sprite-motion.ts";
 import { layerGeometry } from "../ui/fx-layer.ts";
 
 describe("moteur des effets", () => {
@@ -129,5 +130,55 @@ describe("Nuée de cendre", () => {
       expect(heroes.some((box) => x >= box.left && x < box.right && y >= box.top && y < box.top + (box.bottom - box.top) * 0.7)).toBe(true);
     }
     for (const box of heroes) expect(frames[0].some(({ x }) => x >= box.left && x < box.right)).toBe(true);
+  });
+});
+
+describe("l'écho se défait en lumière", () => {
+  const png = { left: 200, top: 50, right: 247, bottom: 116 };
+  // Une silhouette simple : rangées 5 à 60 opaques des colonnes 10 à 36
+  const rows: RowSpan[] = Array.from({ length: 66 }, (_, y) => (y >= 5 && y <= 60 ? [10, 36] : null));
+  const count = frameCount(CONFIG.timing.unravel);
+  const cleared = (frame: number) => unravelCleared(frame, count, rows.length);
+  const all = (plan: FxPlan) => Array.from({ length: plan.count }, (_, i) => plan.frame(i));
+  const golds: string[] = [FX_COLORS.parchment, FX_COLORS.brightGold, FX_COLORS.oldGold];
+
+  it("ne tire jamais Math.random, et rend les mêmes images pour la même graine", () => {
+    const spy = vi.spyOn(Math, "random");
+    try {
+      expect(all(lightRise(png, rows, cleared, count, 5))).toEqual(all(lightRise(png, rows, cleared, count, 5)));
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("pixels entiers et dorés, partis de la silhouette, qui montent sans jamais descendre sous elle", () => {
+    const frames = all(lightRise(png, rows, cleared, count, 6));
+    expect(frames).toHaveLength(count);
+    for (const { x, y, color } of frames.flat()) {
+      expect(Number.isInteger(x) && Number.isInteger(y)).toBe(true);
+      expect(golds).toContain(color);
+      expect(x).toBeGreaterThanOrEqual(png.left + 10 - 2); // dérive d'un pixel toutes les deux images, cinq images au plus
+      expect(x).toBeLessThan(png.left + 36 + 2);
+      expect(y).toBeLessThanOrEqual(png.top + 60);
+    }
+  });
+
+  it("chaque rangée effacée lâche de la lumière à l'image où elle disparaît, sur ses colonnes opaques", () => {
+    const frames = all(lightRise(png, rows, cleared, count, 7));
+    for (let frame = 1; frame < count; frame++) {
+      const opaque = Array.from({ length: cleared(frame) - cleared(frame - 1) }, (_, k) => cleared(frame - 1) + k).filter((row) => rows[row]);
+      for (const row of opaque) {
+        expect(frames[frame].some(({ x, y }) => y === png.top + row && x >= png.left + 10 && x < png.left + 36)).toBe(true);
+      }
+    }
+    // Avant l'effacement, seulement quelques éclats d'or vif sur la silhouette
+    for (let frame = 0; cleared(frame) === 0; frame++) {
+      for (const { x, y, color } of frames[frame]) {
+        expect(color).toBe(FX_COLORS.brightGold);
+        expect(rows[y - png.top]).not.toBeNull();
+        expect(x).toBeGreaterThanOrEqual(png.left + 10);
+      }
+    }
   });
 });

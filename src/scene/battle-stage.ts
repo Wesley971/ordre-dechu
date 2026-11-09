@@ -14,10 +14,10 @@ import { CONFIG } from "../config.ts";
 import type { Decor } from "../data/decors.ts";
 import type { Hero } from "../party/heroes.ts";
 import { isAlive, type Combatant } from "../battle/battle.ts";
-import { createAnimatedSprite, type AnimatedSprite } from "../ui/animated-sprite.ts";
+import { createAnimatedSprite, isReducedMotion, type AnimatedSprite } from "../ui/animated-sprite.ts";
 import type { BaseName } from "../ui/sprite-motion.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
-import { enemyPhase, facingOf, playAshCloud, showPose, type Stage } from "../ui/stage.ts";
+import { enemyPhase, facingOf, playAshCloud, playLightRise, showPose, type Stage } from "../ui/stage.ts";
 import { followHero } from "../ui/hero-pose.ts";
 import { preloadImages, type ActorDef, type ActorsView } from "./actors.ts";
 import { actorDefs, castExtent, enemyMember, heroMember, type CastMember } from "./cast.ts";
@@ -42,6 +42,7 @@ export interface BattleStage extends Stage {
 const BODY_CLASS = "scene-painted";
 const DAMAGE_TINT = new Color("#ff8c3c");  // coup reçu : brightness(1.8) sepia(0.6) hue-rotate(-30deg) des sprites DOM
 const DEATH_TINT = new Color("#7a4fd6");   // mort : sepia(1) saturate(6) hue-rotate(250deg)
+const GOLD_TINT = new Color("#f0c95a");    // l'écho se défait en lumière (MAE-95) : or vif, comme CSS echo-unravel
 const DEFEATED_BRIGHTNESS = 0.55;          // vaincu mais pas mort : grayscale(0.5) brightness(0.55) des sprites DOM
 const DEFEATED_GRAY = 0.5;
 
@@ -444,10 +445,30 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
     },
 
     async kill(enemies) {
+      const reduced = isReducedMotion();
+      const light = enemies.some((enemy) => enemy.vanish === "light");
       for (const enemy of enemies) {
         const s = stateOf(enemy);
-        setClass(enemy, "dying", true);
         const sprite = spriteOf(enemy);
+        if (enemy.vanish === "light") {
+          // L'écho se défait en lumière (MAE-95) : il passe en or le premier quart, puis ses rangées s'effacent (image
+          // animée) en lâchant des pixels dorés. Mouvement réduit : en or, puis il disparaît d'un coup
+          setClass(enemy, "unraveling", true);
+          animate(enemy.id, CONFIG.timing.unravel, (p) => {
+            const toward = Math.min(1, Math.floor((p / 0.25) * 3) / 3); // trois paliers, comme CSS echo-unravel steps(3)
+            s.tint.copy(GOLD_TINT);
+            s.tintMix = 0.6 * toward;
+            s.brightness = 1 + 0.35 * toward;
+          });
+          const anchor = anchors.get(enemy.id);
+          if (!reduced && sprite) {
+            sprite.play("unravel");
+            sprite.setBase("gone");
+            if (anchor) playLightRise(fx, anchor, sprite);
+          }
+          continue;
+        }
+        setClass(enemy, "dying", true);
         sprite?.play("dissolve"); // les rangées s'effacent depuis le haut : dans l'image animée
         sprite?.setBase("gone");
         animate(enemy.id, CONFIG.timing.death, (p) => {
@@ -459,9 +480,10 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
           s.opacity = 1 - fade;
         });
       }
-      await wait(CONFIG.timing.death);
+      await wait(light ? Math.max(CONFIG.timing.death, CONFIG.timing.unravel) : CONFIG.timing.death);
       for (const enemy of enemies) {
         const s = stateOf(enemy);
+        spriteOf(enemy)?.setBase("gone");
         s.visible = false;
         setClass(enemy, "dead", true);
       }

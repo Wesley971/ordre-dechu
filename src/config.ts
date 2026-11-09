@@ -102,7 +102,8 @@ export const CONFIG = {
     victoryHop:    450,  // un saut de victoire, joué quatre fois
     defeatedPose:  600,  // le Dragon s'affaisse, puis se relève (sprite-motion.ts ; sa teinte : CSS .sprite.enemy .sprite-img)
     fleeSlide:     600,  // sortie de scène elle-même, dans flee
-    // Effets spéciaux (MAE-95, battle-fx.ts) : joués sans être attendus, ils ne retardent jamais le combat
+    // Effets spéciaux (MAE-95, battle-fx.ts) : joués sans être attendus, sauf la disparition de l'écho, en fin de combat
     ashCloud:      1000, // Nuée de cendre : de la gueule du Dragon aux héros, au plus le sort et la lecture des chiffres (cast + effect)
+    unravel:       1200, // l'écho de Maelor se défait en lumière (sprite-motion.ts, unravel ; CSS echo-unravel) : attendu, mais il est seul, c'est la fin du combat
   },
 };

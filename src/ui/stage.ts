@@ -17,10 +17,10 @@ import { isAlive } from "../battle/battle.ts";
 import type { BattleState, Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
 import { createAnimatedSprite, isReducedMotion, type AnimatedSprite } from "./animated-sprite.ts";
-import { ashCloud, ashVeil } from "./battle-fx.ts";
+import { ashCloud, ashVeil, lightRise } from "./battle-fx.ts";
 import { createFxLayer, type FxLayer } from "./fx-layer.ts";
 import { followHero } from "./hero-pose.ts";
-import { frameCount, type BaseName } from "./sprite-motion.ts";
+import { frameCount, unravelCleared, type BaseName } from "./sprite-motion.ts";
 import { $, heroFlags, pulse, spriteEl, wait } from "./view.ts";
 
 export interface Stage {
@@ -101,6 +101,16 @@ export function playAshCloud(fx: FxLayer, caster: Element, mouth: { x: number; y
   const at = { x: from.left + mouth.x, y: from.top + mouth.y };
   const reduced = isReducedMotion();
   fx.play((seed) => (reduced ? ashVeil(boxes, count, seed) : ashCloud(at, boxes, count, seed)));
+}
+
+// L'écho de Maelor se défait en lumière (MAE-95), commun aux deux scènes : les pixels dorés qui partent des rangées
+// effacées par le geste unravel de son image animée. png : l'élément qui couvre exactement son PNG. Sans mouvement
+// réduit seulement (avec, l'écho passe en or puis disparaît d'un coup, sans particule). Joué sans être attendu.
+export function playLightRise(fx: FxLayer, png: Element, sprite: AnimatedSprite) {
+  const box = fx.measure(png)(png);
+  const rows = sprite.rows();
+  const count = frameCount(CONFIG.timing.unravel);
+  fx.play((seed) => lightRise(box, rows, (frame) => unravelCleared(frame, count, rows.length), count, seed));
 }
 
 // Braises qui montent des bords enflammés d'un héros (Elwen), décalées dans le temps. Commun aux deux scènes.
@@ -325,14 +335,28 @@ export function createDomStage(): Stage {
     },
 
     async kill(enemies) {
+      const reduced = isReducedMotion();
+      const light = enemies.filter((enemy) => enemy.vanish === "light");
       for (const enemy of enemies) {
         const a = actorOf(enemy);
-        a.sprite.play("dissolve");
+        if (enemy.vanish === "light") {
+          // L'écho se défait en lumière (MAE-95) ; avec le mouvement réduit, il passe en or, puis disparaît d'un coup
+          a.element.classList.add("unraveling");
+          if (reduced) continue;
+          a.sprite.play("unravel");
+          playLightRise(fx, pngOf(a), a.sprite);
+        } else {
+          a.sprite.play("dissolve");
+          a.element.classList.add("dying");
+        }
         a.sprite.setBase("gone");
-        a.element.classList.add("dying");
       }
-      await wait(CONFIG.timing.death);
-      enemies.forEach(enemy => actorOf(enemy).element.classList.add("dead"));
+      await wait(light.length > 0 ? Math.max(CONFIG.timing.death, CONFIG.timing.unravel) : CONFIG.timing.death);
+      for (const enemy of enemies) {
+        const a = actorOf(enemy);
+        a.sprite.setBase("gone");
+        a.element.classList.add("dead");
+      }
     },
 
     // Le groupe sort par la gauche, de toute la largeur de l'écran : hors champ à coup sûr

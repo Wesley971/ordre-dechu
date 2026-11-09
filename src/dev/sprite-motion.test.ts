@@ -3,16 +3,16 @@
 import { describe, expect, it } from "vitest";
 import { CONFIG } from "../config.ts";
 import {
-  createMotion, FRAME_MS, frameCount, gestureImages, type BaseName, type GestureName, type MotionPose, type MotionRig, type MotionTimings,
+  createMotion, FRAME_MS, frameCount, gestureImages, unravelCleared, type BaseName, type GestureName, type MotionPose, type MotionRig, type MotionTimings,
 } from "../ui/sprite-motion.ts";
 import { REST_BODY } from "../ui/sprite-frames.ts";
 
 const rig: MotionRig = { height: 66, waist: 36, breath: { period: 2.8, phase: 0 } };
 const timings = (): MotionTimings => CONFIG.timing;
-const GESTURES: GestureName[] = ["attack", "strike", "cast", "hit", "fall", "revive", "victory", "slump", "rise", "dissolve"];
+const GESTURES: GestureName[] = ["attack", "strike", "cast", "hit", "fall", "revive", "victory", "slump", "rise", "dissolve", "unravel"];
 const DURATIONS: Record<GestureName, keyof MotionTimings> = {
   attack: "step", strike: "blink", cast: "cast", hit: "hit", fall: "fall", revive: "fall",
-  victory: "victoryHop", slump: "defeatedPose", rise: "defeatedPose", dissolve: "death",
+  victory: "victoryHop", slump: "defeatedPose", rise: "defeatedPose", dissolve: "death", unravel: "unravel",
 };
 const NUMBERS = ["dx", "dy", "lift", "lean", "fold", "clipTop"] as const; // as const : des clés de MotionPose, pas de simples chaînes
 
@@ -78,6 +78,33 @@ describe("gestes", () => {
         expect(motion.busy(1040 + durationOf(name, t) + 2 * FRAME_MS)).toBe(false);
       }
     }
+  });
+});
+
+describe("l'écho se défait en lumière (MAE-95)", () => {
+  it("le premier quart, il reste entier ; puis ses rangées s'effacent depuis le haut, sans revenir, jusqu'à la dernière", () => {
+    const count = frameCount(CONFIG.timing.unravel);
+    let previous = 0;
+    for (let frame = 0; frame < count; frame++) {
+      const cleared = unravelCleared(frame, count, 66);
+      if ((frame + 1) / count <= 0.25) expect(cleared).toBe(0);
+      expect(cleared).toBeGreaterThanOrEqual(previous);
+      previous = cleared;
+    }
+    expect(unravelCleared(count - 1, count, 66)).toBe(66);
+  });
+
+  it("le geste efface les mêmes rangées que celles d'où partent les pixels dorés, puis l'écho reste effacé (pose gone)", () => {
+    const motion = createMotion(rig, timings);
+    motion.play("unravel", 1000);
+    motion.setBase("gone");
+    const count = frameCount(CONFIG.timing.unravel);
+    const start = Math.ceil((1000 * 12) / 1000);
+    for (let frame = 0; frame < count; frame++) {
+      const t = (start + frame) * FRAME_MS + 1;
+      expect(motion.poseAt(t, true).clipTop).toBe(unravelCleared(frame, count, rig.height));
+    }
+    expect(motion.poseAt((start + count + 1) * FRAME_MS, true).clipTop).toBe(rig.height);
   });
 });
 

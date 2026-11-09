@@ -129,3 +129,57 @@ export function ashVeil(targets: readonly FxBox[], count: number, seed: number):
   const pixels: FxPixel[] = targets.flatMap((box) => Array.from({ length: ASH_VEIL_PER_TARGET }, () => ({ ...landing(random, box), color: pick(random, ASH_GRAINS) })));
   return { count, frame: () => pixels };
 }
+
+// — L'écho de Maelor se défait en lumière (MAE-95) —
+// Pendant que ses rangées s'effacent depuis le haut (geste unravel, sprite-motion.ts), chaque rangée effacée lâche des
+// pixels dorés, pris là où elle était opaque, qui montent d'un pixel par image en s'assombrissant (parchemin, or vif,
+// or ancien), puis s'éteignent. Avant que les rangées s'effacent, quelques éclats d'or vif scintillent sur lui. Tout
+// s'arrête avec le geste : la lumière ne reste pas (la lueur qui reste jusqu'au choix du pouvoir : MAE-97).
+// Mouvement réduit : aucune particule, l'écho passe en or puis disparaît d'un coup (couleurs : côté scène).
+const LIGHT_FADE: readonly FxColor[] = [FX_COLORS.parchment, FX_COLORS.brightGold, FX_COLORS.brightGold, FX_COLORS.oldGold, FX_COLORS.oldGold];
+const LIGHT_PER_COLUMNS = 5; // une particule pour cinq pixels opaques d'une rangée (au moins une)
+const SPARKS = 6;            // éclats par image avant l'effacement
+
+// Colonnes opaques d'une rangée du PNG (left compris, right exclu), null si elle est vide
+export type RowSpan = readonly [number, number] | null;
+
+// png : rectangle du PNG dans la couche ; rows : colonnes opaques de chaque rangée ; cleared(frame) : rangées
+// effacées depuis le haut à cette image du geste (unravelCleared, sprite-motion.ts)
+export function lightRise(png: FxBox, rows: readonly RowSpan[], cleared: (frame: number) => number, count: number, seed: number): FxPlan {
+  const random = seeded(seed);
+  const motes: { x: number; y: number; start: number; life: number; drift: number }[] = [];
+  const sparks: FxPixel[][] = [];
+  for (let frame = 0; frame < count; frame++) {
+    const from = frame === 0 ? 0 : cleared(frame - 1), to = cleared(frame);
+    for (let row = from; row < to; row++) {
+      const span = rows[row];
+      if (!span) continue;
+      const [left, right] = span;
+      const n = Math.max(1, Math.round((right - left) / LIGHT_PER_COLUMNS));
+      for (let k = 0; k < n; k++) {
+        motes.push({ x: png.left + between(random, left, right - 1), y: png.top + row, start: frame, life: between(random, 3, LIGHT_FADE.length), drift: between(random, -1, 1) });
+      }
+    }
+    // Avant l'effacement : des éclats sur les rangées encore là
+    const lit: FxPixel[] = [];
+    if (to === 0) {
+      for (let k = 0; k < SPARKS; k++) {
+        const row = between(random, 0, rows.length - 1), span = rows[row];
+        if (span) lit.push({ x: png.left + between(random, span[0], span[1] - 1), y: png.top + row, color: FX_COLORS.brightGold });
+      }
+    }
+    sparks.push(lit);
+  }
+  return {
+    count,
+    frame(index) {
+      const pixels: FxPixel[] = [...(sparks[index] ?? [])];
+      for (const mote of motes) {
+        const age = index - mote.start;
+        if (age < 0 || age >= mote.life) continue;
+        pixels.push({ x: mote.x + mote.drift * Math.floor(age / 2), y: mote.y - age, color: LIGHT_FADE[Math.min(LIGHT_FADE.length - 1, Math.floor((age * LIGHT_FADE.length) / mote.life))] });
+      }
+      return pixels;
+    },
+  };
+}

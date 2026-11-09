@@ -4,21 +4,23 @@
 // de pixels réels (?zoom=1 à 4 ; 2 par défaut sur ordinateur, 1 sur téléphone ; ?zoom=3 : l'échelle d'un grand écran). Les couleurs
 // (teinte du coup reçu, éclair, mort) imitent celles des scènes. Les héros tombent, sont à genoux ou au sol dans
 // leurs poses dessinées (MAE-94), comme dans les scènes.
-// Les effets spéciaux (MAE-95) ont leur case : la Nuée de cendre du Dragon vise un héros posé dans la même case.
+// Les effets spéciaux (MAE-95) ont leur case : la Nuée de cendre du Dragon vise un héros posé dans la même case, et
+// l'écho de Maelor se défait en lumière.
 // Une case « Mouvement réduit » simule le réglage du système (MAE-58), effets spéciaux compris. ?vitesse=X accélère les animations, comme en jeu
 // (pas les pauses entre deux tours de boucle). Le pas en avant d'un héros qui agit est fait par la scène : pas ici.
 
 import { CONFIG } from "../config.ts";
 import { ENEMIES, HEROES, type EnemyDef, type SpriteRig } from "../data/game-data.ts";
-import { createAnimatedSprite, overrideReducedMotion, type AnimatedSprite } from "../ui/animated-sprite.ts";
+import { createAnimatedSprite, isReducedMotion, overrideReducedMotion, type AnimatedSprite } from "../ui/animated-sprite.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
-import { HERO_CANVAS, playAshCloud } from "../ui/stage.ts";
+import { HERO_CANVAS, playAshCloud, playLightRise } from "../ui/stage.ts";
 
-interface Character { name: string; url: string; rig: SpriteRig; height: number; facing: 1 | -1; boss: boolean; mouth?: { x: number; y: number } }
+interface Character { name: string; url: string; rig: SpriteRig; height: number; facing: 1 | -1; boss: boolean; mouth?: { x: number; y: number }; vanish?: "light" }
 
 // Un scénario joue une animation, puis attend, en boucle ; color : filtre CSS à poser pendant ms millisecondes ;
-// ash : lance la Nuée de cendre vers le héros de la case (seulement dans la case qui en a un)
-interface Cell { sprite: AnimatedSprite; color(filter: string, ms: number): void; ash(): void }
+// ash : lance la Nuée de cendre vers le héros de la case (seulement dans la case qui en a un) ; light : les pixels
+// dorés de l'écho qui se défait (seulement dans la case qui a ses effets)
+interface Cell { sprite: AnimatedSprite; color(filter: string, ms: number): void; ash(): void; light(): void }
 type Scenario = (cell: Cell) => Promise<void>;
 
 const MARGIN = 8; // marge de la case autour de la toile, en pixels de sprite (pas en avant, bond, saut)
@@ -118,6 +120,22 @@ const ASH_SCENARIO: [string, Scenario] = ["Nuée de cendre", async ({ sprite, co
   color(GLOW, CONFIG.timing.cast);
   await wait(CONFIG.timing.ashCloud + PAUSE);
 }];
+// L'écho se défait en lumière (MAE-95) : en or, ses rangées s'effacent en lâchant des pixels dorés ; avec le mouvement
+// réduit, en or, puis il disparaît d'un coup (comme en combat, stage.ts)
+const GOLD = "brightness(1.45) sepia(1) saturate(2.2) hue-rotate(-8deg)"; // CSS echo-unravel
+const LIGHT_SCENARIO: [string, Scenario] = ["Se défait en lumière", async ({ sprite, color, light }) => {
+  color(GOLD, CONFIG.timing.unravel);
+  if (!isReducedMotion()) {
+    sprite.play("unravel");
+    sprite.setBase("gone");
+    light();
+  }
+  await wait(CONFIG.timing.unravel);
+  sprite.setBase("gone");
+  await wait(PAUSE);
+  sprite.setBase("idle");
+  await wait(PAUSE);
+}];
 // Place du héros visé, à gauche du Dragon, en pixels de sprite
 const TARGET_SPACE = 70;
 
@@ -137,7 +155,7 @@ function characters(): Character[] {
     ...HEROES.map((hero) => ({ name: hero.name, url: hero.image, rig: hero.rig, height: HERO_CANVAS.h, facing: 1 as const, boss: false })), // as const : le sens du regard, de type 1 | -1
     ...Object.values<EnemyDef>(ENEMIES).map((enemy) => ({
       name: enemy.name, url: enemy.image, rig: enemy.rig, height: enemy.canvasHeight, facing: -1 as const, boss: enemy.spareable === true, // as const : idem
-      mouth: enemy.mouth,
+      mouth: enemy.mouth, vanish: enemy.vanish,
     })),
   ];
 }
@@ -150,8 +168,8 @@ function cssPixel() {
   return Math.max(1, Math.round(zoom * ratio)) / ratio;
 }
 
-// target : la case montre aussi ce héros, à gauche, que vise la Nuée de cendre
-function buildCell(character: Character, label: string, scenario: Scenario, px: number, target?: { url: string }) {
+// target : la case montre aussi ce héros, à gauche, que vise la Nuée de cendre ; effects : la case a une couche d'effets
+function buildCell(character: Character, label: string, scenario: Scenario, px: number, target?: { url: string }, effects = !!target) {
   const figure = document.createElement("figure");
   figure.className = "anim-cell";
   const box = document.createElement("div");
@@ -179,10 +197,12 @@ function buildCell(character: Character, label: string, scenario: Scenario, px: 
     hero.src = target.url;
     hero.className = "anim-target";
     Object.assign(hero.style, { width: `${HERO_CANVAS.w * px}px`, height: `${HERO_CANVAS.h * px}px`, left: `${MARGIN * px}px` });
-    box.append(hero, png);
+    box.append(hero);
   }
-  const fx = target ? createFxLayer(box, () => px) : null; // seulement dans la case qui a un héros visé
-  const ash = () => { if (fx && character.mouth) playAshCloud(fx, png, character.mouth, [hero]); };
+  if (effects) box.append(png);
+  const fx = effects ? createFxLayer(box, () => px) : null; // seulement dans les cases des effets spéciaux
+  const ash = () => { if (fx && target && character.mouth) playAshCloud(fx, png, character.mouth, [hero]); };
+  const light = () => { if (fx) playLightRise(fx, png, sprite); };
   let colorTimer = 0;
   const color = (filter: string, ms: number) => {
     tint = filter;
@@ -203,7 +223,7 @@ function buildCell(character: Character, label: string, scenario: Scenario, px: 
       width: `${(layout.width - 2 * layout.originX) * px}px`, height: `${(layout.height - layout.originY) * px}px`,
     });
     hero.style.top = `${(MARGIN + layout.height - HERO_CANVAS.h) * px}px`;
-    for (;;) await scenario({ sprite, color, ash });
+    for (;;) await scenario({ sprite, color, ash, light });
   }).catch((error: unknown) => { caption.textContent = `${label} : ${String(error)}`; });
   return { figure, sprite };
 }
@@ -247,9 +267,10 @@ export function openAnimationPreview() {
     const row = document.createElement("div");
     row.className = "anim-row";
     const scenarios = character.facing > 0 ? HERO_SCENARIOS
-      : [...ENEMY_SCENARIOS, ...(character.mouth ? [ASH_SCENARIO] : []), ...(character.boss ? [SPARE_SCENARIO] : [])];
+      : [...ENEMY_SCENARIOS, ...(character.mouth ? [ASH_SCENARIO] : []), ...(character.vanish ? [LIGHT_SCENARIO] : []), ...(character.boss ? [SPARE_SCENARIO] : [])];
     for (const [label, scenario] of scenarios) {
-      const cell = buildCell(character, label, scenario, px, scenario === ASH_SCENARIO[1] ? { url: HEROES[0].image } : undefined);
+      const target = scenario === ASH_SCENARIO[1] ? { url: HEROES[0].image } : undefined;
+      const cell = buildCell(character, label, scenario, px, target, !!target || scenario === LIGHT_SCENARIO[1]);
       row.appendChild(cell.figure);
       sprites.push(cell.sprite);
     }

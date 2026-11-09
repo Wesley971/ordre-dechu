@@ -226,6 +226,7 @@ export interface EnemyDef {
   spareable?: boolean;
   rig: SpriteRig;       // squelette des animations en code (MAE-30)
   mouth?: { x: number; y: number }; // gueule, en pixels du PNG : d'où part la Nuée de cendre (MAE-95)
+  vanish?: "light"; // vaincu, il se défait en lumière dorée au lieu de disparaître comme un ennemi ordinaire (MAE-95)
 }
 
 export const ENEMIES = {
@@ -260,6 +261,7 @@ export const ENEMIES = {
   maelorEcho: {
     name: "Écho de Maelor", image: "images/maelor-echo.png", canvasWidth: 47, canvasHeight: 66,
     rig: { waist: 36, breath: 2.8, phase: 0 },
+    vanish: "light",
     maxHp: 420, atk: 26, def: 14, mag: 0, res: 8, spd: 12,
     skills: [{ skill: "echoBlade", chance: 0.33 }],
     xp: 0, gil: 0, drop: { item: "phoenix", chance: 1 },

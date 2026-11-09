@@ -33,12 +33,13 @@ export type GestureName =
   | "victory"   // héros : quatre sauts
   | "slump"     // ennemi vaincu : s'affaisse (avant la pose defeated)
   | "rise"      // ennemi épargné : se relève
-  | "dissolve"; // ennemi tué : disparaît par le haut, par rangées entières (avant la pose gone)
+  | "dissolve"  // ennemi tué : disparaît par le haut, par rangées entières (avant la pose gone)
+  | "unravel"; // l'écho de Maelor vaincu : passe en or, puis s'efface par le haut, rangée par rangée (MAE-95)
 
 // Durées des gestes, en millisecondes : un extrait de CONFIG.timing
 export interface MotionTimings {
   step: number; blink: number; cast: number; hit: number; fall: number;
-  victoryHop: number; defeatedPose: number; death: number;
+  victoryHop: number; defeatedPose: number; death: number; unravel: number;
 }
 
 // Squelette animé d'un personnage, en pixels de sprite
@@ -124,7 +125,8 @@ export function gestureImages(name: GestureName, rig: MotionRig): PosePart[] | n
     case "fall":
     case "revive":
     case "victory":
-    case "dissolve": return null;
+    case "dissolve":
+    case "unravel": return null;
   }
 }
 
@@ -150,6 +152,12 @@ const GESTURES: Record<GestureName, Gesture> = {
       return { dy: Math.round(CONFIG.scene.battle.victoryHop * Math.sin((Math.PI * (frame % hop)) / hop)) };
     },
   },
+  // L'écho se défait en lumière (MAE-95) : le premier quart, il passe en or (couleurs : côté scène), puis ses rangées
+  // s'effacent depuis le haut jusqu'à la dernière ; chacune lâche des pixels dorés (battle-fx.ts, lightRise)
+  unravel: {
+    duration: (t) => t.unravel, replaces: true,
+    pose: (frame, count, rig) => ({ clipTop: unravelCleared(frame, count, rig.height) }),
+  },
   dissolve: {
     duration: (t) => t.death, replaces: true,
     // Comme l'ancienne disparition : la teinte d'abord (couleurs, côté scène), puis le haut s'efface jusqu'à la dernière rangée
@@ -159,6 +167,14 @@ const GESTURES: Record<GestureName, Gesture> = {
     },
   },
 };
+
+// Rangées effacées depuis le haut à l'image `frame` du geste unravel (de 0 à count - 1) : aucune le premier quart,
+// puis jusqu'à toutes à la dernière image. Partagé avec les pixels dorés qui en partent (battle-fx.ts, lightRise)
+export function unravelCleared(frame: number, count: number, height: number) {
+  const p = (frame + 1) / count;
+  return p <= UNRAVEL_GILD ? 0 : Math.min(height, Math.round((height * (p - UNRAVEL_GILD)) / (1 - UNRAVEL_GILD)));
+}
+const UNRAVEL_GILD = 0.25; // part du geste où l'écho passe en or avant de s'effacer
 
 // La respiration : un pixel de plus pour le haut du corps, une partie de la période, sur la grille commune
 function breathing(rig: MotionRig, nowMs: number, period: number) {
