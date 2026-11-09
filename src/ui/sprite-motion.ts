@@ -6,17 +6,19 @@
 // de douze images par seconde, comme un pixel art dessiné. Sans DOM et sans horloge propre : l'heure est donnée par
 // l'appelant, et les durées viennent de CONFIG.timing (divisées par ?vitesse=X en mode test). Les animations ne
 // lisent jamais l'horloge du combat : elles ne la ralentissent pas, et continuent quand le mode Attente l'arrête.
-// Une animation peut être remplacée par des images dessinées (MAE-94) : la pose désigne alors l'image à afficher.
+// Les héros ont des poses dessinées (MAE-94) : à genoux en danger, au sol au K.O., flanche puis à genoux pendant la
+// chute, à genoux pendant la réanimation. La pose désigne alors l'image à afficher (drawn).
 
 import { CONFIG } from "../config.ts";
+import type { DrawnPoseName } from "../data/game-data.ts";
 import { REST_BODY, type BodyPose } from "./sprite-frames.ts";
 
 // Pose de fond : tenue jusqu'à la suivante
 export type BaseName =
   | "idle"      // attente : le haut du corps respire
   | "acting"    // héros qui agit, avancé : penché vers l'ennemi
-  | "critical"  // héros en danger : affaissé, penché en avant, respiration lourde (provisoire, MAE-94 la dessinera)
-  | "ko"        // héros éteint : affaissé, silhouette sombre et grise, dernière pose tenue (provisoire, MAE-94)
+  | "critical"  // héros en danger : à genoux (pose dessinée, MAE-94), respiration lente
+  | "ko"        // héros à terre : au sol (pose dessinée, MAE-94), dernière pose tenue
   | "defeated"  // ennemi vaincu mais pas mort (le Dragon) : affaissé
   | "gone";     // ennemi mort : plus rien à dessiner
 
@@ -26,8 +28,8 @@ export type GestureName =
   | "strike"    // ennemi : bond vers les héros, puis retour
   | "cast"      // Souffle : le haut du corps se lève, penché en arrière
   | "hit"       // coup reçu : recul, penché en arrière, tremblement
-  | "fall"      // héros : s'affaisse, puis s'éteint (avant la pose ko)
-  | "revive"    // héros ranimé : se rallume, puis se redresse
+  | "fall"      // héros : flanche, puis tombe à genoux (avant la pose ko), en poses dessinées
+  | "revive"    // héros ranimé : à genoux, avant de se relever, en pose dessinée
   | "victory"   // héros : quatre sauts
   | "slump"     // ennemi vaincu : s'affaisse (avant la pose defeated)
   | "rise"      // ennemi épargné : se relève
@@ -44,15 +46,14 @@ export interface MotionRig {
   height: number;                       // hauteur du PNG
   waist: number;                        // première rangée du bas du corps (FrameRig)
   breath: { period: number; phase: number }; // respiration : période en secondes, et décalage (0 à 1)
-  drawn?: Partial<Record<BaseName | GestureName, number>>; // nombre d'images dessinées qui remplacent l'animation (MAE-94)
+  drawn?: readonly DrawnPoseName[];     // poses dessinées disponibles (MAE-94)
 }
 
 // Pose à un instant. dx vers l'adversaire, dy vers le haut, en pixels de sprite entiers
 export interface MotionPose extends BodyPose {
   dx: number;
   dy: number;
-  shade: number; // 0 à 1 : héros qui s'éteint, jusqu'à la silhouette sombre et grise (une couleur, posée par la scène : shadeColor)
-  drawn: { name: BaseName | GestureName; index: number } | null; // image dessinée à afficher à la place
+  drawn: DrawnPoseName | null; // pose dessinée à afficher à la place de l'image debout (MAE-94)
 }
 
 export type PosePart = Partial<Omit<MotionPose, "drawn">>;
@@ -63,20 +64,24 @@ interface Gesture {
   frames?(timings: MotionTimings): number; // nombre d'images imposé, à la place de celui de la durée
   // Le geste remplace la pose de fond (transitions : chute, relevé...) ; sinon il s'y ajoute
   replaces: boolean;
-  // Pose de l'image `frame` (de 0 à count - 1) d'un geste de `count` images ; from : pose de fond quand il a été lancé
-  pose(frame: number, count: number, rig: MotionRig, from: BaseName): PosePart;
+  // Pose de l'image `frame` (de 0 à count - 1) d'un geste de `count` images
+  pose(frame: number, count: number, rig: MotionRig): PosePart;
 }
 
-// Couleur du héros éteint, à hauteur de shade : tout en gris, et assombri jusqu'à presque une ombre
-export const SHADE = { gray: 1, darkness: 0.72 };
-export function shadeColor(shade: number) {
-  return { gray: SHADE.gray * shade, brightness: 1 - SHADE.darkness * shade };
-}
+// À genoux (MAE-94) : respiration plus lente que l'attente (période × 1,5), d'un pixel, sur la taille de l'image à genoux
+const KNEEL_BREATH = { period: 1.5, depth: 1 };
 
-// Pose provisoire du héros éteint et du genou à terre (décisions de Wesley du 08/11/2026) : la silhouette garde sa taille
-const SLUMP = { lift: -3, lean: 2 };
-// Genou à terre : respiration plus lente que l'attente (période × 1,5) et plus ample (2 pixels au lieu de 1)
-const HEAVY_BREATH = { period: 1.5, depth: 2 };
+// Poses dessinées (MAE-94) : celle d'une pose de fond, et la suite d'images d'une transition. Un héros en danger,
+// déjà à genoux, ne flanche pas avant de tomber (décision de Wesley du 09/11/2026). Elles ont remplacé les poses
+// provisoires de MAE-30 (affaissement, silhouette sombre) : un personnage sans ces images reste dans sa pose de repos.
+const DRAWN_BASE: Partial<Record<BaseName, DrawnPoseName>> = { critical: "kneel", ko: "down" };
+function drawnSequence(name: GestureName, from: BaseName): DrawnPoseName[] | null {
+  switch (name) {
+    case "fall": return from === "critical" ? ["kneel"] : ["stagger", "kneel"];
+    case "revive": return ["kneel"];
+    default: return null;
+  }
+}
 
 export const FRAMES_PER_SECOND = 12;
 export const FRAME_MS = 1000 / FRAMES_PER_SECOND;
@@ -92,7 +97,7 @@ export function frameCount(durationMs: number) {
 
 // Suite d'images réparties sur le geste. Chaque image est montrée au moins une fois tant que le geste compte au
 // moins autant d'images de la grille (vrai à vitesse normale, testé) ; en ?vitesse=X, des images sautent.
-function sequence(images: PosePart[], frame: number, count: number) {
+function sequence<T>(images: readonly T[], frame: number, count: number): T {
   return images[Math.min(images.length - 1, Math.floor((frame * images.length) / count))];
 }
 
@@ -103,27 +108,24 @@ function sinkOf(rig: MotionRig) {
 }
 
 // Images des gestes faits d'une suite fixe ; null pour ceux qui se calculent image par image (victoire, disparition)
-export function gestureImages(name: GestureName, rig: MotionRig, from: BaseName): PosePart[] | null {
+// ou qui ne sont faits que de poses dessinées (chute, réanimation)
+export function gestureImages(name: GestureName, rig: MotionRig): PosePart[] | null {
   switch (name) {
     case "attack": return [{ dx: -2, lean: -1 }, { lean: 2 }, { lean: 1 }]; // élan, penché vers l'ennemi, avancé
     case "strike": return [{ lean: 1 }, { dx: 3, dy: 1, lean: 2 }, { dx: 5, lean: 3 }, { dx: 2, lean: 1 }];
     case "cast": return [{ lift: 1 }, { lift: 2, lean: -1 }, { lift: 1 }];
     case "hit": return [{ dx: -2, lean: -2 }, { dx: 1, lean: -1 }, { dx: -1, lean: -1 }];
-    // S'affaisse un peu, puis s'éteint ; déjà affaissé (en danger), il ne se redresse pas avant de s'éteindre
-    case "fall": return from === "critical"
-      ? [{ ...SLUMP, shade: 0.33 }, { ...SLUMP, shade: 0.66 }]
-      : [{ lift: -1, lean: 1 }, { lift: -2, lean: 2 }, { ...SLUMP, shade: 0.5 }];
-    // Se rallume, puis se redresse
-    case "revive": return [{ ...SLUMP, shade: 0.5 }, { lift: -1, lean: 1 }];
     case "slump": return [1, 2, 3].map((k) => ({ fold: Math.round((sinkOf(rig) * k) / 3), lean: k }));
     case "rise": return [2, 1].map((k) => ({ fold: Math.round((sinkOf(rig) * k) / 3), lean: k }));
+    case "fall":
+    case "revive":
     case "victory":
     case "dissolve": return null;
   }
 }
 
 function fromImages(name: GestureName): Gesture["pose"] {
-  return (frame, count, rig, from) => sequence(gestureImages(name, rig, from) ?? [{}], frame, count);
+  return (frame, count, rig) => sequence(gestureImages(name, rig) ?? [{}], frame, count);
 }
 
 const GESTURES: Record<GestureName, Gesture> = {
@@ -160,20 +162,21 @@ function breathing(rig: MotionRig, nowMs: number, period: number) {
   return Math.sin((seconds / period + rig.breath.phase) * Math.PI * 2) > 0.15 ? 1 : 0;
 }
 
-// breathe false : mouvement réduit, ou pendant un geste (la respiration s'arrête le temps du geste)
+// breathe false : mouvement réduit, ou pendant un geste (la respiration s'arrête le temps du geste).
+// À genoux et au sol, l'image dessinée porte la pose : seule la respiration à genoux s'y ajoute (MAE-94)
 function basePose(name: BaseName, rig: MotionRig, nowMs: number, breathe: boolean): PosePart {
   switch (name) {
     case "idle": return { lift: breathe ? breathing(rig, nowMs, rig.breath.period) : 0 };
     case "acting": return { lean: 1 };
-    case "critical": return { ...SLUMP, lift: SLUMP.lift + (breathe ? HEAVY_BREATH.depth * breathing(rig, nowMs, rig.breath.period * HEAVY_BREATH.period) : 0) };
-    case "ko": return { ...SLUMP, shade: 1 };
+    case "critical": return { lift: breathe ? KNEEL_BREATH.depth * breathing(rig, nowMs, rig.breath.period * KNEEL_BREATH.period) : 0 };
+    case "ko": return {};
     case "defeated": return { fold: sinkOf(rig), lean: 3 };
     case "gone": return { clipTop: rig.height };
   }
 }
 
 function toPose(part: PosePart): MotionPose {
-  return { ...REST_BODY, dx: 0, dy: 0, shade: 0, ...part, drawn: null };
+  return { ...REST_BODY, dx: 0, dy: 0, ...part, drawn: null };
 }
 
 // Ajoute un geste à la pose de fond : déplacements additionnés, rangées retirées au plus grand
@@ -185,7 +188,6 @@ function addTo(base: PosePart, gesture: PosePart): PosePart {
     lean: (base.lean ?? 0) + (gesture.lean ?? 0),
     fold: Math.max(base.fold ?? 0, gesture.fold ?? 0),
     clipTop: Math.max(base.clipTop ?? 0, gesture.clipTop ?? 0),
-    shade: Math.max(base.shade ?? 0, gesture.shade ?? 0),
   };
 }
 
@@ -203,12 +205,18 @@ export function createMotion(rig: MotionRig, timings: () => MotionTimings, initi
   let gesture: { name: GestureName; from: BaseName; start: number; count: number } | null = null;
 
   const running = (nowMs: number) => gesture !== null && frameAt(nowMs) < gesture.start + gesture.count;
+  const has = (name: DrawnPoseName) => rig.drawn?.includes(name) ?? false;
 
-  // Image dessinée qui remplace l'animation, s'il y en a (MAE-94) : réparties sur le geste, la dernière pour une pose de fond
-  function drawnFor(name: BaseName | GestureName, frame: number, count: number) {
-    const images = rig.drawn?.[name];
-    if (!images) return null;
-    return { name, index: Math.min(images - 1, Math.floor((frame * images) / count)) };
+  // Pose dessinée d'une pose de fond, si le personnage l'a (MAE-94)
+  function drawnBase(name: BaseName) {
+    const drawn = DRAWN_BASE[name];
+    return drawn && has(drawn) ? drawn : null;
+  }
+
+  // Images dessinées d'une transition, seulement si le personnage les a toutes : sinon, sa pose de repos
+  function drawnGesture(name: GestureName, from: BaseName) {
+    const images = drawnSequence(name, from);
+    return images && images.every(has) ? images : null;
   }
 
   return {
@@ -224,14 +232,19 @@ export function createMotion(rig: MotionRig, timings: () => MotionTimings, initi
     },
     busy: running,
     poseAt(nowMs, moving) {
+      const baseDrawn = drawnBase(base);
       if (!moving || !gesture || !running(nowMs)) {
-        return { ...toPose(basePose(base, rig, nowMs, moving)), drawn: drawnFor(base, 1, 1) };
+        return { ...toPose(basePose(base, rig, nowMs, moving)), drawn: baseDrawn };
       }
       const def = GESTURES[gesture.name];
       const frame = Math.max(0, frameAt(nowMs) - gesture.start);
-      const part = def.pose(frame, gesture.count, rig, gesture.from);
-      const under = basePose(base, rig, nowMs, false);
-      return { ...toPose(def.replaces ? part : addTo(under, part)), drawn: drawnFor(gesture.name, frame, gesture.count) };
+      // Transition dessinée : ses images réparties sur le geste, chacune telle quelle
+      const images = drawnGesture(gesture.name, gesture.from);
+      if (images) return { ...toPose({}), drawn: sequence(images, frame, gesture.count) };
+      const part = def.pose(frame, gesture.count, rig);
+      if (def.replaces) return toPose(part);
+      // Geste ajouté (coup reçu...) : sur la pose de fond, dessinée ou non
+      return { ...toPose(addTo(basePose(base, rig, nowMs, false), part)), drawn: baseDrawn };
     },
   };
 }

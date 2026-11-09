@@ -41,6 +41,8 @@ export interface ActorPose {
   tintMix: number;
   opacity: number;
   glow: number;       // 0 à 1 : lueur du Souffle derrière le sprite
+  shadowShift: number;   // ombre au sol de la pose dessinée (MAE-94) : décalage en pixels de sprite, vers la droite
+  shadowStretch: number; // ... et rapport de largeur ; 0 et 1 pour un héros debout
 }
 
 export interface Actor {
@@ -72,7 +74,7 @@ const GLOW_COLOR = "#f0c95a"; // or vif de la palette des personnages : la lueur
 const GLOW_OPACITY = 0.8;
 
 export function defaultPose(): ActorPose {
-  return { offsetX: 0, offsetY: 0, anchorX: 0, visible: true, brightness: 1, gray: 0, tint: new Color("#ffffff"), tintMix: 0, opacity: 1, glow: 0 };
+  return { offsetX: 0, offsetY: 0, anchorX: 0, visible: true, brightness: 1, gray: 0, tint: new Color("#ffffff"), tintMix: 0, opacity: 1, glow: 0, shadowShift: 0, shadowStretch: 1 };
 }
 
 export function preloadImages(urls: string[]): Promise<Map<string, HTMLImageElement>> {
@@ -184,8 +186,9 @@ export function buildActors(
     view.sprite.scale.setScalar(scale);
     view.frame.scale.setScalar(scale);
     const shadow = scale * SHADOW_BOOST;
-    view.blob.scale.set(view.width * 0.75 * shadow, Math.min(0.9, view.width * 0.4) * shadow, 1);
-    view.contact.scale.set(view.width * 0.42 * shadow, Math.min(0.35, view.width * 0.16) * shadow, 1);
+    view.blob.scale.set(view.width * 0.75 * shadow * pose.shadowStretch, Math.min(0.9, view.width * 0.4) * shadow, 1);
+    view.contact.scale.set(view.width * 0.42 * shadow * pose.shadowStretch, Math.min(0.35, view.width * 0.16) * shadow, 1);
+    view.blob.position.x = view.contact.position.x = pose.shadowShift * pixel * scale;
     view.sprite.visible = view.root.visible = pose.visible;
     view.uniforms.uBrightness.value = pose.brightness;
     view.uniforms.uGray.value = pose.gray;

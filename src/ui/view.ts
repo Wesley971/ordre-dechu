@@ -338,13 +338,18 @@ function spriteOutline(src: string): Promise<Outline | null> {
 }
 
 // Le contour, posé sur le corps du sprite (DOM : il suit le pas en avant du héros) ou sur l'ancre de la scène peinte ;
-// il attend la première lecture de l'image si besoin
+// il attend la première lecture de l'image si besoin. Il suit l'image affichée : le PNG debout, ou la pose dessinée
+// (à genoux, au sol, MAE-94), posée par stage.ts (showPose) avec sa place par rapport au PNG debout
 function addPointerOutline(menu: MenuController, c: Combatant, el: HTMLElement) {
   el.classList.add("pointer-target");
-  void spriteOutline(c.image).then(outline => {
-    if (!outline || menu.hovered !== c || !el.classList.contains("pointer-target") || el.querySelector(".pointer-outline")) return;
+  const image = el.dataset.poseImage ?? c.image;
+  const at = { x: Number(el.dataset.poseX ?? 0), y: Number(el.dataset.poseY ?? 0) };
+  void Promise.all([spriteOutline(c.image), spriteOutline(image)]).then(([standing, outline]) => {
+    if (!standing || !outline || menu.hovered !== c || !el.classList.contains("pointer-target") || el.querySelector(".pointer-outline")) return;
+    // En pourcentages du rectangle du PNG debout (l'élément), comme le sprite
     const { url, width, height } = outline;
-    const style = `left: ${-100 / width}%; top: ${-100 / height}%; width: ${((width + 2) / width) * 100}%; height: ${((height + 2) / height) * 100}%`;
+    const w = standing.width, h = standing.height;
+    const style = `left: ${((at.x - 1) / w) * 100}%; top: ${((at.y - 1) / h) * 100}%; width: ${((width + 2) / w) * 100}%; height: ${((height + 2) / h) * 100}%`;
     const host = el.querySelector<HTMLElement>(".sprite-body") ?? el;
     host.insertAdjacentHTML("beforeend", `<img class="pointer-outline" alt="" aria-hidden="true" src="${url}" style="${style}">`);
   });

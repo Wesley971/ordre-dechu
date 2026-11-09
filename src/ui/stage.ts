@@ -15,7 +15,8 @@ import type { Hero } from "../party/heroes.ts";
 import { isAlive } from "../battle/battle.ts";
 import type { BattleState, Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
-import { createAnimatedSprite, shadeFilter, type AnimatedSprite } from "./animated-sprite.ts";
+import { createAnimatedSprite, type AnimatedSprite } from "./animated-sprite.ts";
+import { followHero } from "./hero-pose.ts";
 import type { BaseName } from "./sprite-motion.ts";
 import { $, heroFlags, pulse, spriteEl, wait } from "./view.ts";
 
@@ -65,15 +66,18 @@ export const spriteHeight = (c: Combatant) => (c.side === "enemy" ? c.canvasHeig
 // Décalage de respiration d'un ennemi selon son rang : deux ennemis ne respirent pas ensemble
 export const enemyPhase = (index: number) => (index * 0.37) % 1;
 
-// Pose de fond d'un héros d'après l'état du combat ; une extinction joue la chute, un réveil la réanimation
-export function followHero(sprite: AnimatedSprite, flags: { ko: boolean; critical: boolean }, acting: boolean) {
-  if (flags.ko) {
-    if (sprite.base !== "ko") { sprite.play("fall"); sprite.setBase("ko"); }
-    return;
-  }
-  const target: BaseName = acting ? "acting" : flags.critical ? "critical" : "idle";
-  if (sprite.base === "ko") sprite.play("revive");
-  if (sprite.base !== target) sprite.setBase(target);
+// Ce que l'affichage autour du sprite doit savoir de la pose dessinée (MAE-94), posé sur son élément (sprite DOM ou
+// ancre de la scène peinte) : la pose dessinée affichée (data-pose : les braises d'Elwen s'y éteignent, style.css),
+// l'image affichée (contour du survol, view.ts) et, pour le sprite DOM, l'ombre au sol (CSS, en pixels de sprite)
+export function showPose(element: HTMLElement, sprite: AnimatedSprite) {
+  element.dataset.pose = sprite.pose().drawn ?? "";
+  const { shift, stretch } = sprite.shadow();
+  element.style.setProperty("--shadow-shift", String(shift));
+  element.style.setProperty("--shadow-stretch", String(stretch));
+  const shown = sprite.shown();
+  element.dataset.poseImage = shown.url;
+  element.dataset.poseX = String(shown.x);
+  element.dataset.poseY = String(shown.y);
 }
 
 // Pose de départ : un héros déjà éteint quand la scène se construit est posé éteint, sans rejouer sa chute
@@ -129,6 +133,7 @@ interface DomActor {
   x: number;
   acting: boolean;
   away: boolean;  // sorti de scène (repli) : refresh() ne le ramène pas
+  celebrating: boolean; // victoire : debout, même en danger (followHero)
   slide: number; // requestAnimationFrame du glissement en cours, 0 sans glissement
 }
 
@@ -169,7 +174,7 @@ export function createDomStage(): Stage {
       onPose(pose) {
         holder.style.setProperty("--pose-dx", String(pose.dx * facing));
         sprite.canvas.style.setProperty("--pose-dy", String(pose.dy));
-        sprite.canvas.style.filter = shadeFilter(pose.shade);
+        showPose(element, sprite);
       },
     });
     holder.appendChild(sprite.canvas);
@@ -179,7 +184,7 @@ export function createDomStage(): Stage {
         sprite.canvas.style.setProperty(name, String(value));
       }
     }).catch(console.error);
-    return { combatant: c, element, sprite, x: 0, acting: false, away: false, slide: 0 };
+    return { combatant: c, element, sprite, x: 0, acting: false, away: false, celebrating: false, slide: 0 };
   }
 
   // Glisse le sprite jusqu'à x (pixels de sprite), par pixels entiers ; d'un coup avec le mouvement réduit (MAE-58)
@@ -219,7 +224,7 @@ export function createDomStage(): Stage {
       const c = actor.combatant;
       if (c.side !== "hero") continue;
       const flags = heroFlags(c);
-      followHero(actor.sprite, flags, actor.acting);
+      followHero(actor.sprite, flags, actor.acting, actor.celebrating);
       if (!actor.acting && !actor.away && !flags.ko) {
         const target = restingX(c);
         if (target !== actor.x) slideTo(actor, target, CONFIG.timing.slide, easeOut);
@@ -273,7 +278,7 @@ export function createDomStage(): Stage {
       if (!a || actor.side !== "hero") return;
       a.acting = false;
       a.element.classList.remove("acting");
-      followHero(a.sprite, heroFlags(actor), false);
+      followHero(a.sprite, heroFlags(actor), false, a.celebrating);
       slideTo(a, restingX(actor), CONFIG.timing.slide, easeOut);
     },
 
@@ -322,8 +327,11 @@ export function createDomStage(): Stage {
     victory(party) {
       for (const hero of party.filter(isAlive)) {
         const a = actors.get(hero.id);
-        a?.element.classList.add("victory");
-        a?.sprite.play("victory");
+        if (!a) continue;
+        a.element.classList.add("victory");
+        a.celebrating = true;
+        followHero(a.sprite, heroFlags(hero), false, true); // en danger, il passe debout pour sauter
+        a.sprite.play("victory");
       }
     },
 

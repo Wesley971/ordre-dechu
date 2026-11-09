@@ -4,13 +4,15 @@
 // l'agrandit d'un nombre entier de pixels réels, sans lissage (DOM : image-rendering: pixelated ; scène peinte :
 // texture au plus proche). Une seule boucle requestAnimationFrame sert tous les sprites ; elle ne redessine un
 // sprite que quand sa pose change (au plus douze fois par seconde, sprite-motion.ts) et s'arrête sans sprite.
-// Mouvement réduit (MAE-58) : la pose de fond seule, immobile. Les images dessinées (MAE-94) se brancheront ici :
-// sprite-motion.ts sait déjà les désigner (MotionPose.drawn).
+// Mouvement réduit (MAE-58) : la pose de fond seule, immobile. Les poses dessinées du squelette (rig.poses, MAE-94)
+// sont chargées avec le PNG et recopiées telles quelles, centrées sur lui, le bas sur la même rangée.
 
 import { CONFIG } from "../config.ts";
-import type { SpriteRig } from "../data/game-data.ts";
-import { composeFrame, frameLayout, type FrameLayout, type FrameRig, type PixelImage } from "./sprite-frames.ts";
-import { createMotion, shadeColor, type BaseName, type GestureName, type MotionPose, type SpriteMotion } from "./sprite-motion.ts";
+import type { DrawnPose, DrawnPoseName, SpriteRig } from "../data/game-data.ts";
+import {
+  AT_REST, composeFrame, drawnPlacement, footprint, footShadow, frameLayout, type FrameLayout, type Footprint, type FrameRig, type PixelImage, type Placement,
+} from "./sprite-frames.ts";
+import { createMotion, type BaseName, type GestureName, type MotionPose, type SpriteMotion } from "./sprite-motion.ts";
 
 export interface AnimatedSpriteOptions {
   url: string;                 // PNG du personnage
@@ -28,17 +30,20 @@ export interface AnimatedSprite {
   readonly ready: Promise<void>;  // images chargées et première pose dessinée
   readonly base: BaseName;
   pose(): MotionPose;             // dernière pose dessinée
+  // Ombre au sol de la pose dessinée affichée (MAE-94), par rapport à celle du héros debout : décalage en pixels de
+  // sprite (vers la droite de l'écran) et rapport de largeur. Sans pose dessinée : { shift: 0, stretch: 1 }
+  shadow(): ContactShadow;
+  shown(): ShownImage;            // image affichée (PNG debout ou pose dessinée), pour le contour du survol
   setBase(name: BaseName): void;
   play(name: GestureName): void;  // avant setBase pour une transition (fall puis ko, sprite-motion.ts)
   dispose(): void;
 }
 
-// Filtre CSS du héros éteint (MotionPose.shade) : gris et assombri, une couleur, sans flou ; vide s'il est allumé
-export function shadeFilter(shade: number) {
-  if (shade <= 0) return "";
-  const { gray, brightness } = shadeColor(shade);
-  return `grayscale(${gray}) brightness(${brightness})`;
-}
+export interface ContactShadow { shift: number; stretch: number }
+const NO_SHIFT: Readonly<ContactShadow> = { shift: 0, stretch: 1 };
+
+// Image affichée : son adresse, et la place de son coin haut gauche par rapport au PNG debout (pixels de sprite)
+export interface ShownImage { url: string; x: number; y: number }
 
 // — Boucle commune —
 
@@ -86,7 +91,7 @@ function loadPixels(url: string): Promise<PixelImage> {
 
 const samePose = (a: MotionPose, b: MotionPose) =>
   a.dx === b.dx && a.dy === b.dy && a.lift === b.lift && a.lean === b.lean && a.fold === b.fold && a.clipTop === b.clipTop
-  && a.shade === b.shade && a.drawn?.name === b.drawn?.name && a.drawn?.index === b.drawn?.index;
+  && a.drawn === b.drawn;
 
 export function createAnimatedSprite(options: AnimatedSpriteOptions): AnimatedSprite {
   const canvas = document.createElement("canvas");
@@ -94,21 +99,41 @@ export function createAnimatedSprite(options: AnimatedSpriteOptions): AnimatedSp
   canvas.width = canvas.height = 1; // vide jusqu'au chargement (ready), pas la taille par défaut d'un canvas
   const { rig } = options;
   const frameRig: FrameRig = { waist: rig.waist, facing: options.facing };
+  // as : Object.entries perd le type des clés ; ce sont celles de rig.poses, des DrawnPoseName
+  const poses = Object.entries(rig.poses ?? {}) as [DrawnPoseName, DrawnPose][];
   let layout = frameLayout(1, 1);
   let source: PixelImage | null = null;
+  // Poses dessinées chargées : leurs pixels, leur squelette et leur place par rapport au PNG debout
+  const drawnImages = new Map<DrawnPoseName, { url: string; pixels: PixelImage; rig: FrameRig; at: Placement }>();
   let context: CanvasRenderingContext2D | null = null;
   let buffer: ImageData | null = null;
   let current: MotionPose | null = null;
   let disposed = false;
+  // Empreinte au sol du héros debout, au repos (sprite-frames.ts, footprint), et ombre de la pose affichée
+  let restFoot: Footprint | null = null;
+  let shadow: ContactShadow = NO_SHIFT;
+
+  // L'ombre suit l'empreinte au sol de la pose dessinée : même décalage du centre, même rapport de largeur
+  const shadowOf = (frame: PixelImage): ContactShadow => footShadow(restFoot, footprint(frame));
 
   const motion: SpriteMotion = createMotion(
-    { height: options.height, waist: rig.waist, breath: { period: rig.breath, phase: rig.phase + (options.phase ?? 0) } },
+    {
+      height: options.height, waist: rig.waist, breath: { period: rig.breath, phase: rig.phase + (options.phase ?? 0) },
+      drawn: poses.map(([name]) => name),
+    },
     () => CONFIG.timing, options.initial,
   );
 
   function draw(pose: MotionPose) {
     if (!source || !context || !buffer) return;
-    composeFrame(source, frameRig, pose, layout, buffer.data);
+    const drawn = pose.drawn ? drawnImages.get(pose.drawn) : undefined;
+    if (drawn) {
+      shadow = shadowOf(composeFrame(drawn.pixels, drawn.rig, pose, layout, buffer.data, drawn.at));
+    } else {
+      // Debout (gestes compris, qui ne touchent pas aux pieds) : l'ombre d'avant
+      composeFrame(source, frameRig, pose, layout, buffer.data, AT_REST);
+      shadow = NO_SHIFT;
+    }
     context.putImageData(buffer, 0, 0);
     current = pose;
     options.onPose?.(pose);
@@ -122,10 +147,17 @@ export function createAnimatedSprite(options: AnimatedSpriteOptions): AnimatedSp
   };
 
   const ready = (async () => {
-    const png = await loadPixels(options.url);
+    const [png, ...drawn] = await Promise.all([options.url, ...poses.map(([, pose]) => pose.image)].map(loadPixels));
     if (disposed) return;
     source = png;
-    layout = frameLayout(png.width, png.height);
+    poses.forEach(([name, pose], i) => {
+      const pixels = drawn[i];
+      drawnImages.set(name, { url: pose.image, pixels, rig: { waist: pose.waist, facing: options.facing }, at: drawnPlacement(png, pixels) });
+    });
+    layout = frameLayout(png.width, png.height, drawn);
+    // Dans les coordonnées de la toile, comme l'empreinte des poses composées
+    const foot = footprint(png);
+    restFoot = foot && { left: foot.left + layout.originX, right: foot.right + layout.originX };
     canvas.width = layout.width;
     canvas.height = layout.height;
     context = canvas.getContext("2d");
@@ -141,6 +173,11 @@ export function createAnimatedSprite(options: AnimatedSpriteOptions): AnimatedSp
     ready,
     get base() { return motion.base; },
     pose: () => current ?? motion.poseAt(performance.now(), false),
+    shadow: () => shadow,
+    shown() {
+      const drawn = current?.drawn ? drawnImages.get(current.drawn) : undefined;
+      return drawn ? { url: drawn.url, ...drawn.at } : { url: options.url, ...AT_REST };
+    },
     setBase: (name) => motion.setBase(name),
     play: (name) => motion.play(name, performance.now()),
     dispose() {

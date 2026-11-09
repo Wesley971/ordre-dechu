@@ -274,6 +274,8 @@ body.scene-painted #battle-scene { pointer-events: none; }
 /* Bouclier de Garde, trace du coup et braises : comme sur un sprite DOM */
 .actor-anchor.hero .fx-slash        { scale: -1 1; }
 .actor-anchor.hero.ko .ember        { display: none; }
+/* Poses dessinées : les flammes d'Elwen y sont dans l'image, faibles puis éteintes (MAE-94, data-pose, stage.ts) */
+.actor-anchor.hero:is([data-pose="stagger"], [data-pose="kneel"], [data-pose="down"]) .ember { display: none; }
 
 .actor-anchor.hero.defending::after {
   content: "";
@@ -332,7 +334,7 @@ body.scene-painted #battle-scene { pointer-events: none; }
   translate: calc(var(--pose-dx, 0) * 1px * var(--px, 1)) 0;
 }
 
-/* Ombre au sol */
+/* Ombre au sol ; elle suit l'empreinte d'une pose dessinée, au sol par exemple (MAE-94, --shadow-*, stage.ts) */
 .sprite-img::before {
   content: "";
   position: absolute;
@@ -341,6 +343,8 @@ body.scene-painted #battle-scene { pointer-events: none; }
   bottom: -8px;
   height: 12px;
   background: radial-gradient(closest-side, rgba(0, 0, 0, 0.6), transparent);
+  translate: calc(var(--shadow-shift, 0) * 1px * var(--px, 1)) 0;
+  scale: var(--shadow-stretch, 1) 1;
 }
 
 .sprite-canvas {
@@ -374,7 +378,8 @@ body.scene-painted #battle-scene { pointer-events: none; }
     opacity: 0;
     animation: ember-rise 2.2s steps(12) infinite;
   }
-  .sprite.hero.ko .ember { display: none; }
+  .sprite.hero.ko .ember,
+  .sprite.hero:is([data-pose="stagger"], [data-pose="kneel"], [data-pose="down"]) .ember { display: none; } /* MAE-94 */
 }
 
 @keyframes ember-rise {

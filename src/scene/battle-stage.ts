@@ -15,8 +15,9 @@ import type { Decor } from "../data/decors.ts";
 import type { Hero } from "../party/heroes.ts";
 import type { Combatant } from "../battle/battle.ts";
 import { createAnimatedSprite, type AnimatedSprite } from "../ui/animated-sprite.ts";
-import { shadeColor, type BaseName } from "../ui/sprite-motion.ts";
-import { enemyPhase, facingOf, followHero, type Stage } from "../ui/stage.ts";
+import type { BaseName } from "../ui/sprite-motion.ts";
+import { enemyPhase, facingOf, showPose, type Stage } from "../ui/stage.ts";
+import { followHero } from "../ui/hero-pose.ts";
 import { preloadImages, type ActorDef, type ActorsView } from "./actors.ts";
 import { actorDefs, castExtent, enemyMember, heroMember, type CastMember } from "./cast.ts";
 import { createPaintedStage, type PaintedStage, type SceneQuality, type StageMeasure } from "./painted-stage.ts";
@@ -56,6 +57,7 @@ interface ActorState {
   visible: boolean;
   acting: boolean;                   // en plein pas en avant : refresh() ne le rappelle pas à sa place
   away: boolean;                     // sorti de scène (repli) : refresh() ne le ramène pas
+  celebrating: boolean;              // victoire : debout, même en danger (followHero, MAE-94)
 }
 
 interface Tween { id: string; start: number | null; duration: number; step(progress: number): void; onEnd?: () => void }
@@ -129,7 +131,12 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
         phase: member.side === "enemy" ? enemyPhase(enemies.indexOf(member)) : 0, // le rang de l'ennemi, comme en DOM
         initial: initial(member),
         // La pose a changé : la texture repart vers la carte graphique, et la scène se redessine (mouvement réduit compris)
-        onPose: () => { actors?.get(member.id)?.redrawn(); stage.requestRedraw(); },
+        onPose: () => {
+          actors?.get(member.id)?.redrawn();
+          const anchor = anchors.get(member.id);
+          if (anchor) showPose(anchor, sprite);
+          stage.requestRedraw();
+        },
       });
       sprites.set(member.id, sprite);
       return sprite.ready;
@@ -154,7 +161,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
   function freshState(c: Combatant): ActorState {
     return {
       combatant: c, x: 0, brightness: 1, gray: 0, tintMix: 0, tint: new Color("#ffffff"), opacity: 1, glow: 0,
-      visible: true, acting: false, away: false,
+      visible: true, acting: false, away: false, celebrating: false,
     };
   }
 
@@ -195,13 +202,15 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       const sprite = sprites.get(actor.id);
       if (!s || !sprite) continue;
       const motion = sprite.pose();
-      const shade = shadeColor(motion.shade); // héros éteint : gris et assombri, une couleur (MAE-30)
       const { pose } = actor;
       pose.offsetX = Math.round(s.x) + motion.dx * facingOf(s.combatant);
       pose.anchorX = Math.round(s.x); // l'ancre suit le glissement, pas le recul ni le saut (comme .sprite en DOM)
       pose.offsetY = motion.dy;
-      pose.brightness = s.brightness * shade.brightness;
-      pose.gray = Math.max(s.gray, shade.gray);
+      const shadow = sprite.shadow(); // l'ombre suit le héros au sol (MAE-94)
+      pose.shadowShift = shadow.shift; // vers la droite de l'écran, comme le canvas (jamais retourné)
+      pose.shadowStretch = shadow.stretch;
+      pose.brightness = s.brightness;
+      pose.gray = s.gray;
       pose.tint.copy(s.tint);
       pose.tintMix = s.tintMix;
       pose.opacity = s.opacity;
@@ -226,6 +235,8 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       anchor.addEventListener("mouseleave", () => options.onHover?.(c, false));
       layer.appendChild(anchor);
       anchors.set(c.id, anchor);
+      const sprite = sprites.get(c.id);
+      if (sprite) showPose(anchor, sprite); // la pose et l'image affichées : braises, contour du survol (MAE-94)
     }
   }
 
@@ -295,7 +306,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       if (c.side !== "hero" || !sprite) continue;
       const flags = options.flagsOf(c);
       if (flags.ko) s.acting = false;
-      followHero(sprite, flags, s.acting);
+      followHero(sprite, flags, s.acting, s.celebrating);
       // Un héros éteint ne bouge plus, comme dans la scène DOM
       if (!s.acting && !s.away && !flags.ko) slideTo(s, restingX(c), CONFIG.timing.slide, easeOut);
     }
@@ -327,6 +338,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       for (const s of states.values()) {
         cancelTweens(`${s.combatant.id}:slide`);
         s.away = false;
+        s.celebrating = false; // la victoire du combat d'avant est finie (comme la scène DOM, qui recrée ses héros)
         s.x = 0;
       }
       setCast(party);
@@ -390,7 +402,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       const s = stateOf(actor);
       s.acting = false;
       const sprite = spriteOf(actor);
-      if (sprite) followHero(sprite, options.flagsOf(actor), false);
+      if (sprite) followHero(sprite, options.flagsOf(actor), false, s.celebrating);
       slideTo(s, restingX(actor), CONFIG.timing.slide, easeOut);
     },
 
@@ -464,7 +476,11 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       for (const hero of party) {
         if (!states.has(hero.id) || options.flagsOf(hero).ko) continue;
         setClass(hero, "victory", true);
-        spriteOf(hero)?.play("victory");
+        stateOf(hero).celebrating = true;
+        const sprite = spriteOf(hero);
+        if (!sprite) continue;
+        followHero(sprite, options.flagsOf(hero), false, true); // en danger, il passe debout pour sauter
+        sprite.play("victory");
       }
     },
 

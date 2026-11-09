@@ -33,6 +33,16 @@ export interface SpriteRig {
   waist: number;   // première rangée du bas du corps, depuis le haut du PNG
   breath: number;  // période de la respiration, en secondes
   phase: number;   // décalage de la respiration (0 à 1), pour que les personnages ne respirent pas ensemble
+  poses?: Partial<Record<DrawnPoseName, DrawnPose>>; // poses dessinées : à genoux, au sol, flanche (MAE-94)
+}
+
+// Poses dessinées d'un héros (MAE-94) : flanche (pendant la chute), à genoux (en danger), au sol (K.O.)
+export type DrawnPoseName = "stagger" | "kneel" | "down";
+
+// Une pose dessinée : son PNG, centré sur le PNG debout, le bas sur la même rangée (il peut être plus large ou moins haut)
+export interface DrawnPose {
+  image: string;
+  waist: number;   // première rangée du bas du corps dans cette image (respiration à genoux)
 }
 
 export interface HeroDef {
@@ -84,10 +94,22 @@ const memory = (html: string): PageObject => ({ html: `<span class="memory">${ht
 // — Héros —
 // stats : valeurs au niveau 1 · growth : gain à chaque niveau · spells : souffles appris par niveau
 
+// Poses dessinées d'un héros (MAE-94) : images/<id>-stagger.png, -kneel.png, -down.png, réduites dans le labo
+// (tools/reduce-poses.mjs). waist : rangée de la taille dans chaque image, relevée à l'œil le 09/11/2026 sur les PNG
+// agrandis et quadrillés : la ceinture, ou le haut des cuisses à genoux (la respiration et le recul d'un coup reçu
+// déplacent ce qui est au-dessus) ; au sol, 0 (rien ne respire ni ne se penche)
+function drawnPoses(id: string, waist: { stagger: number; kneel: number }): Record<DrawnPoseName, DrawnPose> {
+  return {
+    stagger: { image: `images/${id}-stagger.png`, waist: waist.stagger },
+    kneel: { image: `images/${id}-kneel.png`, waist: waist.kneel },
+    down: { image: `images/${id}-down.png`, waist: 0 },
+  };
+}
+
 export const HEROES: HeroDef[] = [
   {
     id: "maelor", name: "Maelor", job: "Chevalier déchu", image: "images/maelor.png",
-    rig: { waist: 36, breath: 2.8, phase: 0 },
+    rig: { waist: 36, breath: 2.8, phase: 0, poses: drawnPoses("maelor", { stagger: 38, kneel: 43 }) },
     command: "Gestes",
     stats:  { maxHp: 160, maxMp: 18, atk: 18, def: 10, mag: 6,  res: 6,  spd: 9  },
     growth: { maxHp: 22,  maxMp: 2,  atk: 3,  def: 2,  mag: 1,  res: 1,  spd: 1  },
@@ -95,7 +117,7 @@ export const HEROES: HeroDef[] = [
   },
   {
     id: "corvin", name: "Corvin", job: "Veilleur", image: "images/corvin.png",
-    rig: { waist: 36, breath: 3.1, phase: 0.2 },
+    rig: { waist: 36, breath: 3.1, phase: 0.2, poses: drawnPoses("corvin", { stagger: 37, kneel: 46 }) },
     command: "Lanterne",
     stats:  { maxHp: 95,  maxMp: 40, atk: 8,  def: 5,  mag: 18, res: 12, spd: 11 },
     growth: { maxHp: 12,  maxMp: 6,  atk: 1,  def: 1,  mag: 3,  res: 2,  spd: 1  },
@@ -103,7 +125,7 @@ export const HEROES: HeroDef[] = [
   },
   {
     id: "elwen", name: "Elwen", job: "Source", image: "images/elwen.png",
-    rig: { waist: 36, breath: 3.4, phase: 0.55 },
+    rig: { waist: 36, breath: 3.4, phase: 0.55, poses: drawnPoses("elwen", { stagger: 38, kneel: 47 }) },
     command: "Source",
     feminine: true,
     // bords enflammés du drapé
