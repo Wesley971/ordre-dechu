@@ -13,6 +13,7 @@
 import { CONFIG } from "../config.ts";
 import { ENEMIES, HEROES, type EnemyDef, type SpriteRig } from "../data/game-data.ts";
 import { createAnimatedSprite, isReducedMotion, overrideReducedMotion, type AnimatedSprite } from "../ui/animated-sprite.ts";
+import { opaqueRuns, type OpaqueRuns } from "../ui/sprite-frames.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
 import { HERO_CANVAS, playAshCloud, playGoldStream, playLightRise } from "../ui/stage.ts";
 
@@ -170,6 +171,17 @@ function characters(): Character[] {
   ];
 }
 
+// Segments opaques de chaque rangée d'une image chargée (vide si elle ne l'est pas encore)
+function imageRows(image: HTMLImageElement): OpaqueRuns[] {
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const context = canvas.getContext("2d");
+  if (!context || !canvas.width) return [];
+  context.drawImage(image, 0, 0);
+  return opaqueRuns(context.getImageData(0, 0, canvas.width, canvas.height));
+}
+
 // Pixels CSS par pixel de sprite : un nombre entier de pixels réels
 function cssPixel() {
   const ratio = window.devicePixelRatio || 1;
@@ -217,7 +229,8 @@ function buildCell(character: Character, label: string, scenario: Scenario, px: 
   const fx = effects ? createFxLayer(box, () => px) : null; // seulement dans les cases des effets spéciaux
   const ash = () => { if (fx && target && character.mouth) playAshCloud(fx, png, character.mouth, [aimed]); };
   const light = () => { if (fx) playLightRise(fx, png, sprite); };
-  const gold = () => { if (fx) playGoldStream(fx, png, target ? aimed : null); };
+  // Le Dragon de la case est une image fixe, debout : l'or se pose sur ses pixels opaques (en combat, sur son image affichée)
+  const gold = () => { if (fx) playGoldStream(fx, { element: png, rows: sprite.shownRows() }, target ? { element: aimed, rows: imageRows(aimed) } : null); };
   let colorTimer = 0;
   const color = (filter: string, ms: number) => {
     tint = filter;

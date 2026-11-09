@@ -2,7 +2,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { CONFIG } from "../config.ts";
 import palette from "../../docs/character-palette.md?raw";
-import { along, ashCloud, ashVeil, between, FX_COLORS, goldStream, lightRise, pick, seeded, streamsGold, type FxBox, type FxPlan, type RowSpan } from "../ui/battle-fx.ts";
+import { along, ashCloud, ashVeil, between, FX_COLORS, goldStream, lightRise, pick, seeded, streamsGold, type FxBox, type FxPlan } from "../ui/battle-fx.ts";
+import { composeFrame, frameLayout, opaqueRuns, REST_BODY, type BodyPose, type OpaqueRuns } from "../ui/sprite-frames.ts";
 import { frameCount, unravelCleared } from "../ui/sprite-motion.ts";
 import { layerGeometry } from "../ui/fx-layer.ts";
 
@@ -135,8 +136,9 @@ describe("Nuée de cendre", () => {
 
 describe("l'écho se défait en lumière", () => {
   const png = { left: 200, top: 50, right: 247, bottom: 116 };
-  // Une silhouette simple : rangées 5 à 60 opaques des colonnes 10 à 36
-  const rows: RowSpan[] = Array.from({ length: 66 }, (_, y) => (y >= 5 && y <= 60 ? [10, 36] : null));
+  // Une silhouette simple : rangées 5 à 60 opaques des colonnes 10 à 18 et 26 à 36, avec un trou entre les deux (les jambes)
+  const rows: OpaqueRuns[] = Array.from({ length: 66 }, (_, y) => (y >= 5 && y <= 60 ? [[10, 18], [26, 36]] : []));
+  const opaque = (x: number, y: number) => (rows[y - png.top] ?? []).some(([left, right]) => x >= png.left + left && x < png.left + right);
   const count = frameCount(CONFIG.timing.unravel);
   const cleared = (frame: number) => unravelCleared(frame, count, rows.length);
   const all = (plan: FxPlan) => Array.from({ length: plan.count }, (_, i) => plan.frame(i));
@@ -167,25 +169,59 @@ describe("l'écho se défait en lumière", () => {
   it("chaque rangée effacée lâche de la lumière à l'image où elle disparaît, sur ses colonnes opaques", () => {
     const frames = all(lightRise(png, rows, cleared, count, 7));
     for (let frame = 1; frame < count; frame++) {
-      const opaque = Array.from({ length: cleared(frame) - cleared(frame - 1) }, (_, k) => cleared(frame - 1) + k).filter((row) => rows[row]);
-      for (const row of opaque) {
-        expect(frames[frame].some(({ x, y }) => y === png.top + row && x >= png.left + 10 && x < png.left + 36)).toBe(true);
+      const fresh = Array.from({ length: cleared(frame) - cleared(frame - 1) }, (_, k) => cleared(frame - 1) + k).filter((row) => rows[row].length > 0);
+      for (const row of fresh) {
+        const born = frames[frame].filter(({ y }) => y === png.top + row);
+        expect(born.length).toBeGreaterThan(0);
+        for (const { x, y } of born) expect(opaque(x, y)).toBe(true); // jamais dans le trou
       }
     }
     // Avant l'effacement, seulement quelques éclats d'or vif sur la silhouette
     for (let frame = 0; cleared(frame) === 0; frame++) {
       for (const { x, y, color } of frames[frame]) {
         expect(color).toBe(FX_COLORS.brightGold);
-        expect(rows[y - png.top]).not.toBeNull();
-        expect(x).toBeGreaterThanOrEqual(png.left + 10);
+        expect(opaque(x, y)).toBe(true);
       }
     }
+  });
+});
+
+describe("segments opaques d'une image", () => {
+  it("relevés sur l'image composée, rapportés au coin du PNG : au repos les mêmes que le PNG, et la pose les déplace", () => {
+    // 4 × 6, opaque partout sauf un trou en (1, 4) ; la taille à la rangée 3
+    const source = { width: 4, height: 6, data: new Uint8ClampedArray(Array.from({ length: 24 }, (_, i) => [9, 9, 9, i === 17 ? 0 : 255]).flat()) };
+    const rig = { waist: 3, facing: -1 as const }; // as const : le sens du regard, de type 1 | -1
+    const layout = frameLayout(4, 6);
+    const shown = (pose: BodyPose) => opaqueRuns(composeFrame(source, rig, pose, layout), layout.originX, layout.originY, 6);
+    expect(shown(REST_BODY)).toEqual(opaqueRuns(source));
+    // Affaissé d'une rangée (fold) : la rangée du haut se vide, le haut du corps descend, la rangée 3 disparaît
+    const folded = shown({ ...REST_BODY, fold: 1 });
+    expect(folded[0]).toEqual([]);
+    expect(folded.slice(1, 4)).toEqual(opaqueRuns(source).slice(0, 3));
+    expect(folded.slice(4)).toEqual(opaqueRuns(source).slice(4));
+  });
+
+  it("chaque rangée donne ses segments opaques exacts, trous compris, par rapport à une origine", () => {
+    // 5 × 3 : rangée 0 « .##.# », rangée 1 vide, rangée 2 « ##### »
+    const alpha = [0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1];
+    const image = { width: 5, height: 3, data: new Uint8ClampedArray(alpha.flatMap((a) => [9, 9, 9, a ? 255 : 0])) };
+    expect(opaqueRuns(image)).toEqual([[[1, 3], [4, 5]], [], [[0, 5]]]);
+    expect(opaqueRuns(image, 1, 2, 2)).toEqual([[[-1, 4]], []]); // rangée 2, puis hors de l'image
   });
 });
 
 describe("l'or quitte Maelor", () => {
   const maelor = { left: 60, top: 90, right: 107, bottom: 156 };
   const dragon = { left: 260, top: 70, right: 402, bottom: 158 };
+  // Le Dragon vaincu, affaissé : rien dans le haut de son image ; dans le bas, son corps, avec un trou entre ses pattes
+  const slumped: OpaqueRuns[] = Array.from({ length: 88 }, (_, y) => (y < 34 ? [] : y < 85 ? [[30, 60], [75, 130]] : [[40, 55], [80, 120]]));
+  // Maelor debout (silhouette pleine), puis à genoux, relevé à 1 PV : plus bas, avec un trou entre le bras et le corps
+  const standing: OpaqueRuns[] = Array.from({ length: 66 }, () => [[10, 37]]);
+  const kneeling: OpaqueRuns[] = Array.from({ length: 66 }, (_, y) => (y < 22 ? [] : [[8, 20], [24, 40]]));
+  const ground = (y: number) => y >= dragon.bottom - 3 && y < dragon.bottom;
+  // Sur un pixel opaque du bas de son image (moitié basse)
+  const onBody = (body: OpaqueRuns[], x: number, y: number) =>
+    y - dragon.top >= 44 && (body[y - dragon.top] ?? []).some(([left, right]) => x >= dragon.left + left && x < dragon.left + right);
   const count = frameCount(CONFIG.timing.powerReturn);
   const all = (plan: FxPlan) => Array.from({ length: plan.count }, (_, i) => plan.frame(i));
   const golds: string[] = [FX_COLORS.parchment, FX_COLORS.brightGold, FX_COLORS.oldGold];
@@ -200,7 +236,7 @@ describe("l'or quitte Maelor", () => {
   it("ne tire jamais Math.random, et rend les mêmes images pour la même graine", () => {
     const spy = vi.spyOn(Math, "random");
     try {
-      expect(all(goldStream(maelor, dragon, count, 8))).toEqual(all(goldStream(maelor, dragon, count, 8)));
+      expect(all(goldStream(maelor, standing, dragon, slumped, count, 8))).toEqual(all(goldStream(maelor, standing, dragon, slumped, count, 8)));
       expect(spy).not.toHaveBeenCalled();
     } finally {
       spy.mockRestore();
@@ -208,7 +244,7 @@ describe("l'or quitte Maelor", () => {
   });
 
   it("part de la poitrine de Maelor, en pixels entiers et dorés, et se pose sur le Dragon et le sol devant lui", () => {
-    const frames = all(goldStream(maelor, dragon, count, 9));
+    const frames = all(goldStream(maelor, standing, dragon, slumped, count, 9));
     expect(frames[0].length).toBeGreaterThan(0);
     for (const { x, y } of frames[0]) {
       expect(x >= maelor.left && x < maelor.right && y >= maelor.top && y < maelor.bottom).toBe(true);
@@ -220,10 +256,43 @@ describe("l'or quitte Maelor", () => {
       expect(x).toBeLessThan(dragon.right);
       expect(y).toBeLessThan(dragon.bottom);
     }
-    const middle = frames[Math.round(count * 0.75)];
-    const onScales = middle.filter(({ x, y }) => x >= dragon.left && x < dragon.right && y >= dragon.top && y < dragon.bottom - 3);
-    const onGround = middle.filter(({ y }) => y >= dragon.bottom - 3);
+    // Sur la fin de l'effet, de l'or posé sur le Dragon et de l'or au sol
+    const late = frames.slice(Math.ceil(0.86 * (count - 1))).flat();
+    const onScales = late.filter(({ x, y }) => onBody(slumped, x, y) && y < dragon.bottom - 3);
+    const onGround = late.filter(({ y }) => ground(y));
     expect(onScales.length).toBeGreaterThan(0);
     expect(onGround.length).toBeGreaterThan(0);
+  });
+
+  it("posé, l'or est sur le bas du Dragon affaissé, sur un de ses pixels, ou au sol devant lui : jamais dans le vide au-dessus", () => {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const frames = all(goldStream(maelor, standing, dragon, slumped, count, seed));
+      // Tout l'or est posé à 86 % de l'effet (départ avant 40 %, vol de 45 % au plus)
+      for (let index = Math.ceil(0.86 * (count - 1)); index < count; index++) {
+        for (const { x, y } of frames[index]) expect(onBody(slumped, x, y) || ground(y)).toBe(true);
+      }
+    }
+  });
+
+  it("l'or part d'un pixel opaque de la poitrine de Maelor tel qu'il est affiché, même à genoux", () => {
+    for (const seed of [1, 2, 3]) {
+      const plan = goldStream(maelor, kneeling, dragon, slumped, count, seed);
+      const first = plan.frame(0);
+      expect(first.length).toBeGreaterThan(0);
+      for (const { x, y } of first) {
+        const row = y - maelor.top;
+        expect(row).toBeGreaterThanOrEqual(22 + Math.round(43 * 0.25)); // la poitrine de Maelor à genoux (rangées 22 à 65)
+        expect(row).toBeLessThanOrEqual(22 + Math.round(43 * 0.55));
+        expect(kneeling[row].some(([left, right]) => x >= maelor.left + left && x < maelor.left + right)).toBe(true);
+      }
+    }
+  });
+
+  it("si le bas de l'image du Dragon est vide, tout l'or se pose au sol devant lui", () => {
+    const empty: OpaqueRuns[] = Array.from({ length: 88 }, () => []);
+    const frames = all(goldStream(maelor, standing, dragon, empty, count, 6));
+    for (let index = Math.ceil(0.86 * (count - 1)); index < count; index++) {
+      for (const { y } of frames[index]) expect(ground(y)).toBe(true);
+    }
   });
 });

@@ -10,9 +10,8 @@
 import { CONFIG } from "../config.ts";
 import type { DrawnPose, DrawnPoseName, SpriteRig } from "../data/game-data.ts";
 import {
-  AT_REST, composeFrame, drawnPlacement, footprint, footShadow, frameLayout, type FrameLayout, type Footprint, type FrameRig, type PixelImage, type Placement,
+  AT_REST, composeFrame, drawnPlacement, footprint, footShadow, frameLayout, opaqueRuns, type OpaqueRuns, type FrameLayout, type Footprint, type FrameRig, type PixelImage, type Placement,
 } from "./sprite-frames.ts";
-import type { RowSpan } from "./battle-fx.ts";
 import { createMotion, type BaseName, type GestureName, type MotionPose, type SpriteMotion } from "./sprite-motion.ts";
 
 export interface AnimatedSpriteOptions {
@@ -35,7 +34,10 @@ export interface AnimatedSprite {
   // sprite (vers la droite de l'écran) et rapport de largeur. Sans pose dessinée : { shift: 0, stretch: 1 }
   shadow(): ContactShadow;
   shown(): ShownImage;            // image affichée (PNG debout ou pose dessinée), pour le contour du survol
-  rows(): RowSpan[];              // colonnes opaques de chaque rangée du PNG debout (vide avant ready) : d'où part la lumière de l'écho (MAE-95)
+  rows(): OpaqueRuns[];           // segments opaques de chaque rangée du PNG debout (vide avant ready) : d'où part la lumière de l'écho (MAE-95)
+  // Les mêmes, pour l'image affichée en ce moment (pose comprise : le Dragon affaissé), par rapport au coin du PNG debout,
+  // une entrée par rangée du PNG (vide avant ready) : là où se pose l'or de Maelor (MAE-95)
+  shownRows(): OpaqueRuns[];
   setBase(name: BaseName): void;
   play(name: GestureName): void;  // avant setBase pour une transition (fall puis ko, sprite-motion.ts)
   dispose(): void;
@@ -187,13 +189,11 @@ export function createAnimatedSprite(options: AnimatedSpriteOptions): AnimatedSp
       return drawn ? { url: drawn.url, ...drawn.at } : { url: options.url, ...AT_REST };
     },
     rows() {
-      if (!source) return [];
-      const { width, height, data } = source;
-      return Array.from({ length: height }, (_, y): RowSpan => {
-        let left = width, right = 0;
-        for (let x = 0; x < width; x++) if (data[(y * width + x) * 4 + 3]) { left = Math.min(left, x); right = x + 1; }
-        return right > left ? [left, right] : null;
-      });
+      return source ? opaqueRuns(source) : [];
+    },
+    shownRows() {
+      if (!source || !buffer) return [];
+      return opaqueRuns(buffer, layout.originX, layout.originY, source.height);
     },
     setBase: (name) => motion.setBase(name),
     play: (name) => motion.play(name, performance.now()),

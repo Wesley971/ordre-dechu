@@ -536,7 +536,10 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       const anchor = anchors.get(hero.id);
       if (!anchor || !states.has(hero.id)) return;
       const dragon = [...states.values()].find((e) => e.combatant.side === "enemy" && e.visible);
-      playGoldStream(fx, anchor, dragon ? anchors.get(dragon.combatant.id) ?? null : null);
+      const dragonAnchor = dragon ? anchors.get(dragon.combatant.id) : undefined;
+      const dragonSprite = dragon ? spriteOf(dragon.combatant) : null;
+      const heroRows = spriteOf(hero)?.shownRows() ?? [];
+      playGoldStream(fx, { element: anchor, rows: heroRows }, dragonAnchor && dragonSprite ? { element: dragonAnchor, rows: dragonSprite.shownRows() } : null);
       // Éclat doré (comme CSS hero-gild) : l'or monte puis retombe. Mouvement réduit : les transitions sautent à leur
       // fin, l'éclat serait invisible ; il est donc tenu fixe le temps de sa durée
       const s = stateOf(hero);

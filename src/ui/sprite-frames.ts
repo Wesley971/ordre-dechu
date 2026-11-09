@@ -82,6 +82,27 @@ export function footprint(image: PixelImage, rows = 3): Footprint | null {
 // Colonnes occupées au sol (right exclu)
 export type Footprint = { left: number; right: number };
 
+// Segments opaques d'une rangée, [left, right[ ; aucun pour une rangée vide (MAE-95)
+export type OpaqueRuns = readonly (readonly [number, number])[];
+
+// Segments opaques de `rows` rangées d'une image, à partir de la rangée originY, colonnes par rapport à originX : là où
+// partent et se posent les effets spéciaux, pixel par pixel. Une rangée hors de l'image n'a aucun segment.
+export function opaqueRuns(image: PixelImage, originX = 0, originY = 0, rows = image.height): OpaqueRuns[] {
+  const { width, height, data } = image;
+  return Array.from({ length: rows }, (_, y) => {
+    const row = originY + y;
+    const runs: [number, number][] = [];
+    if (row < 0 || row >= height) return runs;
+    for (let x = 0; x < width; x++) {
+      if (!data[(row * width + x) * 4 + 3]) continue;
+      const last = runs[runs.length - 1];
+      if (last && last[1] === x - originX) last[1]++;
+      else runs.push([x - originX, x - originX + 1]);
+    }
+    return runs;
+  });
+}
+
 // Ombre au sol d'une pose, par rapport à celle du repos : décalage du centre de l'empreinte (pixels de sprite) et
 // rapport de largeur. rest et foot sont mesurées dans la même toile
 export function footShadow(rest: Footprint | null, foot: Footprint | null) {

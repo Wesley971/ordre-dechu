@@ -7,6 +7,8 @@
 // Le hasard vient d'un générateur à graine propre, jamais de Math.random : un seul tirage de plus décalerait ceux du
 // combat, et le bot ne rejouerait plus la même partie (testé pour chaque effet, src/dev/battle-fx.test.ts).
 
+import type { OpaqueRuns } from "./sprite-frames.ts";
+
 // Couleurs des effets, toutes dans les fiches
 export const FX_COLORS = {
   ash: "#45403a",       // cendre (palette commune ; nuage du Dragon, docs/enemy-sheets.md)
@@ -140,32 +142,41 @@ const LIGHT_FADE: readonly FxColor[] = [FX_COLORS.parchment, FX_COLORS.brightGol
 const LIGHT_PER_COLUMNS = 5; // une particule pour cinq pixels opaques d'une rangée (au moins une)
 const SPARKS = 6;            // éclats par image avant l'effacement
 
-// Colonnes opaques d'une rangée du PNG (left compris, right exclu), null si elle est vide
-export type RowSpan = readonly [number, number] | null;
+// Nombre de pixels opaques d'une rangée, et l'un d'eux tiré au hasard (sa colonne), null si elle est vide
+const opaqueCount = (runs: OpaqueRuns) => runs.reduce((sum, [left, right]) => sum + right - left, 0);
+function opaqueColumn(random: () => number, runs: OpaqueRuns): number | null {
+  let k = between(random, 0, opaqueCount(runs) - 1);
+  for (const [left, right] of runs) {
+    if (k < right - left) return left + k;
+    k -= right - left;
+  }
+  return null;
+}
 
-// png : rectangle du PNG dans la couche ; rows : colonnes opaques de chaque rangée ; cleared(frame) : rangées
+// png : rectangle du PNG dans la couche ; rows : segments opaques de chaque rangée (opaqueRuns, sprite-frames.ts) ; cleared(frame) : rangées
 // effacées depuis le haut à cette image du geste (unravelCleared, sprite-motion.ts)
-export function lightRise(png: FxBox, rows: readonly RowSpan[], cleared: (frame: number) => number, count: number, seed: number): FxPlan {
+export function lightRise(png: FxBox, rows: readonly OpaqueRuns[], cleared: (frame: number) => number, count: number, seed: number): FxPlan {
   const random = seeded(seed);
   const motes: { x: number; y: number; start: number; life: number; drift: number }[] = [];
   const sparks: FxPixel[][] = [];
   for (let frame = 0; frame < count; frame++) {
     const from = frame === 0 ? 0 : cleared(frame - 1), to = cleared(frame);
     for (let row = from; row < to; row++) {
-      const span = rows[row];
-      if (!span) continue;
-      const [left, right] = span;
-      const n = Math.max(1, Math.round((right - left) / LIGHT_PER_COLUMNS));
-      for (let k = 0; k < n; k++) {
-        motes.push({ x: png.left + between(random, left, right - 1), y: png.top + row, start: frame, life: between(random, 3, LIGHT_FADE.length), drift: between(random, -1, 1) });
+      const runs = rows[row] ?? [];
+      const opaque = opaqueCount(runs);
+      if (opaque === 0) continue;
+      for (let k = 0; k < Math.max(1, Math.round(opaque / LIGHT_PER_COLUMNS)); k++) {
+        const x = opaqueColumn(random, runs);
+        if (x !== null) motes.push({ x: png.left + x, y: png.top + row, start: frame, life: between(random, 3, LIGHT_FADE.length), drift: between(random, -1, 1) });
       }
     }
     // Avant l'effacement : des éclats sur les rangées encore là
     const lit: FxPixel[] = [];
     if (to === 0) {
       for (let k = 0; k < SPARKS; k++) {
-        const row = between(random, 0, rows.length - 1), span = rows[row];
-        if (span) lit.push({ x: png.left + between(random, span[0], span[1] - 1), y: png.top + row, color: FX_COLORS.brightGold });
+        const row = between(random, 0, rows.length - 1), runs = rows[row] ?? [];
+        const x = opaqueCount(runs) > 0 ? opaqueColumn(random, runs) : null;
+        if (x !== null) lit.push({ x: png.left + x, y: png.top + row, color: FX_COLORS.brightGold });
       }
     }
     sparks.push(lit);
@@ -187,30 +198,74 @@ export function lightRise(png: FxBox, rows: readonly RowSpan[], cleared: (frame:
 // — L'or quitte Maelor (MAE-95) —
 // Quand Maelor rend le pouvoir devant le Dragon, des pixels d'or partent de sa poitrine par vagues, montent en arc et
 // retombent sur les écailles du Dragon et sur le sol devant lui (les ossements) : « l'or quitte son corps et se répand
-// sur les ossements, sur les blasons brisés, sur les écailles du Dragon ». Posés, ils scintillent (or vif, or ancien)
+// sur les ossements, sur les blasons brisés, sur les écailles du Dragon ». Le Dragon, vaincu, est affaissé : l'or se
+// pose sur les pixels de son image telle qu'elle est affichée (body), dans sa moitié basse, jamais dans le vide au-dessus
+// de lui (contrôle à l'œil de Wesley du 09/11/2026). Posés, ils scintillent (or vif, or ancien)
 // puis s'éteignent un à un. Maelor jette en même temps un éclat doré (couleurs : côté scène). Sans Dragon à l'écran,
 // ou avec le mouvement réduit, l'éclat seul, sur place (décision de Wesley du 09/11/2026) : streamsGold.
 const GOLD_MOTES = 44;
 const GOLD_ON_SCALES = 0.6; // part de l'or qui se pose sur le Dragon ; le reste, sur le sol devant lui
+const GOLD_LOW = 0.5;       // l'or se pose sous cette part de la hauteur de l'image du Dragon
+
+// Un pixel opaque d'une image affichée (body : segments opaques de chaque rangée, par rapport au coin de son PNG, posé
+// en box), tiré dans les rangées [from, to[ ; chaque pixel opaque a la même chance, jamais dans un trou entre les
+// pattes. null si ces rangées sont vides
+function opaquePoint(random: () => number, box: FxBox, body: readonly OpaqueRuns[], from: number, to: number): FxPoint | null {
+  const rows: number[] = [];
+  let total = 0;
+  for (let row = Math.max(0, from); row < Math.min(body.length, to); row++) {
+    const opaque = opaqueCount(body[row]);
+    if (opaque > 0) { rows.push(row); total += opaque; }
+  }
+  if (total === 0) return null;
+  let k = between(random, 0, total - 1);
+  for (const row of rows) {
+    for (const [left, right] of body[row]) {
+      if (k < right - left) return { x: box.left + left + k, y: box.top + row };
+      k -= right - left;
+    }
+  }
+  return null;
+}
+
+// Où se pose l'or sur le Dragon : un pixel opaque de son image affichée, dans sa moitié basse, au-dessus de ses pieds
+function onScales(random: () => number, dragon: FxBox, body: readonly OpaqueRuns[]): FxPoint | null {
+  const height = dragon.bottom - dragon.top;
+  return opaquePoint(random, dragon, body, Math.ceil(height * GOLD_LOW), height - 3);
+}
+
+// D'où part l'or : un pixel opaque de la poitrine de Maelor tel qu'il est affiché (debout, ou à genoux s'il a été
+// relevé à 1 PV), la bande de 25 à 55 % de sa silhouette, du haut de sa tête au bas de ses pieds. Sans image (pas
+// encore chargée), le même rectangle dans son PNG
+function chest(random: () => number, hero: FxBox, body: readonly OpaqueRuns[]): FxPoint {
+  const rows = body.flatMap((runs, row) => (runs.length > 0 ? [row] : []));
+  if (rows.length > 0) {
+    const top = rows[0], span = rows[rows.length - 1] - top;
+    const point = opaquePoint(random, hero, body, top + Math.round(span * 0.25), top + Math.round(span * 0.55) + 1);
+    if (point) return point;
+  }
+  const width = hero.right - hero.left, height = hero.bottom - hero.top;
+  return { x: hero.left + between(random, Math.round(width * 0.3), Math.round(width * 0.7)), y: hero.top + between(random, Math.round(height * 0.25), Math.round(height * 0.55)) };
+}
 
 // L'or part-il vers le Dragon ? L'éclat doré de Maelor, lui, est toujours joué (par les scènes)
 export function streamsGold(dragonOnScreen: boolean, reduced: boolean): boolean {
   return dragonOnScreen && !reduced;
 }
 
-export function goldStream(hero: FxBox, dragon: FxBox, count: number, seed: number): FxPlan {
+// heroBody et body : segments opaques de chaque rangée de Maelor et du Dragon, tels qu'ils sont affichés
+// (AnimatedSprite.shownRows), par rapport au coin de leur PNG (hero, dragon)
+export function goldStream(hero: FxBox, heroBody: readonly OpaqueRuns[], dragon: FxBox, body: readonly OpaqueRuns[], count: number, seed: number): FxPlan {
   const random = seeded(seed);
-  const width = hero.right - hero.left, height = hero.bottom - hero.top;
-  const motes = Array.from({ length: GOLD_MOTES }, () => {
-    const start = Math.floor(random() * 0.4 * (count - 1)) / Math.max(1, count - 1);
+  const motes = Array.from({ length: GOLD_MOTES }, (_, i) => {
+    // Départ sur une image ; le premier grain part dès la première, avec l'éclat de Maelor
+    const start = i === 0 ? 0 : Math.floor(random() * 0.4 * (count - 1)) / Math.max(1, count - 1);
     const flight = 0.25 + random() * 0.2;
-    const onScales = random() < GOLD_ON_SCALES;
-    const to = onScales
-      ? { x: between(random, dragon.left, dragon.right - 1), y: between(random, dragon.top + Math.round((dragon.bottom - dragon.top) * 0.2), dragon.bottom - 4) }
-      : { x: between(random, dragon.left - 12, dragon.right - 1), y: dragon.bottom - between(random, 1, 3) }; // les trois rangées de ses pieds
+    const scales = random() < GOLD_ON_SCALES ? onScales(random, dragon, body) : null;
+    const to = scales ?? { x: between(random, dragon.left - 12, dragon.right - 1), y: dragon.bottom - between(random, 1, 3) }; // sol : les trois rangées de ses pieds
     return {
       start, flight, end: Math.min(1, start + flight + 0.15 + random() * 0.4),
-      from: { x: hero.left + between(random, Math.round(width * 0.3), Math.round(width * 0.7)), y: hero.top + between(random, Math.round(height * 0.25), Math.round(height * 0.55)) },
+      from: chest(random, hero, heroBody),
       to, arc: between(random, 10, 26), twinkle: between(random, 0, 1),
     };
   });
