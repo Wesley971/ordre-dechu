@@ -62,6 +62,33 @@ export function frameLayout(width: number, height: number, others: readonly Size
   };
 }
 
+// Empreinte au sol d'une image (MAE-94) : colonnes occupées par ses `rows` rangées opaques les plus basses
+// (right exclu), dans les coordonnées de l'image ; null si elle est vide. L'ombre de contact la suit.
+export function footprint(image: PixelImage, rows = 3): Footprint | null {
+  let left = image.width, right = 0, seen = 0;
+  for (let y = image.height - 1; y >= 0 && seen < rows; y--) {
+    let any = false;
+    for (let x = 0; x < image.width; x++) {
+      if (!image.data[(y * image.width + x) * 4 + 3]) continue;
+      any = true;
+      left = Math.min(left, x);
+      right = Math.max(right, x + 1);
+    }
+    if (any) seen++;
+  }
+  return seen ? { left, right } : null;
+}
+
+// Colonnes occupées au sol (right exclu)
+export type Footprint = { left: number; right: number };
+
+// Ombre au sol d'une pose, par rapport à celle du repos : décalage du centre de l'empreinte (pixels de sprite) et
+// rapport de largeur. rest et foot sont mesurées dans la même toile
+export function footShadow(rest: Footprint | null, foot: Footprint | null) {
+  if (!rest || !foot) return { shift: 0, stretch: 1 };
+  return { shift: (foot.left + foot.right - rest.left - rest.right) / 2, stretch: (foot.right - foot.left) / (rest.right - rest.left) };
+}
+
 // Arrondi symétrique : -0,5 et 0,5 s'éloignent tous deux de zéro, pour que les deux sens du regard se correspondent
 function roundAway(value: number) {
   return Math.sign(value) * Math.floor(Math.abs(value) + 0.5);

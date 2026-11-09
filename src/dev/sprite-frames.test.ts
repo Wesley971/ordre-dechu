@@ -1,7 +1,8 @@
 // sprite-frames.test.ts - Images des poses, composées à partir des PNG (MAE-30) : chaque pixel affiché est un pixel du PNG
 import { describe, expect, it } from "vitest";
 import {
-  composeFrame, drawnPlacement, FRAME_MARGIN, frameLayout, leanShift, REST_BODY, type BodyPose, type FrameRig, type PixelImage,
+  composeFrame, drawnPlacement, footprint, footShadow, FRAME_MARGIN, frameLayout, leanShift, REST_BODY,
+  type BodyPose, type FrameRig, type PixelImage,
 } from "../ui/sprite-frames.ts";
 import { createMotion, FRAME_MS, type MotionRig } from "../ui/sprite-motion.ts";
 import { CONFIG } from "../config.ts";
@@ -141,6 +142,20 @@ describe("poses dessinées (MAE-94) : recopiées telles quelles, centrées sur l
     const frame = composeFrame(tall, rig, REST_BODY, layout, undefined, drawnPlacement(standing, tall));
     expect(sourceAt(frame, layout.originX, layout.height - 1)).toEqual([0, 12]);
     expect(sourceAt(frame, layout.originX, FRAME_MARGIN)).toEqual([0, 0]);
+  });
+
+  it("empreinte au sol : les colonnes des rangées opaques les plus basses ; l'ombre suit son centre et sa largeur", () => {
+    const image = grid(8, 6);
+    image.data.fill(0);
+    const paint = (x: number, y: number) => image.data.set([1, 1, 1, 255], (y * 8 + x) * 4);
+    paint(3, 0); // tête, au-dessus des trois rangées du bas : ignorée
+    for (const [x, y] of [[2, 3], [1, 4], [5, 4], [1, 5], [4, 5]]) paint(x, y);
+    expect(footprint(image)).toEqual({ left: 1, right: 6 });
+    expect(footprint({ width: 3, height: 3, data: new Uint8ClampedArray(36) })).toBeNull(); // image vide
+    // Debout : rien ne change ; au sol, deux fois plus large et décalée d'un pixel et demi vers la droite
+    expect(footShadow({ left: 10, right: 20 }, { left: 10, right: 20 })).toEqual({ shift: 0, stretch: 1 });
+    expect(footShadow({ left: 10, right: 20 }, { left: 6, right: 27 })).toEqual({ shift: 1.5, stretch: 2.1 });
+    expect(footShadow(null, { left: 6, right: 27 })).toEqual({ shift: 0, stretch: 1 });
   });
 
   it("une pose dessinée respire sur sa propre taille", () => {
