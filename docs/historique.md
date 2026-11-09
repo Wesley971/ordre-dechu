@@ -1,6 +1,6 @@
 # Chronique de L'Ordre Déchu
 
-Comment mon jeu est né, et ce qu'il est devenu. Première ligne de code le 12 avril 2025, dernière mise à jour de cette page le 8 novembre 2026.
+Comment mon jeu est né, et ce qu'il est devenu. Première ligne de code le 12 avril 2025, dernière mise à jour des jalons le 9 novembre 2026.
 
 Les captures viennent de l'historique Git : je suis revenu à chaque étape, j'ai lancé le jeu, j'ai pris la photo. Elles sont dans `docs/historique/`. Le jeu est jouable ici : https://wesley971.github.io/ordre-dechu/
 
@@ -111,6 +111,36 @@ C'est l'ancien jeu à son meilleur : un héros seul, mais propre, rapide, soign�
 
 **Avant :** une histoire qui se contredisait parfois d'un chapitre à l'autre. **Après :** une bible de l'univers qui fait foi, un nouveau chapitre (le Cœur d'Aure-Hin) avec un choix qui change la suite, plusieurs fins, des noms de capacités tirés d'un lexique, et la prise en compte du mouvement réduit.
 **Pourquoi :** une histoire tient quand on sait ce qui est vrai dans le monde. Les mots du monde sont fabriqués à partir du français, donc ils sonnent familiers et étrangers.
+
+### 16. Un décor peint (5 novembre 2026)
+![Le décor peint de la Lisière](historique/16-decor.webp)
+
+**Avant :** la même forêt, une image fixe, pour tous les lieux. **Après :** un décor peint monté en relief, avec de la brume, des rayons de lune, des lucioles et des feuillages qui bougent. Les personnages restent en pixel art et se posent sur le sol. À ce stade, on ne le voit qu'en mode test, avec `?scene=lisiere`.
+**Pourquoi :** l'histoire avançait, mais pas l'ambiance. J'avais hésité entre garder la 2D et partir en 3D. J'ai choisi un mélange : une peinture en 2,5D et des personnages en pixel art. Les lucioles sont le Souffle rendu visible.
+
+### 17. Le combat dans la scène peinte (6 novembre 2026)
+![Dialogue dans la scène peinte](historique/17-dialogue.webp)
+![Combat dans la scène peinte, avec l'ancienne interface](historique/17-combat.webp)
+
+**Avant :** le décor peint n'existait qu'en démonstration. **Après :** le chapitre I se joue dedans, avec l'interface par-dessus. Sans WebGL, le jeu retombe sur l'ancien affichage.
+**Pourquoi :** voir le vrai combat dans le vrai décor, pas une démonstration.
+
+### 18. Une interface à moi (7 novembre 2026)
+![Dialogue dans la bande d'ombre](historique/18-dialogue.webp)
+![Menu de combat](historique/18-menu.webp)
+![Combat](historique/18-combat.webp)
+
+**Avant :** des fenêtres brunes de RPG classique, avec un tableau de noms, de PV et de jauges. **Après :** des plaques d'ombre bleu nuit à filet doré, une marque ▼ au-dessus du héros qui joue, une barre pour le boss, les dialogues dans une bande d'ombre, le groupe en haut et le menu en bas sur téléphone, et une zone de jeu 16:9 sur les très grands écrans.
+**Pourquoi :** je voulais une interface minimale qui me ressemble. Je l'ai validée en maquettes, sur trois formats (téléphone, écran classique, très large), avant de la coder.
+
+### 19. Le jeu prend vie (8 novembre 2026)
+![Dialogue](historique/19-dialogue.webp)
+![Menu de combat avec son aide](historique/19-menu.webp)
+![Sur téléphone](historique/19-telephone.webp)
+![Combat](historique/19-combat.webp)
+
+**Avant :** des combattants figés, et un combat pensé pour la manette. **Après :** le combat se joue naturellement à la souris et au clavier : un clic sur un ennemi pour frapper, les touches 1 à 5, l'aide de chaque commande à droite du menu. Le temps s'arrête quand un héros choisit (mode Attente). Les combattants respirent, frappent, encaissent et tombent, grâce à un moteur d'animation partagé. Le groupe se cache pendant les dialogues.
+**Pourquoi :** que ça se joue sans y penser, sur ordinateur comme sur téléphone, et que les personnages aient l'air vivants.
 
 <details>
 <summary>Page scellée : la méthode des mots</summary>
