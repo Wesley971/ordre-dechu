@@ -238,7 +238,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
 
     showDefend(hero) {
       Sfx.play("defend");
-      const anchor = stage.anchor(hero);
+      const anchor = stage.popupAnchor(hero);
       if (anchor) spawnPopup(anchor, "Garde", "info");
     },
 
@@ -257,7 +257,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
         if (!anchor) continue;
         if (!pixels && effect.type !== "miss") spawnFx(anchor, effectVisual(ability));
         Sfx.play(effectSound(effect, ability));
-        spawnPopup(anchor, popupText(effect), popupClasses(effect));
+        spawnPopup(stage.popupAnchor(target) ?? anchor, popupText(effect), popupClasses(effect));
         stage.hit(target, effect);
         if (effect.crit) stage.quake();
       }

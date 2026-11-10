@@ -3,8 +3,9 @@
 // Deux scènes implémentent ce contrat : celle-ci, en DOM (sprites sur l'image de fond), et la scène peinte en 2,5D
 // (src/scene/battle-stage.ts), choisie par dom-view.ts quand le chapitre déclare un décor.
 // Une scène ne joue aucun son et ne touche pas au HUD : dom-view.ts s'en charge, dans le même ordre pour les deux.
-// Chiffres de dégâts, effets, main de ciblage et bouclier sont du DOM posé sur l'« ancre » du combattant :
-// en DOM, le sprite lui-même ; dans la scène peinte, un élément qui suit le sprite à l'écran.
+// Effets, main de ciblage et bouclier sont du DOM posé sur l'« ancre » du combattant : en DOM, le sprite lui-même ;
+// dans la scène peinte, un élément qui suit le sprite à l'écran. Les chiffres de dégâts se posent là où la scène le
+// dit (popupAnchor), devant la couche des effets : l'ancre dans la scène peinte, une couche à part en DOM (MAE-31).
 // Les deux scènes affichent les mêmes images animées (animated-sprite.ts, MAE-30) : chaque pixel vient du PNG, et
 // tout déplacement se fait par pixels de sprite entiers. Les couleurs (coup reçu, éclair, mort, or) sont appliquées par
 // les classes de style.css ; les valeurs des teintes de l'or, de la mort et du coup reçu viennent de tints.ts, communes
@@ -33,7 +34,8 @@ export interface Stage {
   showBattle(state: BattleState): void;                      // les ennemis prennent place, pas encore visibles
   appear(): void;                                            // entrée en combat : les ennemis apparaissent
   refresh(): void;                                           // poses d'après l'état : éteint, en danger, actif, garde
-  anchor(c: Combatant): HTMLElement | null;                  // élément DOM posé sur le combattant (chiffres, effets, main)
+  anchor(c: Combatant): HTMLElement | null;                  // élément DOM posé sur le combattant (effets, main de ciblage)
+  popupAnchor(c: Combatant): HTMLElement | null;             // où poser ses chiffres : devant la couche des effets (MAE-31)
   actionStart(actor: Combatant, ability: Ability): Promise<void>; // élan et pas en avant, ou bond et éclair, puis lueur du Souffle
   stepBack(actor: Combatant): void;                          // le héros reprend sa place
   impact(effect: AbilityEffect, targets: Combatant[]): void; // effet en pixels d'une capacité sur ceux qu'elle touche (MAE-31)
@@ -213,6 +215,13 @@ export function createDomStage(): Stage {
     return parseFloat(sprite ? getComputedStyle(sprite).getPropertyValue("--px") : getComputedStyle(scene).getPropertyValue("--scene-px"));
   });
   const pngOf = (a: DomActor) => $(".sprite-img", a.element);
+  // Les chiffres se posent devant la couche des effets (MAE-31) : dans une couche à part, au-dessus d'elle, sur une
+  // boîte qui recouvre le sprite du combattant au moment où le chiffre naît. Posés dans le sprite, ils passeraient
+  // derrière elle : chaque sprite a son propre empilement (style.css, .popup-layer)
+  const popupLayer = document.createElement("div");
+  popupLayer.className = "popup-layer";
+  scene.appendChild(popupLayer);
+  const popupBoxes = new Map<string, HTMLElement>();
 
   function actorOf(c: Combatant) {
     const actor = actors.get(c.id);
@@ -288,6 +297,12 @@ export function createDomStage(): Stage {
     const created = list.map(([c, slot, phase]) => createActor(c, slot, phase));
     for (const actor of created) actors.set(actor.combatant.id, actor);
     $(`#${area}`).replaceChildren(...created.map(actor => actor.element));
+    // Les boîtes à chiffres de ceux qui ont quitté la scène partent avec eux
+    for (const [id, box] of popupBoxes) {
+      if (actors.has(id)) continue;
+      box.remove();
+      popupBoxes.delete(id);
+    }
   }
 
   function refresh() {
@@ -323,6 +338,25 @@ export function createDomStage(): Stage {
     refresh,
 
     anchor: spriteEl,
+
+    popupAnchor(c) {
+      const sprite = spriteEl(c);
+      if (!sprite) return null;
+      let box = popupBoxes.get(c.id);
+      if (!box) {
+        box = document.createElement("div");
+        box.className = "popup-box";
+        box.dataset.popupFor = c.id; // de qui sont ces chiffres : le sprite n'est plus leur parent
+        popupLayer.appendChild(box);
+        popupBoxes.set(c.id, box);
+      }
+      // Le rectangle du sprite dans la scène, à cet instant : le chiffre s'y place comme il se plaçait dans le sprite
+      const within = scene.getBoundingClientRect(), rect = sprite.getBoundingClientRect();
+      Object.assign(box.style, {
+        left: `${rect.left - within.left}px`, top: `${rect.top - within.top}px`, width: `${rect.width}px`, height: `${rect.height}px`,
+      });
+      return box;
+    },
 
     async actionStart(actor, ability) {
       const a = actorOf(actor);
@@ -451,6 +485,8 @@ export function createDomStage(): Stage {
 
     dispose() {
       fx.dispose();
+      popupLayer.replaceChildren();
+      popupBoxes.clear();
       for (const a of actors.values()) { a.sprite.dispose(); cancelAnimationFrame(a.slide); }
       actors.clear();
       $("#enemy-area").replaceChildren();

@@ -377,6 +377,9 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
 
     anchor: (c) => anchors.get(c.id) ?? null,
 
+    // Les ancres passent déjà devant la couche des effets (style.css) : les chiffres y restent
+    popupAnchor: (c) => anchors.get(c.id) ?? null,
+
     async actionStart(actor, ability) {
       const s = stateOf(actor);
       const sprite = spriteOf(actor);

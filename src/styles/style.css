@@ -171,6 +171,9 @@ body.lock-scroll { overflow: hidden; }
   position: absolute;
   inset: 0;
   overflow: hidden;
+  /* La scène a son propre empilement : la couche des chiffres (.popup-layer, z-index: 1) passe devant les sprites et
+     la couche des effets, et reste dans la scène, sous les plaques de l'interface et la barre du boss (MAE-31) */
+  isolation: isolate;
   background:
     linear-gradient(0deg, var(--bg-void) 0%, transparent 24%),
     linear-gradient(90deg, var(--bg-void) 0%, transparent 9%, transparent 91%, var(--bg-void) 100%),
@@ -487,7 +490,22 @@ body.scene-painted #battle-scene { pointer-events: none; }
   animation: popup-bounce 1.1s ease-out forwards;
 }
 
-/* Style de la planche G3 (MAE-87) ; l'animation dans la scène reste à MAE-31 */
+/* En scène DOM, les chiffres ne sont pas dans le sprite mais dans une couche à part, posée devant la couche des effets
+   (MAE-31, stage.ts, popupAnchor) : chaque sprite a son propre empilement, et un chiffre posé dedans passerait derrière
+   les effets en pixels. Chaque boîte prend le rectangle de son sprite au moment où le chiffre naît : il garde sa place.
+   Son z-index ne joue que dans la scène, qui a son propre empilement (#battle-scene, isolation) : les chiffres restent
+   sous les plaques de l'interface, la barre du boss et le bandeau, comme avant. Dans la scène peinte, les chiffres
+   restent sur l'ancre, déjà devant la couche. */
+.popup-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.popup-box { position: absolute; }
+
+/* Style de la planche G3 (MAE-87) ; l'animation des chiffres dans la scène : MAE-99 */
 .popup.heal, .popup.revive            { color: var(--state-heal); }
 .popup.mp                             { color: var(--state-mp); }
 .popup.weak                           { color: var(--state-weak); }
@@ -524,8 +542,9 @@ body.scene-painted #battle-scene { pointer-events: none; }
 /* Couche des effets spéciaux du combat (fx-layer.ts) : un pixel du canvas par pixel de sprite, agrandi sans lissage.
    Sans z-index, posée après les combattants : elle passe devant eux, sous l'interface (#game et ses plaques).
    Scène peinte : les chiffres, effets des souffles, marques ▼ et barres des ennemis des ancres passent devant elle.
-   DOM : chaque .sprite a son propre empilement (transform), avec ces surimpressions dedans : la couche passe devant
-   elles aussi, le temps d'un effet (choix du 09/11/2026, MAE-95, à confirmer par Wesley au contrôle à l'œil) */
+   DOM : chaque .sprite a son propre empilement (transform), avec ses marques ▼, ses barres et ses halos dedans : la
+   couche passe devant eux aussi, le temps d'un effet (choix du 09/11/2026, MAE-95, à confirmer par Wesley au contrôle à
+   l'œil). Les chiffres, eux, sont sortis des sprites et restent devant elle (.popup-layer, MAE-31) */
 .fx-layer {
   position: absolute;
   pointer-events: none;

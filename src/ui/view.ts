@@ -465,7 +465,7 @@ export async function showMessage(text: string, duration = CONFIG.timing.message
   hideBanner();
 }
 
-// — Chiffres et effets, posés sur l'ancre d'un combattant —
+// — Chiffres et halos d'un combattant : les halos sur son ancre, les chiffres là où la scène le dit (Stage.popupAnchor) —
 
 // Halo d'une capacité qui n'a pas encore son effet en pixels (abilityEffect, battle-fx.ts, MAE-31) : celui de son
 // élément, sinon celui du soin. Les coups d'arme ont tous l'entaille en pixels
