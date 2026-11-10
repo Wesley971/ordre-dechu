@@ -311,7 +311,7 @@ function target(left: number, top: number): FxTarget {
 const opaqueAt = ({ box, rows }: FxTarget, x: number, y: number) => (rows[y - box.top] ?? []).some(([from, to]) => x - box.left >= from && x - box.left < to);
 const framesOf = (plan: FxPlan) => Array.from({ length: plan.count }, (_, i) => plan.frame(i));
 // Chaque nom de AbilityEffect : un nom oublié ici ne compile pas (Record), un nom en trop non plus
-const EFFECTS = Object.keys({ slash: true, wick: true, frost: true, bell: true, sulfur: true } satisfies Record<AbilityEffect, true>) as AbilityEffect[]; // as : Object.keys perd le type des clés
+const EFFECTS = Object.keys({ slash: true, twin: true, sweep: true, wick: true, frost: true, bell: true, sulfur: true } satisfies Record<AbilityEffect, true>) as AbilityEffect[]; // as : Object.keys perd le type des clés
 const FX_COUNT = frameCount(CONFIG.timing.abilityFx);
 
 describe("effets des capacités : le socle", () => {
@@ -330,7 +330,7 @@ describe("effets des capacités : le socle", () => {
 
   it("chaque capacité a son effet : le sien, sinon l'entaille pour un coup d'arme, sinon pas encore de pixels", () => {
     expect(abilityEffect(ATTACK)).toBe("slash");
-    for (const ability of [SPELLS.fallenBlade, SPELLS.whirlwind, ENEMY_SKILLS.chains, ENEMY_SKILLS.pillar, ENEMY_SKILLS.echoBlade]) {
+    for (const ability of [ENEMY_SKILLS.chains, ENEMY_SKILLS.pillar, ENEMY_SKILLS.echoBlade]) {
       expect(abilityEffect(ability)).toBe("slash");
     }
     for (const ability of [SPELLS.cure, SPELLS.curePlus, SPELLS.life, ITEMS.potion, ITEMS.ether, ITEMS.phoenix, ENEMY_SKILLS.ashCloud]) {
@@ -400,6 +400,11 @@ describe("effets des capacités : le socle", () => {
     expect(moving).toContainEqual(reduced[0]);
   });
 
+  it("tous les dessins sont différents : chaque effet est distinct", () => {
+    const drawings = EFFECTS.map((effect) => JSON.stringify(framesOf(abilityFx(effect, { targets: [target(100, 120)], facing: 1, count: FX_COUNT, seed: 11 }, false))));
+    expect(new Set(drawings).size).toBe(EFFECTS.length);
+  });
+
   it("still garde le nombre d'images, et rend une image vide pour un effet vide", () => {
     const empty: FxPlan = { count: 4, frame: () => [] };
     expect(framesOf(still(empty))).toEqual([[], [], [], []]);
@@ -459,10 +464,8 @@ describe("les sorts de Corvin : Mèche, Nuit blanche, Tocsin, Soufre", () => {
     y: (Math.min(...pixels.map(({ y }) => y)) + Math.max(...pixels.map(({ y }) => y))) / 2,
   });
 
-  it("chacun a son effet, déclaré dans les données, et les cinq dessins sont tous différents", () => {
+  it("chacun a son effet, déclaré dans les données", () => {
     expect([SPELLS.fire, SPELLS.ice, SPELLS.thunder, SPELLS.blaze].map(abilityEffect)).toEqual(["wick", "frost", "bell", "sulfur"]);
-    const drawings = EFFECTS.map((effect) => JSON.stringify(play(effect)));
-    expect(new Set(drawings).size).toBe(EFFECTS.length);
   });
 
   it("ses sorts n'ont que ses couleurs : ni or ni braise (pas d'orange), et le bleu pâle y est", () => {
@@ -595,6 +598,97 @@ describe("les sorts de Corvin : Mèche, Nuit blanche, Tocsin, Soufre", () => {
       expect(reach(3)).toBeGreaterThan(reach(1));
       const smoke = blast[FX_COUNT - 1].filter(({ color }) => color === FX_COLORS.ash || color === FX_COLORS.shadow);
       expect(smoke.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("les gestes de Maelor : Vordrak, Édrag", () => {
+  const one = target(100, 120);
+  const play = (effect: AbilityEffect, targets: FxTarget[] = [one], facing: 1 | -1 = 1, seed = 13) => framesOf(abilityFx(effect, { targets, facing, count: FX_COUNT, seed }, false));
+  const SEEDS = [1, 2, 3, 13, 57, 404];
+
+  it("chacun a son effet, déclaré dans les données, et aucun n'est l'entaille de Frapper", () => {
+    expect([SPELLS.fallenBlade, SPELLS.whirlwind].map(abilityEffect)).toEqual(["twin", "sweep"]);
+    const slash = JSON.stringify(play("slash"));
+    expect(JSON.stringify(play("twin"))).not.toBe(slash);
+    expect(JSON.stringify(play("sweep"))).not.toBe(slash);
+  });
+
+  it("ils n'ont que les couleurs d'une lame : parchemin, cendré clair et le rouge vin de Maelor, sans bleu ni or", () => {
+    const allowed: string[] = [FX_COLORS.parchment, FX_COLORS.paleAsh, FX_COLORS.wine];
+    for (const effect of ["twin", "sweep"] as const) { // as const : des noms de AbilityEffect
+      for (const { color } of play(effect, [one, target(200, 150)]).flat()) expect(allowed).toContain(color);
+    }
+    expect(play("twin").flat().some(({ color }) => color === FX_COLORS.wine)).toBe(true);
+  });
+
+  it("Vordrak : deux entailles parallèles, tracées ensemble en deux images, bordées de rouge vin, qui s'effacent en cendré clair, toujours bordées de rouge vin", () => {
+    for (const seed of SEEDS) {
+      const cuts = play("twin", [one], 1, seed);
+      // À l'image 2, les deux traits sont entiers : sur chaque rangée qu'ils traversent, deux pixels parchemin écartés
+      const fresh = cuts[2].filter(({ color }) => color === FX_COLORS.parchment);
+      const byRow = new Map<number, number[]>();
+      for (const { x, y } of fresh) byRow.set(y, [...(byRow.get(y) ?? []), x]);
+      const doubled = [...byRow.values()].filter((xs) => xs.length >= 2 && Math.max(...xs) - Math.min(...xs) >= 4);
+      expect(doubled.length).toBeGreaterThan(8);
+      expect(cuts[2].some(({ x, y }) => opaqueAt(one, x, y))).toBe(true);
+      // Le liseré rouge vin, juste sous chaque pixel parchemin du trait
+      const at = new Map(cuts[2].map(({ x, y, color }) => [`${x},${y}`, color]));
+      expect(fresh.filter(({ x, y }) => at.get(`${x},${y + 1}`) === FX_COLORS.wine).length).toBeGreaterThan(fresh.length / 2);
+      // En s'effaçant, le trait passe au cendré clair, toujours bordé de rouge vin, puis plus rien
+      expect(cuts[6].filter(({ color }) => color === FX_COLORS.paleAsh).length).toBeGreaterThan(0);
+      expect(cuts[6].filter(({ color }) => color === FX_COLORS.wine).length).toBeGreaterThan(0);
+      expect(cuts[6].length).toBeLessThan(cuts[4].length);
+      expect(cuts[FX_COUNT - 1]).toEqual([]);
+    }
+  });
+
+  it("Vordrak : les entailles partent du côté de celui qui frappe, de la gauche vers la droite ou l'inverse", () => {
+    const meanX = (pixels: { x: number }[]) => pixels.reduce((sum, { x }) => sum + x, 0) / pixels.length;
+    const centre = (one.box.left + one.box.right) / 2;
+    expect(meanX(play("twin", [one], 1)[0])).toBeLessThan(centre - 4);
+    expect(meanX(play("twin", [one], -1)[0])).toBeGreaterThan(centre + 4);
+  });
+
+  it("Édrag : un seul arc traverse les ennemis dans le sens du coup, sans trou, et passe sur chacun", () => {
+    const three = [target(220, 160), target(100, 120), target(160, 200)]; // dans le désordre, comme en combat
+    for (const seed of SEEDS) {
+      for (const facing of [1, -1] as const) { // as const : le sens du coup
+        const arc = play("sweep", three, facing, seed);
+        const reach = (index: number) => (facing > 0 ? Math.max(...arc[index].map(({ x }) => x)) : -Math.min(...arc[index].map(({ x }) => x)));
+        expect(reach(1)).toBeGreaterThan(reach(0));
+        expect(reach(3)).toBeGreaterThan(reach(1));
+        // Entier à l'image 4 : chaque colonne de son étendue a un pixel, et il passe sur un pixel de chaque cible
+        const full = arc[4].filter(({ color }) => color === FX_COLORS.parchment);
+        const columns = new Set(full.map(({ x }) => x));
+        for (let x = Math.min(...columns); x <= Math.max(...columns); x++) expect(columns.has(x), `colonne ${x}`).toBe(true);
+        for (const one of three) expect(arc[4].some(({ x, y }) => opaqueAt(one, x, y))).toBe(true);
+        expect(arc[FX_COUNT - 1]).toEqual([]);
+      }
+    }
+  });
+
+  it("Édrag : deux ennemis l'un au-dessus de l'autre, la lame descend de l'un à l'autre, et chacun jette ses éclats à sa hauteur", () => {
+    const stacked = [target(100, 20), target(100, 160)];
+    const arc = play("sweep", stacked);
+    for (const one of stacked) expect(arc[4].some(({ x, y }) => opaqueAt(one, x, y))).toBe(true);
+    // Les éclats (parchemin hors du trait) près de chaque cible, sur toute la durée
+    const blade = new Set(arc[4].map(({ x, y }) => `${x},${y}`));
+    const sparks = arc.flat().filter(({ x, y, color }) => color === FX_COLORS.parchment && !blade.has(`${x},${y}`));
+    for (const { box } of stacked) expect(sparks.some(({ y }) => y >= box.top && y < box.bottom)).toBe(true);
+  });
+
+  it("Édrag : d'un pixel au suivant, l'arc ne saute jamais une rangée, même entre deux ennemis à des hauteurs très différentes", () => {
+    const arc = play("sweep", [target(100, 20), target(170, 240)])[4].filter(({ color }) => color === FX_COLORS.parchment);
+    const lowest = new Map<number, number>(), highest = new Map<number, number>();
+    for (const { x, y } of arc) { lowest.set(x, Math.max(lowest.get(x) ?? -Infinity, y)); highest.set(x, Math.min(highest.get(x) ?? Infinity, y)); }
+    const xs = [...lowest.keys()].sort((a, b) => a - b);
+    expect(Math.max(...lowest.values()) - Math.min(...highest.values())).toBeGreaterThan(100); // l'arc descend bien de l'un à l'autre
+    for (let i = 1; i < xs.length; i++) {
+      const [a, b] = [xs[i - 1], xs[i]];
+      // Les rangées de deux colonnes voisines se touchent ou se chevauchent
+      expect(highest.get(b) ?? 0).toBeLessThanOrEqual((lowest.get(a) ?? 0) + 1);
+      expect(highest.get(a) ?? 0).toBeLessThanOrEqual((lowest.get(b) ?? 0) + 1);
     }
   });
 });

@@ -66,9 +66,9 @@ export type Affinity = "weak" | "resist" | "absorb";
 export type TargetType = "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" | "none";
 
 // Effet en pixels d'une capacité sur ses cibles (MAE-31), dessiné par l'affichage (src/ui/battle-fx.ts) : un nom par
-// dessin. slash : l'entaille de Frapper, que montre aussi tout coup d'arme sans effet à lui ; wick, frost, bell et
-// sulfur : Mèche, Nuit blanche, Tocsin et Soufre de Corvin
-export type AbilityEffect = "slash" | "wick" | "frost" | "bell" | "sulfur";
+// dessin. slash : l'entaille de Frapper, que montre aussi tout coup d'arme sans effet à lui ; twin et sweep : Vordrak
+// et Édrag de Maelor ; wick, frost, bell et sulfur : Mèche, Nuit blanche, Tocsin et Soufre de Corvin
+export type AbilityEffect = "slash" | "twin" | "sweep" | "wick" | "frost" | "bell" | "sulfur";
 
 interface AbilityBase {
   name: string;
@@ -168,9 +168,9 @@ export const COMMAND_HELP: Record<string, string> = {
 export const SPELLS = {
   // Noms de la langue de l'Ordre (Maelor), des mots de métier des Veilleurs (Corvin), de la langue des immortels
   // (Elwen) : docs/lexique.md
-  fallenBlade: { name: "Vordrak",      mp: 6,  kind: "physical", power: 2, pierce: true, target: "foe",
+  fallenBlade: { name: "Vordrak",      mp: 6,  kind: "physical", power: 2, pierce: true, target: "foe", effect: "twin",
                  desc: "« Côte à côte » : frappe double qui ignore la défense." },
-  whirlwind:   { name: "Édrag",        mp: 10, kind: "physical", power: 1.2, target: "all-foes",
+  whirlwind:   { name: "Édrag",        mp: 10, kind: "physical", power: 1.2, target: "all-foes", effect: "sweep",
                  desc: "« La garde » : balaie tous les ennemis." },
   fire:        { name: "Mèche",        mp: 4,  kind: "magic", power: 28, element: "fire",    target: "foe", effect: "wick",
                  desc: "Flammes sur un ennemi." },

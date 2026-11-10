@@ -21,6 +21,7 @@ export const FX_COLORS = {
   paleAsh: "#c2b69f",   // cendré clair (cheveux de Maelor ; l'acier d'une lame qui passe)
   paleBlue: "#8fb8e0",  // flamme et sorts de Corvin : le feu de sa lanterne est bleu pâle
   nightBlue: "#141c2e", // bleu nuit de Corvin : ce que son feu laisse en s'éteignant
+  wine: "#6e1626",      // rouge vin de Maelor : le liseré de ses gestes
 } as const; // as const : les couleurs gardent leur valeur exacte, qui forme le type FxColor
 export type FxColor = (typeof FX_COLORS)[keyof typeof FX_COLORS];
 
@@ -430,6 +431,128 @@ function slash({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
   };
 }
 
+// Vordrak (Maelor) : « côte à côte », la frappe double. Deux entailles parallèles en diagonale, tracées ensemble en
+// deux images depuis le côté de celui qui frappe, parchemin bordées dessous de rouge vin ; elles tiennent, puis
+// s'effacent pixel par pixel en cendré clair, toujours bordées de rouge vin, pendant que des éclats filent au bout de
+// chacune. Le rouge vin seul se perdrait dans la nuit : il reste le liseré d'un trait clair
+const TWIN_SPARKS = 3; // éclats au bout de chaque entaille
+
+function twin({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const pairs = targets.map((target) => {
+    const shape = shapeOf(target);
+    const length = Math.max(10, Math.min(40, Math.round(Math.min(shape.width, shape.height) * 0.8)));
+    const half = Math.floor(length / 2);
+    const gap = Math.max(4, Math.round(length / 6)); // écart entre les deux entailles, le long de l'horizontale
+    return {
+      // Les deux départs, de part et d'autre du centre de la silhouette
+      starts: [-1, 1].map((side): FxPoint => ({ x: shape.cx - facing * half + side * Math.ceil(gap / 2), y: shape.cy - half })),
+      length,
+      fades: Array.from({ length: 2 * length }, random), // l'instant où chaque pixel s'efface, de 0 à 1
+      sparks: Array.from({ length: 2 * TWIN_SPARKS }, () => ({ dx: facing * (1.5 + random() * 2), dy: 0.5 + random() * 2, start: 2 + random() * 2 })),
+    };
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      for (const pair of pairs) {
+        const drawn = Math.min(pair.length, Math.ceil((pair.length * (step + 1)) / 2));
+        const fresh = step <= 4;
+        const fade = fresh ? 0 : (step - 4) / (STEPS - 4);
+        pair.starts.forEach((from, cut) => {
+          for (let i = 0; i < drawn; i++) {
+            if (pair.fades[cut * pair.length + i] < fade) continue;
+            const x = from.x + facing * i, y = from.y + i;
+            pixels.push({ x, y, color: fresh ? FX_COLORS.parchment : FX_COLORS.paleAsh }, { x, y: y + 1, color: FX_COLORS.wine });
+          }
+          const end = { x: from.x + facing * (pair.length - 1), y: from.y + pair.length - 1 };
+          for (const spark of pair.sparks.slice(cut * TWIN_SPARKS, (cut + 1) * TWIN_SPARKS)) {
+            const age = step - spark.start;
+            if (age < 0 || age >= 3) continue;
+            pixels.push({ x: end.x + Math.round(spark.dx * age), y: end.y - Math.round(spark.dy * age) + Math.round(age * age * 0.5), color: FX_COLORS.parchment });
+          }
+        });
+      }
+      return pixels;
+    },
+  };
+}
+
+// Édrag (Maelor) : « la garde », qui balaie tous les ennemis. Un seul grand arc de lame passe d'un ennemi à l'autre,
+// dans le sens du coup, à hauteur de hanche, et bombe vers le haut sur toute sa longueur : sa tête, plus épaisse,
+// parchemin ; derrière elle, un trait de deux pixels parchemin sur cendré clair. Des éclats partent de chaque ennemi
+// quand la lame le traverse. L'arc entier tient, puis s'efface pixel par pixel en cendré clair, comme l'entaille. Deux
+// ennemis l'un au-dessus de l'autre : la lame passe de l'un à l'autre à la verticale
+const SWEEP_TRACE = 4;        // la lame met quatre pas à traverser
+const SWEEP_SPARKS = 4;       // éclats par ennemi traversé
+const SWEEP_LEVEL = 0.6;      // hauteur de la lame dans chaque silhouette (0 en haut, 1 en bas)
+
+function sweep({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  // Les cibles dans l'ordre où la lame les traverse
+  const shapes = targets.map(shapeOf).sort((a, b) => facing * (a.cx - b.cx));
+  const path: FxPoint[] = [];
+  const passes: { at: number; center: FxPoint }[] = []; // où la lame traverse chaque cible : rang dans le trajet
+  if (shapes.length > 0) {
+    const first = shapes[0], last = shapes[shapes.length - 1];
+    const level = (shape: Shape) => shape.top + Math.round((shape.height - 1) * SWEEP_LEVEL);
+    const start = (facing > 0 ? first.left : first.right) - facing * 6;
+    const end = (facing > 0 ? last.right : last.left) + facing * 6;
+    const knots = [{ x: start, y: level(first) }, ...shapes.map((shape) => ({ x: shape.cx, y: level(shape) })), { x: end, y: level(last) }];
+    const span = Math.max(1, Math.abs(end - start));
+    const bulge = Math.max(3, Math.min(12, Math.round(span * 0.08)));
+    let previous: FxPoint | null = null;
+    for (let i = 0; i <= span; i++) {
+      const x = start + facing * i;
+      // Hauteur de base : entre les deux repères qui entourent x, puis l'arc qui bombe vers le haut
+      const k = Math.max(0, knots.findIndex((knot, n) => n > 0 && facing * (knot.x - x) >= 0) - 1);
+      const a = knots[k], b = knots[Math.min(knots.length - 1, k + 1)];
+      const part = b.x === a.x ? 0 : (x - a.x) / (b.x - a.x);
+      const q = i / span;
+      const y = Math.round(a.y + (b.y - a.y) * part - bulge * 4 * q * (1 - q));
+      // Pas de trou : d'une colonne à l'autre, la lame descend ou monte pixel par pixel
+      if (previous) for (let fill = previous.y + Math.sign(y - previous.y); Math.abs(y - fill) > 0; fill += Math.sign(y - fill)) path.push({ x, y: fill });
+      path.push({ x, y });
+      previous = { x, y };
+    }
+    // Le point du trajet le plus proche de chaque cible, à sa hauteur : deux cibles de même colonne ont chacune le sien
+    for (const shape of shapes) {
+      const distance = (point: FxPoint) => Math.abs(point.x - shape.cx) + Math.abs(point.y - level(shape));
+      const at = path.reduce((best, point, i) => (distance(point) < distance(path[best]) ? i : best), 0);
+      passes.push({ at, center: path[at] });
+    }
+  }
+  const fades = Array.from({ length: path.length }, random);
+  const sparks = passes.map(() => Array.from({ length: SWEEP_SPARKS }, () => ({ dx: facing * (1 + random() * 2), dy: -2 + random() * 4 })));
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      const head = Math.min(path.length, Math.ceil((path.length * (step + 1)) / SWEEP_TRACE));
+      const fresh = step <= SWEEP_TRACE + 1;
+      const fade = fresh ? 0 : (step - SWEEP_TRACE - 1) / (STEPS - SWEEP_TRACE - 1);
+      for (let i = 0; i < head; i++) {
+        if (fades[i] < fade) continue;
+        const { x, y } = path[i];
+        if (!fresh) { pixels.push({ x, y, color: FX_COLORS.paleAsh }); continue; }
+        pixels.push({ x, y: y - 1, color: FX_COLORS.parchment }, { x, y, color: FX_COLORS.parchment }, { x, y: y + 1, color: FX_COLORS.paleAsh });
+        if (head < path.length && i >= head - 4) pixels.push({ x, y: y - 2, color: FX_COLORS.parchment }, { x, y: y + 2, color: FX_COLORS.paleAsh }); // la tête de la lame
+      }
+      passes.forEach((pass, n) => {
+        // Le pas où la tête de la lame traverse cette cible
+        const crossed = (pass.at * SWEEP_TRACE) / Math.max(1, path.length) - 1;
+        const age = step - crossed;
+        if (age < 0 || age >= 3) return;
+        for (const spark of sparks[n]) pixels.push({ x: pass.center.x + Math.round(spark.dx * (age + 1)), y: pass.center.y + Math.round(spark.dy * (age + 1)) + Math.round(age * age * 0.5), color: FX_COLORS.parchment });
+      });
+      return pixels;
+    },
+  };
+}
+
 // Mèche (Corvin, feu) : « la mèche de la lanterne, qui allume tout ». Le feu prend aux pieds de la cible et monte le
 // long de sa silhouette : chaque langue de flamme naît sur un de ses pixels, grandit puis retombe en montant d'un pixel
 // par pas. Elle est bleu pâle, comme la lanterne : seul son pied est de parchemin, et sa pointe, qui vacille,
@@ -659,7 +782,7 @@ function sulfur({ targets, count, seed }: AbilityFxInput): FxPlan {
 }
 
 // L'effet de chaque capacité. Ajouter une capacité : son nom dans AbilityEffect (game-data.ts), son dessin ici
-const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash, wick, frost, bell, sulfur };
+const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash, twin, sweep, wick, frost, bell, sulfur };
 
 // Les images de l'effet d'une capacité sur ses cibles ; avec le mouvement réduit, son image la plus fournie, fixe
 export function abilityFx(effect: AbilityEffect, input: AbilityFxInput, reduced: boolean): FxPlan {
