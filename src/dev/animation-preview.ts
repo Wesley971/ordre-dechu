@@ -7,16 +7,19 @@
 // Les effets spéciaux (MAE-95) ont leur case : la Nuée de cendre du Dragon vise un héros posé dans la même case, et
 // l'écho de Maelor se défait en lumière, et l'or quitte Maelor vers le Dragon posé dans sa case (ou, sans Dragon, son
 // éclat doré seul).
-// Une case « Mouvement réduit » simule le réglage du système (MAE-58), effets spéciaux compris. ?vitesse=X accélère les animations, comme en jeu
+// Les effets des capacités (MAE-31) ont leur section : chaque capacité qui a son effet en pixels le joue en boucle sur
+// ce qu'elle vise (un ennemi, deux, un héros ou le groupe, en images fixes).
+// Une case « Mouvement réduit » simule le réglage du système (MAE-58), effets spéciaux et effets des capacités compris. ?vitesse=X accélère les animations, comme en jeu
 // (pas les pauses entre deux tours de boucle). Le pas en avant d'un héros qui agit est fait par la scène : pas ici.
 
 import { CONFIG } from "../config.ts";
-import { ENEMIES, HEROES, type EnemyDef, type SpriteRig } from "../data/game-data.ts";
+import { ATTACK, ENEMIES, HEROES, ITEMS, SPELLS, type Ability, type AbilityEffect, type EnemyDef, type SpriteRig } from "../data/game-data.ts";
 import { createAnimatedSprite, type AnimatedSprite } from "../ui/animated-sprite.ts";
 import { isReducedMotion, overrideReducedMotion } from "../ui/reduced-motion.ts";
 import { opaqueRuns, type OpaqueRuns } from "../ui/sprite-frames.ts";
+import { BOLT_HEIGHT } from "../ui/battle-fx.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
-import { HERO_CANVAS, playAshCloud, playGoldStream, playLightRise } from "../ui/stage.ts";
+import { HERO_CANVAS, playAbilityFx, playAshCloud, playGoldStream, playLightRise } from "../ui/stage.ts";
 import { TINTS } from "../ui/tints.ts";
 
 interface Character { name: string; url: string; rig: SpriteRig; height: number; facing: 1 | -1; boss: boolean; mouth?: { x: number; y: number }; vanish?: "light"; gold?: boolean }
@@ -263,6 +266,64 @@ function buildCell(character: Character, label: string, scenario: Scenario, px: 
   return { figure, sprite };
 }
 
+// — Effets des capacités (MAE-31) —
+// Ce que vise une capacité de héros dans sa case, en images fixes : un ennemi, deux pour une capacité sur tous les
+// ennemis, un héros pour un soin, le groupe pour un soin de groupe
+interface Dummy { id: string; side: "hero" | "enemy"; url: string; width: number; height: number }
+const HEADROOM = BOLT_HEIGHT; // place au-dessus des cibles, en pixels de sprite : l'éclair de Tocsin y tombe de toute sa hauteur, comme sur un ennemi seul en combat
+const DUMMY_GAP = 12;         // écart entre deux cibles
+
+const heroDummy = (index: number): Dummy => ({ id: HEROES[index].id, side: "hero", url: HEROES[index].image, width: HERO_CANVAS.w, height: HERO_CANVAS.h });
+const enemyDummy = (def: EnemyDef, id: string): Dummy => ({ id, side: "enemy", url: def.image, width: def.canvasWidth, height: def.canvasHeight });
+
+function abilityDummies(ability: Ability): Dummy[] {
+  switch (ability.target) {
+    case "all-foes": return [enemyDummy(ENEMIES.sankri, "sankri-0"), enemyDummy(ENEMIES.gautik, "gautik-1")];
+    case "ally":
+    case "ko-ally": return [heroDummy(0)];
+    case "all-allies": return HEROES.map((_, index) => heroDummy(index));
+    default: return [enemyDummy(ENEMIES.sankri, "sankri-0")];
+  }
+}
+
+// Une case qui joue l'effet d'une capacité en boucle sur ses cibles, comme en combat (stage.ts, playAbilityFx). Le
+// sens du coup vient du camp de la première cible, comme en combat (blowFacing) : vers la gauche sur un héros
+function buildAbilityCell(label: string, effect: AbilityEffect, dummies: Dummy[], px: number) {
+  const facing = dummies[0]?.side === "hero" ? -1 : 1;
+  const figure = document.createElement("figure");
+  figure.className = "anim-cell";
+  const box = document.createElement("div");
+  box.className = "anim-box";
+  const caption = document.createElement("figcaption");
+  caption.textContent = label;
+  figure.append(box, caption);
+  const tallest = Math.max(...dummies.map((dummy) => dummy.height));
+  const width = dummies.reduce((sum, dummy) => sum + dummy.width, 0) + DUMMY_GAP * (dummies.length - 1) + 2 * MARGIN;
+  Object.assign(box.style, { width: `${width * px}px`, height: `${(HEADROOM + tallest + MARGIN) * px}px` });
+  let left = MARGIN;
+  const images = dummies.map((dummy) => {
+    const image = document.createElement("img");
+    image.src = dummy.url;
+    image.className = "anim-target anim-dummy";
+    // Les pieds au même niveau, comme les combattants d'une scène
+    Object.assign(image.style, {
+      width: `${dummy.width * px}px`, height: `${dummy.height * px}px`, left: `${left * px}px`, top: `${(HEADROOM + tallest - dummy.height) * px}px`,
+    });
+    left += dummy.width + DUMMY_GAP;
+    box.appendChild(image);
+    return image;
+  });
+  const fx = createFxLayer(box, () => px);
+  void Promise.all(images.map((image) => image.decode())).then(async () => {
+    const targets = images.map((image, i) => ({ id: dummies[i].id, element: image, rows: imageRows(image) }));
+    for (;;) {
+      playAbilityFx(fx, effect, targets, facing);
+      await wait(CONFIG.timing.abilityFx + PAUSE);
+    }
+  }).catch((error: unknown) => { caption.textContent = `${label} : ${String(error)}`; });
+  return figure;
+}
+
 const STYLE = `
   #animation-preview { position: fixed; inset: 0; z-index: 1000; overflow: auto; background: #0d1117; color: #d8d2c4;
     font: 14px/1.4 system-ui, sans-serif; padding: 16px; }
@@ -274,6 +335,7 @@ const STYLE = `
   #animation-preview .anim-box { position: relative; background: #1b232c; border-bottom: 2px solid #3a4652; overflow: hidden; }
   #animation-preview .sprite-canvas, #animation-preview .anim-target { position: absolute; image-rendering: pixelated; }
   #animation-preview .anim-target { opacity: 0.6; }
+  #animation-preview .anim-dummy { opacity: 1; }
   #animation-preview .anim-png { position: absolute; pointer-events: none; }
   #animation-preview figcaption { font-size: 12px; color: #a9a294; padding-top: 2px; }
 `;
@@ -286,7 +348,8 @@ export function openAnimationPreview() {
   page.innerHTML = `<h1>Animations des combattants (MAE-30)</h1>
     <p>Chaque case joue une animation en boucle. ?zoom=1 à 4 change la taille (3 : celle d'un grand écran), ?vitesse=X la vitesse des animations.
     Le pas en avant du héros qui attaque est fait par la scène du combat : il n'apparaît pas ici.
-    Les couleurs imitent celles du combat. Les mêmes images servent aux deux scènes, DOM et peinte.</p>
+    Les couleurs imitent celles du combat. Les mêmes images servent aux deux scènes, DOM et peinte.
+    En bas de la page : l'effet de chaque capacité qui a son effet en pixels, joué en boucle sur ce qu'elle vise.</p>
     <label><input type="checkbox" id="anim-reduced"> Mouvement réduit (simulé)</label>`;
   document.head.appendChild(style);
   document.body.appendChild(page);
@@ -316,6 +379,18 @@ export function openAnimationPreview() {
     }
     page.append(title, row);
   }
+  // Effets des capacités (MAE-31) : une case par capacité qui a son effet en pixels, et l'entaille reçue par un héros
+  const fxTitle = document.createElement("h2");
+  fxTitle.textContent = "Effets des capacités";
+  const fxRow = document.createElement("div");
+  fxRow.className = "anim-row";
+  for (const ability of [ATTACK, ...Object.values<Ability>(SPELLS), ...Object.values<Ability>(ITEMS)]) {
+    if (ability.effect) fxRow.appendChild(buildAbilityCell(ability.name, ability.effect, abilityDummies(ability), px));
+  }
+  // Un ennemi qui frappe : la même entaille, sur un héros, depuis la droite
+  if (ATTACK.effect) fxRow.appendChild(buildAbilityCell(`${ATTACK.name}, reçu par un héros`, ATTACK.effect, [heroDummy(0)], px));
+  page.append(fxTitle, fxRow);
+
   // Chaque case commence sur un pixel réel : sinon le pixel art afficherait des rangées irrégulières (comme stage.ts)
   const snap = () => {
     const ratio = window.devicePixelRatio || 1;

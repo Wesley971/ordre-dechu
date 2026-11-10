@@ -530,7 +530,7 @@ function frost({ targets, count, seed }: AbilityFxInput): FxPlan {
 // Tocsin (Corvin, foudre) : « la cloche d'alarme des veilleurs ; la foudre tombe comme un coup de cloche ». Un éclair
 // brisé tombe sur la cible, parchemin bordé de bleu pâle, et l'éclaire deux pas ; puis deux ondes s'élargissent
 // autour du point touché, l'une après l'autre, comme un son de cloche, et s'éteignent en pointillé
-const BOLT_HEIGHT = 96; // l'éclair tombe d'aussi haut, au plus : du bord de la scène s'il est plus près
+export const BOLT_HEIGHT = 96; // l'éclair tombe d'aussi haut, au plus : du bord de la scène s'il est plus près
 const BOLT_KNOT = 7;    // un coude tous les sept pixels environ
 const RINGS = [1, 3];   // pas où naît chaque onde
 
