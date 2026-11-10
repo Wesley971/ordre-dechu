@@ -249,13 +249,15 @@ export function createDomView(options: DomViewOptions = {}): GameView {
 
     async showEffects(hits, ability) {
       // L'effet de la capacité sur ceux qu'elle touche : en pixels s'il existe (MAE-31), sinon le halo de son élément
-      // ou du soin. Un « Raté » ne le montre pas (décision de Wesley du 10/11/2026 ; touched, battle-fx.ts)
+      // (l'impact de la Nuée de cendre, jusqu'à MAE-98). Un « Raté » ne le montre pas (décision de Wesley du
+      // 10/11/2026 ; touched, battle-fx.ts)
       const pixels = abilityEffect(ability);
+      const halo = pixels ? null : effectVisual(ability);
       if (pixels) stage.impact(pixels, touched(hits));
       for (const { target, effect } of hits) {
         const anchor = stage.anchor(target);
         if (!anchor) continue;
-        if (!pixels && effect.type !== "miss") spawnFx(anchor, effectVisual(ability));
+        if (halo && effect.type !== "miss") spawnFx(anchor, halo);
         Sfx.play(effectSound(effect, ability));
         spawnPopup(stage.popupAnchor(target) ?? anchor, popupText(effect), popupClasses(effect));
         stage.hit(target, effect);

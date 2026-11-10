@@ -5,7 +5,7 @@
 
 import { CONFIG } from "../config.ts";
 import { COMMAND_HELP, ELEMENT_NAMES, GameState, HEROES } from "../data/game-data.ts";
-import type { Ability, Chapter } from "../data/game-data.ts";
+import type { Ability, Chapter, ElementName } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import type { SoundName } from "../audio/sfx.ts";
 import { Battle, isAlive } from "../battle/battle.ts";
@@ -468,9 +468,10 @@ export async function showMessage(text: string, duration = CONFIG.timing.message
 // — Chiffres et halos d'un combattant : les halos sur son ancre, les chiffres là où la scène le dit (Stage.popupAnchor) —
 
 // Halo d'une capacité qui n'a pas encore son effet en pixels (abilityEffect, battle-fx.ts, MAE-31) : celui de son
-// élément, sinon celui du soin. Les coups d'arme ont tous l'entaille en pixels
-export function effectVisual(ability: Ability) {
-  return ability.element ?? "heal";
+// élément (aujourd'hui l'impact de la Nuée de cendre, .fx-fire, jusqu'à MAE-98), sinon aucun. Les coups d'arme ont
+// tous l'entaille en pixels, et les capacités des héros et les objets leur effet
+export function effectVisual(ability: Ability): ElementName | null {
+  return ability.element ?? null;
 }
 
 export function effectSound(effect: Effect, ability: Ability): SoundName {

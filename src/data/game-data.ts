@@ -68,8 +68,9 @@ export type TargetType = "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" 
 // Effet en pixels d'une capacité sur ses cibles (MAE-31), dessiné par l'affichage (src/ui/battle-fx.ts) : un nom par
 // dessin. slash : l'entaille de Frapper, que montre aussi tout coup d'arme sans effet à lui ; twin et sweep : Vordrak
 // et Édrag de Maelor ; wick, frost, bell et sulfur : Mèche, Nuit blanche, Tocsin et Soufre de Corvin ; mend, dew et
-// wake : Nios, Aurésor et Liéver d'Elwen
-export type AbilityEffect = "slash" | "twin" | "sweep" | "wick" | "frost" | "bell" | "sulfur" | "mend" | "dew" | "wake";
+// wake : Nios, Aurésor et Liéver d'Elwen ; sap, incense et tear : les objets Sève, Encens et Larme dorée
+export type AbilityEffect = "slash" | "twin" | "sweep" | "wick" | "frost" | "bell" | "sulfur" | "mend" | "dew" | "wake"
+  | "sap" | "incense" | "tear";
 
 interface AbilityBase {
   name: string;
@@ -191,9 +192,9 @@ export const SPELLS = {
 export type SpellId = keyof typeof SPELLS;
 
 export const ITEMS = {
-  potion:  { name: "Sève",            kind: "heal",   amount: 100, target: "ally",    desc: "Rend 100 PV." },
-  ether:   { name: "Encens",          kind: "mp",     amount: 30,  target: "ally",    desc: "Rend 30 PS." },
-  phoenix: { name: "Larme dorée",     kind: "revive",              target: "ko-ally", desc: "Ranime un allié éteint." },
+  potion:  { name: "Sève",            kind: "heal",   amount: 100, target: "ally",    effect: "sap",     desc: "Rend 100 PV." },
+  ether:   { name: "Encens",          kind: "mp",     amount: 30,  target: "ally",    effect: "incense", desc: "Rend 30 PS." },
+  phoenix: { name: "Larme dorée",     kind: "revive",              target: "ko-ally", effect: "tear",    desc: "Ranime un allié éteint." },
 } satisfies Record<string, Item>;
 export type ItemId = keyof typeof ITEMS;
 
