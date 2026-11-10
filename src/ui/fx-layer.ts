@@ -1,4 +1,4 @@
-// fx-layer.ts - La couche des effets spéciaux du combat (MAE-95) : un canvas posé sur la scène, en pixels de sprite
+// fx-layer.ts - La couche des effets du combat (effets spéciaux, MAE-95 ; effets des capacités, MAE-31) : un canvas posé sur la scène, en pixels de sprite
 //
 // Chaque scène a sa couche, posée sur l'élément qui couvre ses combattants (DOM : #battle-scene ; scène peinte :
 // #actor-layer). Le canvas compte un pixel par pixel de sprite, et s'affiche agrandi de la taille d'un pixel de sprite
@@ -17,8 +17,10 @@ export interface FxLayer {
   // (bords arrondis vers l'extérieur)
   measure(grid: Element): (element: Element) => FxBox;
   // Lance un effet, juste après measure(), au même instant : il se place dans la géométrie qu'elle a fixée.
-  // seed : une graine propre à ce lancement (jamais Math.random, battle-fx.ts)
-  play(make: (seed: number) => FxPlan): void;
+  // seed : une graine propre à ce lancement (jamais Math.random, battle-fx.ts). name : le nom de l'effet, écrit sur
+  // le canvas tant qu'il joue (data-fx, les noms des effets en cours) : les contrôles en navigateur et le bot du labo
+  // le lisent, le jeu ne s'en sert pas
+  play(make: (seed: number) => FxPlan, name: string): void;
   dispose(): void; // arrête les effets et retire le canvas
 }
 
@@ -61,7 +63,7 @@ export function createFxLayer(host: HTMLElement, pixelSize: () => number): FxLay
   canvas.className = "fx-layer";
   canvas.setAttribute("aria-hidden", "true");
   const context = canvas.getContext("2d");
-  let running: { plan: FxPlan; start: number }[] = [];
+  let running: { plan: FxPlan; start: number; name: string }[] = [];
   let loop = 0;
   let plays = 0;
   let drawn = "";
@@ -89,13 +91,18 @@ export function createFxLayer(host: HTMLElement, pixelSize: () => number): FxLay
     loop = 0;
     running = [];
     geometry = null;
+    delete canvas.dataset.fx; // plus aucun effet : le canvas ne garde pas le nom du dernier
     canvas.remove();
   }
 
+  const showNames = () => { canvas.dataset.fx = running.map(({ name }) => name).join(" "); };
+
   function tick(nowMs: number) {
     const frame = frameAt(nowMs);
+    const before = running.length;
     running = running.filter(({ plan, start }) => frame - start < plan.count);
     if (running.length === 0) { close(); return; }
+    if (running.length !== before) showNames();
     // Redessin seulement quand une image de la grille change ; avant son départ, un effet montre sa première image
     const key = running.map(({ start }) => Math.max(0, frame - start)).join(",");
     if (key !== drawn && context) {
@@ -124,13 +131,14 @@ export function createFxLayer(host: HTMLElement, pixelSize: () => number): FxLay
         };
       };
     },
-    play(make) {
+    play(make, name) {
       if (!geometry) return; // measure() n'a pas été appelée : rien à placer
       if (!canvas.isConnected) {
         host.appendChild(canvas);
         drawn = "";
       }
-      running.push({ plan: make(++plays), start: startFrame(performance.now()) });
+      running.push({ plan: make(++plays), start: startFrame(performance.now()), name });
+      showNames();
       if (!loop) loop = requestAnimationFrame(tick);
     },
     dispose: close,

@@ -1,4 +1,4 @@
-// battle-fx.ts - Effets spéciaux du combat en pixel art (MAE-95), sans DOM
+// battle-fx.ts - Effets du combat en pixel art, sans DOM : effets spéciaux (MAE-95) et effets des capacités (MAE-31)
 //
 // Un effet est une suite d'images sur la grille commune de douze images par seconde (sprite-motion.ts) : à chaque
 // image, une liste de pixels, chacun à une position entière et d'une couleur prise dans les fiches des personnages
@@ -7,6 +7,7 @@
 // Le hasard vient d'un générateur à graine propre, jamais de Math.random : un seul tirage de plus décalerait ceux du
 // combat, et le bot ne rejouerait plus la même partie (testé pour chaque effet, src/dev/battle-fx.test.ts).
 
+import type { Ability, AbilityEffect } from "../data/game-data.ts";
 import type { OpaqueRuns } from "./sprite-frames.ts";
 
 // Couleurs des effets, toutes dans les fiches
@@ -16,7 +17,8 @@ export const FX_COLORS = {
   shadow: "#2a2018",    // brun d'ombre (palette commune ; bas de la rampe d'or de l'écho)
   oldGold: "#c9a84c",   // or ancien (héritage immortel)
   brightGold: "#f0c95a", // or vif (yeux de Maelor et de l'écho)
-  parchment: "#f1e4c3", // parchemin (haut de la rampe d'or de l'écho)
+  parchment: "#f1e4c3", // parchemin (haut de la rampe d'or de l'écho ; cœur clair des effets des capacités)
+  paleAsh: "#c2b69f",   // cendré clair (cheveux de Maelor ; l'acier d'une lame qui passe)
 } as const; // as const : les couleurs gardent leur valeur exacte, qui forme le type FxColor
 export type FxColor = (typeof FX_COLORS)[keyof typeof FX_COLORS];
 
@@ -72,7 +74,7 @@ export function along(from: FxPoint, to: FxPoint, p: number, arc = 0): FxPoint {
 // puis s'éteignent un à un avant la fin. En vol, un grain laisse derrière lui une traînée de deux pixels d'ombre sur
 // son trajet : à douze images par seconde, il franchit l'écran par grands sauts, et la traînée dit d'où il vient.
 // Les grains se posent pour l'essentiel vers la fin du sort (CONFIG.timing.cast), quand l'impact frappe les héros.
-// L'impact garde l'effet de feu des souffles (décision de Wesley du 09/11/2026 ; les effets sur les cibles : MAE-31).
+// L'impact garde le halo de feu (décision de Wesley du 09/11/2026) jusqu'à son effet en pixels, dans MAE-98.
 const ASH_GRAINS: readonly (readonly [FxColor, number])[] = [[FX_COLORS.ash, 6], [FX_COLORS.shadow, 2], [FX_COLORS.ember, 2]];
 export const ASH_GRAINS_PER_TARGET = 36;
 export const ASH_VEIL_PER_TARGET = 48; // voile du mouvement réduit : un peu plus dense, puisqu'il ne bouge pas
@@ -286,4 +288,137 @@ export function goldStream(hero: FxBox, heroBody: readonly OpaqueRuns[], dragon:
       return pixels;
     },
   };
+}
+
+// — Effets des capacités (MAE-31) —
+// Chaque capacité a son effet, dessiné sur ses cibles au moment où elle les touche (`effect` dans les données,
+// src/data/game-data.ts), le même dans les deux scènes. Les couleurs viennent de la palette des personnages
+// seulement, sans orange ni vert (décision de Wesley du 10/11/2026).
+// Un effet se pose sur la silhouette de la cible telle qu'elle est affichée (ses pixels opaques), dure au plus la
+// pause de lecture des chiffres (CONFIG.timing.abilityFx), et n'est jamais attendu : il n'ajoute aucune attente au
+// combat. Mouvement réduit : son image la plus fournie, fixe, le temps de l'effet (still).
+
+// Une cible : le rectangle de son PNG dans la couche, et les segments opaques de chaque rangée de son image affichée
+// (AnimatedSprite.shownRows), par rapport au coin de ce rectangle
+export interface FxTarget { box: FxBox; rows: readonly OpaqueRuns[] }
+
+export interface AbilityFxInput {
+  targets: readonly FxTarget[];
+  facing: 1 | -1; // sens du coup : 1 vers la droite (un héros frappe un ennemi), -1 vers la gauche
+  count: number;
+  seed: number;
+}
+
+// L'effet en pixels d'une capacité : le sien, sinon l'entaille pour un coup d'arme. null : pas encore d'effet en
+// pixels, la scène garde le halo de son élément ou du soin (les souffles de Corvin, les capacités d'Elwen et les objets jusqu'à la suite de
+// MAE-31, l'impact de la Nuée de cendre jusqu'à MAE-98)
+export function abilityEffect(ability: Ability): AbilityEffect | null {
+  return ability.effect ?? (ability.kind === "physical" ? "slash" : null);
+}
+
+// Ceux qu'une capacité touche : tous, sauf ceux qu'elle rate. Sur un « Raté », l'effet de la capacité ne joue pas
+// (décision de Wesley du 10/11/2026) ; « Sans effet » le joue, comme avant
+export function touched<T>(hits: readonly { target: T; effect: { type: string } }[]): T[] {
+  return hits.filter(({ effect }) => effect.type !== "miss").map(({ target }) => target);
+}
+
+// Les effets sont écrits en huit pas : `clock` rend le pas, de 0 à 8, de l'image `index` d'un effet de `count` images.
+// À vitesse normale l'effet a huit images (CONFIG.timing.abilityFx) : une image avance d'un peu plus d'un pas, et sa
+// dernière image est son dernier pas. Plus court (mode test accéléré), il saute des pas, sans casser
+const STEPS = 8;
+const clock = (index: number, count: number) => (count <= 1 ? STEPS / 2 : (index * STEPS) / (count - 1));
+
+// La silhouette d'une cible dans la couche : ses bornes, son centre, et un de ses pixels opaques tiré au hasard dans
+// une bande de sa hauteur (from et to : parts de la hauteur, 0 en haut, 1 en bas). Sans image (pas encore chargée),
+// le rectangle de son PNG
+interface Shape {
+  left: number; right: number; top: number; bottom: number; // bornes comprises
+  width: number; height: number; cx: number; cy: number;
+  point(random: () => number, from: number, to: number): FxPoint;
+}
+
+function shapeOf({ box, rows }: FxTarget): Shape {
+  const filled = rows.flatMap((runs, row) => (runs.length > 0 ? [row] : []));
+  let left = box.left, right = box.right - 1, top = box.top, bottom = box.bottom - 1;
+  if (filled.length > 0) {
+    top = box.top + filled[0];
+    bottom = box.top + filled[filled.length - 1];
+    left = box.left + Math.min(...filled.map((row) => rows[row][0][0]));
+    right = box.left + Math.max(...filled.map((row) => rows[row][rows[row].length - 1][1])) - 1;
+  }
+  const width = right - left + 1, height = bottom - top + 1;
+  const cx = Math.round((left + right) / 2), cy = Math.round((top + bottom) / 2);
+  const rowAt = (part: number) => top + Math.round((height - 1) * Math.max(0, Math.min(1, part)));
+  return {
+    left, right, top, bottom, width, height, cx, cy,
+    point(random, from, to) {
+      const first = rowAt(from), last = Math.max(first, rowAt(to));
+      const opaque = filled.length > 0 ? opaquePoint(random, box, rows, first - box.top, last - box.top + 1) : null;
+      return opaque ?? { x: between(random, left, right), y: between(random, first, last) };
+    },
+  };
+}
+
+// Mouvement réduit : l'image la plus fournie de l'effet, la même à chaque image, montrée tout l'effet
+export function still(plan: FxPlan): FxPlan {
+  let fullest: FxPixel[] = [];
+  for (let index = 0; index < plan.count; index++) {
+    const pixels = plan.frame(index);
+    if (pixels.length > fullest.length) fullest = pixels;
+  }
+  return { count: plan.count, frame: () => fullest };
+}
+
+// Frapper, et tout coup d'arme sans effet à lui : une entaille en diagonale à travers la cible, tracée en trois
+// images depuis le côté de celui qui frappe, parchemin sur une ombre de cendré clair ; elle tient deux images, puis
+// s'efface pixel par pixel pendant que quelques éclats filent dans le sens du coup
+export const SLASH_SPARKS = 5;
+
+function slash({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const cuts = targets.map((target) => {
+    const shape = shapeOf(target);
+    const length = Math.max(10, Math.min(44, Math.round(Math.min(shape.width, shape.height) * 0.9)));
+    const half = Math.floor(length / 2);
+    return {
+      from: { x: shape.cx - facing * half, y: shape.cy - half },
+      length,
+      fades: Array.from({ length }, random), // l'instant où chaque pixel s'efface, de 0 à 1
+      sparks: Array.from({ length: SLASH_SPARKS }, () => ({ dx: facing * (1.5 + random() * 2), dy: 0.5 + random() * 2, start: 2.5 + random() * 2 })),
+    };
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      for (const cut of cuts) {
+        const drawn = Math.min(cut.length, Math.ceil((cut.length * (step + 1)) / 3));
+        const fresh = step <= 4;                      // tracée puis tenue : parchemin sur cendré clair
+        const fade = fresh ? 0 : (step - 4) / (STEPS - 4);
+        for (let i = 0; i < drawn; i++) {
+          if (cut.fades[i] < fade) continue;
+          const x = cut.from.x + facing * i, y = cut.from.y + i;
+          pixels.push({ x, y, color: fresh ? FX_COLORS.parchment : FX_COLORS.paleAsh });
+          if (fresh) pixels.push({ x, y: y + 1, color: FX_COLORS.paleAsh });
+        }
+        const end = { x: cut.from.x + facing * (cut.length - 1), y: cut.from.y + cut.length - 1 };
+        for (const spark of cut.sparks) {
+          const age = step - spark.start;
+          if (age < 0 || age >= 3) continue;
+          pixels.push({ x: end.x + Math.round(spark.dx * age), y: end.y - Math.round(spark.dy * age) + Math.round(age * age * 0.5), color: FX_COLORS.parchment });
+        }
+      }
+      return pixels;
+    },
+  };
+}
+
+// L'effet de chaque capacité. Ajouter une capacité : son nom dans AbilityEffect (game-data.ts), son dessin ici
+const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash };
+
+// Les images de l'effet d'une capacité sur ses cibles ; avec le mouvement réduit, son image la plus fournie, fixe
+export function abilityFx(effect: AbilityEffect, input: AbilityFxInput, reduced: boolean): FxPlan {
+  const plan = ABILITY_FX[effect](input);
+  return reduced ? still(plan) : plan;
 }

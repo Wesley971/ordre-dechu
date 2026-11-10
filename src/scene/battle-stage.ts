@@ -18,7 +18,7 @@ import { createAnimatedSprite, type AnimatedSprite } from "../ui/animated-sprite
 import { isReducedMotion } from "../ui/reduced-motion.ts";
 import type { BaseName } from "../ui/sprite-motion.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
-import { enemyPhase, facingOf, playAshCloud, playGoldStream, playLightRise, showPose, type Stage } from "../ui/stage.ts";
+import { blowFacing, enemyPhase, facingOf, playAbilityFx, playAshCloud, playGoldStream, playLightRise, showPose, type Stage } from "../ui/stage.ts";
 import { followHero } from "../ui/hero-pose.ts";
 import { TINTS } from "../ui/tints.ts";
 import { preloadImages, type ActorDef, type ActorsView } from "./actors.ts";
@@ -100,7 +100,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
   let extent: ReturnType<typeof castExtent> = [];
   let lastSafe = { top: -1, height: -1, clearBottom: 0, clearLeft: 0 };
   let stopCounter: (() => void) | null = null;
-  // Couche des effets spéciaux (MAE-95), sur la couche des ancres ; un pixel de sprite comme les sprites peints
+  // Couche des effets (MAE-95, MAE-31), sur la couche des ancres ; un pixel de sprite comme les sprites peints
   const fx = createFxLayer(layer, () => { const info = stage.measure(); return info.spritePixel / info.ratio; });
 
   // — Zone de cadrage : le rectangle de la scène, et la place à laisser libre pour la bande et les plaques (style.css) —
@@ -417,6 +417,14 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       const sprite = spriteOf(actor);
       if (sprite) followHero(sprite, options.flagsOf(actor), false, s.celebrating);
       slideTo(s, restingX(actor), CONFIG.timing.slide, easeOut);
+    },
+
+    impact(effect, targets) {
+      const shown = targets.flatMap((combatant) => {
+        const element = anchors.get(combatant.id), sprite = spriteOf(combatant);
+        return element && sprite && states.get(combatant.id)?.visible ? [{ id: combatant.id, element, rows: sprite.shownRows() }] : [];
+      });
+      playAbilityFx(fx, effect, shown, blowFacing(targets));
     },
 
     hit(target, effect) {

@@ -271,8 +271,7 @@ body.scene-painted #battle-scene { background: none; }
 body.scene-painted #game,
 body.scene-painted #battle-scene { pointer-events: none; }
 
-/* Bouclier de Garde, trace du coup et braises : comme sur un sprite DOM */
-.actor-anchor.hero .fx-slash        { scale: -1 1; }
+/* Bouclier de Garde et braises : comme sur un sprite DOM */
 .actor-anchor.hero.ko .ember        { display: none; }
 /* Poses dessinées : les flammes d'Elwen y sont dans l'image, faibles puis éteintes (MAE-94, data-pose, stage.ts) */
 .actor-anchor.hero:is([data-pose="stagger"], [data-pose="kneel"], [data-pose="down"]) .ember { display: none; }
@@ -535,6 +534,9 @@ body.scene-painted #battle-scene { pointer-events: none; }
 
 /* ─── EFFETS DE SOUFFLES ───────────────────────────────────────────── */
 
+/* Halos des capacités qui n'ont pas encore leur effet en pixels (battle-fx.ts, MAE-31) : les souffles de Corvin, les
+   soins et les objets jusqu'à la suite de MAE-31, l'impact de la Nuée de cendre jusqu'à MAE-98. Les coups d'arme ont l'entaille en pixels. */
+
 .fx {
   position: absolute;
   inset: -12%;
@@ -551,13 +553,6 @@ body.scene-painted #battle-scene { pointer-events: none; }
               animation: fx-flicker 0.5s steps(1) forwards; }
 .fx-heal    { background: radial-gradient(circle, #f1fff3 0%, var(--state-heal) 35%, transparent 65%);
               animation: fx-rise 0.7s ease-out forwards; }
-.fx-slash {
-  border-radius: 0;
-  background: linear-gradient(135deg, transparent 44%, #fff 48%, #fff 52%, transparent 56%);
-  animation: fx-slash 0.3s ease-out forwards;
-}
-/* Sur un héros, le coup vient des ennemis : la trace part de la droite */
-.sprite.hero .fx-slash { scale: -1 1; }
 
 @keyframes fx-burst {
   0%   { transform: scale(0.2); opacity: 0; }
@@ -577,16 +572,10 @@ body.scene-painted #battle-scene { pointer-events: none; }
   100% { transform: translateY(-20px) scale(1.1); opacity: 0; }
 }
 
-@keyframes fx-slash {
-  0%   { clip-path: inset(0 100% 100% 0); opacity: 1; }
-  60%  { clip-path: inset(0 0 0 0); opacity: 1; }
-  100% { clip-path: inset(0 0 0 0); opacity: 0; }
-}
-
 /* « Mouvement réduit » : l'effet reste fixe et à demi transparent le temps de sa durée, puis view.ts le retire
    (MAE-58, décision du 03/11/2026) */
 @media (prefers-reduced-motion: reduce) {
-  .fx, .fx-thunder, .fx-heal, .fx-slash { animation: none; opacity: 0.5; }
+  .fx, .fx-thunder, .fx-heal { animation: none; opacity: 0.5; }
 }
 
 /* ─── INTERFACE DU COMBAT (maquette D2, MAE-87) ────────────────────── */

@@ -65,13 +65,18 @@ export const ELEMENT_NAMES: Record<ElementName, string> = { fire: "Feu", ice: "G
 export type Affinity = "weak" | "resist" | "absorb";
 export type TargetType = "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" | "none";
 
+// Effet en pixels d'une capacité sur ses cibles (MAE-31), dessiné par l'affichage (src/ui/battle-fx.ts) : un nom par
+// dessin. slash : l'entaille de Frapper, que montre aussi tout coup d'arme sans effet à lui
+export type AbilityEffect = "slash";
+
 interface AbilityBase {
   name: string;
   target: TargetType;
   mp?: number;
   element?: ElementName;
   desc?: string;
-  visual?: "ash"; // effet spécial dessiné en plus de celui de l'élément (MAE-95) : la Nuée de cendre du Dragon
+  effect?: AbilityEffect; // son effet sur ses cibles ; absent : l'entaille pour un coup d'arme, sinon pas encore d'effet en pixels
+  visual?: "ash"; // effet spécial dessiné en plus, pendant le sort (MAE-95) : la Nuée de cendre du Dragon
 }
 export interface PhysicalAbility extends AbilityBase { kind: "physical"; power: number; pierce?: boolean }
 export interface MagicAbility    extends AbilityBase { kind: "magic"; power: number; element: ElementName }
@@ -141,7 +146,7 @@ export const HEROES: HeroDef[] = [
 // kind   : "physical" | "magic" | "heal" | "mp" | "revive" | "run"
 // target : "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" | "none"
 
-export const ATTACK: PhysicalAbility = { name: "Frapper", kind: "physical", power: 1, target: "foe" };
+export const ATTACK: PhysicalAbility = { name: "Frapper", kind: "physical", power: 1, target: "foe", effect: "slash" };
 export const RUN: RunAbility         = { name: "Repli",   kind: "run", target: "none" };
 
 // Aide des commandes du menu de combat, dans la bande sur ordinateur (MAE-89), par nom de commande. Textes validés par

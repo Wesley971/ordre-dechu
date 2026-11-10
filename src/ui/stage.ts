@@ -13,14 +13,14 @@
 
 import { CONFIG } from "../config.ts";
 import { HEROES, type SpriteRig } from "../data/game-data.ts";
-import type { Ability, Chapter } from "../data/game-data.ts";
+import type { Ability, AbilityEffect, Chapter } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import { isAlive } from "../battle/battle.ts";
 import type { BattleState, Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
 import { createAnimatedSprite, type AnimatedSprite } from "./animated-sprite.ts";
 import { isReducedMotion } from "./reduced-motion.ts";
-import { ashCloud, ashVeil, goldStream, lightRise, streamsGold } from "./battle-fx.ts";
+import { abilityFx, ashCloud, ashVeil, goldStream, lightRise, streamsGold } from "./battle-fx.ts";
 import { createFxLayer, type FxLayer } from "./fx-layer.ts";
 import type { OpaqueRuns } from "./sprite-frames.ts";
 import { followHero } from "./hero-pose.ts";
@@ -36,6 +36,7 @@ export interface Stage {
   anchor(c: Combatant): HTMLElement | null;                  // élément DOM posé sur le combattant (chiffres, effets, main)
   actionStart(actor: Combatant, ability: Ability): Promise<void>; // élan et pas en avant, ou bond et éclair, puis lueur du Souffle
   stepBack(actor: Combatant): void;                          // le héros reprend sa place
+  impact(effect: AbilityEffect, targets: Combatant[]): void; // effet en pixels d'une capacité sur ceux qu'elle touche (MAE-31)
   hit(target: Combatant, effect: Effect): void;              // recul et teinte d'un coup reçu
   quake(): void;                                             // secousse de la scène (coup critique)
   defeated(enemy: Enemy): void;                              // vaincu mais pas mort : il reste à terre
@@ -106,7 +107,7 @@ export function playAshCloud(fx: FxLayer, caster: Element, mouth: { x: number; y
   const count = frameCount(CONFIG.timing.ashCloud);
   const at = { x: from.left + mouth.x, y: from.top + mouth.y };
   const reduced = isReducedMotion();
-  fx.play((seed) => (reduced ? ashVeil(boxes, count, seed) : ashCloud(at, boxes, count, seed)));
+  fx.play((seed) => (reduced ? ashVeil(boxes, count, seed) : ashCloud(at, boxes, count, seed)), "ash");
 }
 
 // L'écho de Maelor se défait en lumière (MAE-95), commun aux deux scènes : les pixels dorés qui partent des rangées
@@ -116,7 +117,7 @@ export function playLightRise(fx: FxLayer, png: Element, sprite: AnimatedSprite)
   const box = fx.measure(png)(png);
   const rows = sprite.rows();
   const count = frameCount(CONFIG.timing.unravel);
-  fx.play((seed) => lightRise(box, rows, (frame) => unravelCleared(frame, count, rows.length), count, seed));
+  fx.play((seed) => lightRise(box, rows, (frame) => unravelCleared(frame, count, rows.length), count, seed), "light");
 }
 
 // L'or quitte Maelor (MAE-95), commun aux deux scènes : de sa poitrine vers le Dragon (écailles et sol devant lui) s'il
@@ -128,7 +129,26 @@ export function playGoldStream(fx: FxLayer, hero: Shown, dragon: Shown | null) {
   if (!streamsGold(dragon !== null, isReducedMotion()) || !dragon) return; // !dragon : déjà dit par streamsGold, pour le type
   const measure = fx.measure(hero.element);
   const from = measure(hero.element), to = measure(dragon.element);
-  fx.play((seed) => goldStream(from, hero.rows, to, dragon.rows, frameCount(CONFIG.timing.powerReturn), seed));
+  fx.play((seed) => goldStream(from, hero.rows, to, dragon.rows, frameCount(CONFIG.timing.powerReturn), seed), "gold");
+}
+
+// L'effet d'une capacité sur ceux qu'elle touche (MAE-31), commun aux deux scènes : dessiné sur la silhouette de chaque
+// cible telle qu'elle est affichée. element : l'élément qui couvre exactement son PNG ; rows : son image affichée
+// (AnimatedSprite.shownRows). La grille de la couche se cale sur la première cible. Le coup vient du camp d'en face :
+// vers la droite sur un ennemi, vers la gauche sur un héros (blowFacing). Avec le mouvement réduit, une image fixe.
+// Joué sans être attendu : il dure au plus la pause de lecture des chiffres (CONFIG.timing.abilityFx). id : celui du
+// combattant, pour le nom de l'effet écrit sur la couche (fx-layer.ts)
+export interface ShownTarget extends Shown { id: string }
+export const blowFacing = (targets: Combatant[]): 1 | -1 => (targets[0]?.side === "hero" ? -1 : 1);
+
+export function playAbilityFx(fx: FxLayer, effect: AbilityEffect, targets: ShownTarget[], facing: 1 | -1) {
+  if (targets.length === 0) return;
+  const measure = fx.measure(targets[0].element);
+  const boxes = targets.map(({ element, rows }) => ({ box: measure(element), rows }));
+  const count = frameCount(CONFIG.timing.abilityFx);
+  const reduced = isReducedMotion();
+  const name = `${effect}:${targets.map(({ id }) => id).join(",")}`;
+  fx.play((seed) => abilityFx(effect, { targets: boxes, facing, count, seed }, reduced), name);
 }
 
 // Braises qui montent des bords enflammés d'un héros (Elwen), décalées dans le temps. Commun aux deux scènes.
@@ -335,6 +355,15 @@ export function createDomStage(): Stage {
       a.element.classList.remove("acting");
       followHero(a.sprite, heroFlags(actor), false, a.celebrating);
       slideTo(a, restingX(actor), CONFIG.timing.slide, easeOut);
+    },
+
+    impact(effect, targets) {
+      // Seulement sur ceux qui sont à l'écran : ni mort (caché, mais son rectangle reste), ni sorti de scène
+      const shown = targets.flatMap((combatant) => {
+        const a = actors.get(combatant.id);
+        return a && !a.away && !a.element.classList.contains("dead") ? [{ id: combatant.id, element: pngOf(a), rows: a.sprite.shownRows() }] : [];
+      });
+      playAbilityFx(fx, effect, shown, blowFacing(targets));
     },
 
     hit(target, effect) {
