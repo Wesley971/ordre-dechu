@@ -4,7 +4,7 @@
 // l'agrandit d'un nombre entier de pixels réels, sans lissage (DOM : image-rendering: pixelated ; scène peinte :
 // texture au plus proche). Une seule boucle requestAnimationFrame sert tous les sprites ; elle ne redessine un
 // sprite que quand sa pose change (au plus douze fois par seconde, sprite-motion.ts) et s'arrête sans sprite.
-// Mouvement réduit (MAE-58) : la pose de fond seule, immobile. Les poses dessinées du squelette (rig.poses, MAE-94)
+// Mouvement réduit (MAE-58, reduced-motion.ts) : la pose de fond seule, immobile. Les poses dessinées du squelette (rig.poses, MAE-94)
 // sont chargées avec le PNG et recopiées telles quelles, centrées sur lui, le bas sur la même rangée.
 
 import { CONFIG } from "../config.ts";
@@ -13,6 +13,7 @@ import {
   AT_REST, composeFrame, drawnPlacement, footprint, footShadow, frameLayout, opaqueRuns, type OpaqueRuns, type FrameLayout, type Footprint, type FrameRig, type PixelImage, type Placement,
 } from "./sprite-frames.ts";
 import { createMotion, type BaseName, type GestureName, type MotionPose, type SpriteMotion } from "./sprite-motion.ts";
+import { isReducedMotion } from "./reduced-motion.ts";
 
 export interface AnimatedSpriteOptions {
   url: string;                 // PNG du personnage
@@ -54,19 +55,6 @@ export interface ShownImage { url: string; x: number; y: number }
 interface Running { tick(nowMs: number, moving: boolean): void }
 const running = new Set<Running>();
 let loop = 0;
-const reducedMotion = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
-let reducedOverride: boolean | null = null;
-
-// Aperçu des animations (mode test) : simule le réglage « mouvement réduit » ; null rend la main au système
-export function overrideReducedMotion(reduced: boolean | null) {
-  reducedOverride = reduced;
-}
-
-// Mouvement réduit en ce moment : le réglage du système, ou celui que simule l'aperçu (mode test). Les effets spéciaux
-// des scènes le suivent aussi (MAE-95)
-export function isReducedMotion() {
-  return reducedOverride ?? reducedMotion?.matches ?? false;
-}
 
 function frame(nowMs: number) {
   const moving = !isReducedMotion();

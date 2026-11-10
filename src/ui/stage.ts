@@ -3,25 +3,30 @@
 // Deux scènes implémentent ce contrat : celle-ci, en DOM (sprites sur l'image de fond), et la scène peinte en 2,5D
 // (src/scene/battle-stage.ts), choisie par dom-view.ts quand le chapitre déclare un décor.
 // Une scène ne joue aucun son et ne touche pas au HUD : dom-view.ts s'en charge, dans le même ordre pour les deux.
-// Chiffres de dégâts, effets, main de ciblage et bouclier sont du DOM posé sur l'« ancre » du combattant :
-// en DOM, le sprite lui-même ; dans la scène peinte, un élément qui suit le sprite à l'écran.
+// Effets, main de ciblage et bouclier sont du DOM posé sur l'« ancre » du combattant : en DOM, le sprite lui-même ;
+// dans la scène peinte, un élément qui suit le sprite à l'écran. Les chiffres de dégâts se posent là où la scène le
+// dit (popupAnchor), devant la couche des effets : l'ancre dans la scène peinte, une couche à part en DOM (MAE-31).
 // Les deux scènes affichent les mêmes images animées (animated-sprite.ts, MAE-30) : chaque pixel vient du PNG, et
-// tout déplacement se fait par pixels de sprite entiers. Les couleurs (coup reçu, éclair, mort) restent en CSS.
+// tout déplacement se fait par pixels de sprite entiers. Les couleurs (coup reçu, éclair, mort, or) sont appliquées par
+// les classes de style.css ; les valeurs des teintes de l'or, de la mort et du coup reçu viennent de tints.ts, communes
+// aux deux scènes (MAE-31).
 // Les effets spéciaux (MAE-95) sont dessinés dans une couche à part (fx-layer.ts), la même dans les deux scènes.
 
 import { CONFIG } from "../config.ts";
 import { HEROES, type SpriteRig } from "../data/game-data.ts";
-import type { Ability, Chapter } from "../data/game-data.ts";
+import type { Ability, AbilityEffect, Chapter } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import { isAlive } from "../battle/battle.ts";
 import type { BattleState, Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
-import { createAnimatedSprite, isReducedMotion, type AnimatedSprite } from "./animated-sprite.ts";
-import { ashCloud, ashVeil, goldStream, lightRise, streamsGold } from "./battle-fx.ts";
+import { createAnimatedSprite, type AnimatedSprite } from "./animated-sprite.ts";
+import { isReducedMotion } from "./reduced-motion.ts";
+import { abilityFx, ashCloud, ashVeil, goldStream, lightRise, streamsGold } from "./battle-fx.ts";
 import { createFxLayer, type FxLayer } from "./fx-layer.ts";
 import type { OpaqueRuns } from "./sprite-frames.ts";
 import { followHero } from "./hero-pose.ts";
 import { frameCount, unravelCleared, type BaseName } from "./sprite-motion.ts";
+import { applyTints } from "./tints.ts";
 import { $, heroFlags, pulse, spriteEl, wait } from "./view.ts";
 
 export interface Stage {
@@ -29,9 +34,11 @@ export interface Stage {
   showBattle(state: BattleState): void;                      // les ennemis prennent place, pas encore visibles
   appear(): void;                                            // entrée en combat : les ennemis apparaissent
   refresh(): void;                                           // poses d'après l'état : éteint, en danger, actif, garde
-  anchor(c: Combatant): HTMLElement | null;                  // élément DOM posé sur le combattant (chiffres, effets, main)
+  anchor(c: Combatant): HTMLElement | null;                  // élément DOM posé sur le combattant (effets, main de ciblage)
+  popupAnchor(c: Combatant): HTMLElement | null;             // où poser ses chiffres : devant la couche des effets (MAE-31)
   actionStart(actor: Combatant, ability: Ability): Promise<void>; // élan et pas en avant, ou bond et éclair, puis lueur du Souffle
   stepBack(actor: Combatant): void;                          // le héros reprend sa place
+  impact(effect: AbilityEffect, targets: Combatant[]): void; // effet en pixels d'une capacité sur ceux qu'elle touche (MAE-31)
   hit(target: Combatant, effect: Effect): void;              // recul et teinte d'un coup reçu
   quake(): void;                                             // secousse de la scène (coup critique)
   defeated(enemy: Enemy): void;                              // vaincu mais pas mort : il reste à terre
@@ -102,7 +109,7 @@ export function playAshCloud(fx: FxLayer, caster: Element, mouth: { x: number; y
   const count = frameCount(CONFIG.timing.ashCloud);
   const at = { x: from.left + mouth.x, y: from.top + mouth.y };
   const reduced = isReducedMotion();
-  fx.play((seed) => (reduced ? ashVeil(boxes, count, seed) : ashCloud(at, boxes, count, seed)));
+  fx.play((seed) => (reduced ? ashVeil(boxes, count, seed) : ashCloud(at, boxes, count, seed)), "ash");
 }
 
 // L'écho de Maelor se défait en lumière (MAE-95), commun aux deux scènes : les pixels dorés qui partent des rangées
@@ -112,7 +119,7 @@ export function playLightRise(fx: FxLayer, png: Element, sprite: AnimatedSprite)
   const box = fx.measure(png)(png);
   const rows = sprite.rows();
   const count = frameCount(CONFIG.timing.unravel);
-  fx.play((seed) => lightRise(box, rows, (frame) => unravelCleared(frame, count, rows.length), count, seed));
+  fx.play((seed) => lightRise(box, rows, (frame) => unravelCleared(frame, count, rows.length), count, seed), "light");
 }
 
 // L'or quitte Maelor (MAE-95), commun aux deux scènes : de sa poitrine vers le Dragon (écailles et sol devant lui) s'il
@@ -124,7 +131,26 @@ export function playGoldStream(fx: FxLayer, hero: Shown, dragon: Shown | null) {
   if (!streamsGold(dragon !== null, isReducedMotion()) || !dragon) return; // !dragon : déjà dit par streamsGold, pour le type
   const measure = fx.measure(hero.element);
   const from = measure(hero.element), to = measure(dragon.element);
-  fx.play((seed) => goldStream(from, hero.rows, to, dragon.rows, frameCount(CONFIG.timing.powerReturn), seed));
+  fx.play((seed) => goldStream(from, hero.rows, to, dragon.rows, frameCount(CONFIG.timing.powerReturn), seed), "gold");
+}
+
+// L'effet d'une capacité sur ceux qu'elle touche (MAE-31), commun aux deux scènes : dessiné sur la silhouette de chaque
+// cible telle qu'elle est affichée. element : l'élément qui couvre exactement son PNG ; rows : son image affichée
+// (AnimatedSprite.shownRows). La grille de la couche se cale sur la première cible. Le coup vient du camp d'en face :
+// vers la droite sur un ennemi, vers la gauche sur un héros (blowFacing). Avec le mouvement réduit, une image fixe.
+// Joué sans être attendu : il dure au plus la pause de lecture des chiffres (CONFIG.timing.abilityFx). id : celui du
+// combattant, pour le nom de l'effet écrit sur la couche (fx-layer.ts)
+export interface ShownTarget extends Shown { id: string }
+export const blowFacing = (targets: Combatant[]): 1 | -1 => (targets[0]?.side === "hero" ? -1 : 1);
+
+export function playAbilityFx(fx: FxLayer, effect: AbilityEffect, targets: ShownTarget[], facing: 1 | -1) {
+  if (targets.length === 0) return;
+  const measure = fx.measure(targets[0].element);
+  const boxes = targets.map(({ element, rows }) => ({ box: measure(element), rows }));
+  const count = frameCount(CONFIG.timing.abilityFx);
+  const reduced = isReducedMotion();
+  const name = `${effect}:${targets.map(({ id }) => id).join(",")}`;
+  fx.play((seed) => abilityFx(effect, { targets: boxes, facing, count, seed }, reduced), name);
 }
 
 // Braises qui montent des bords enflammés d'un héros (Elwen), décalées dans le temps. Commun aux deux scènes.
@@ -144,8 +170,6 @@ export function overlayHtml(c: Combatant) {
   if (c.boss) return "";
   return `<div class="od-foe"><span class="od-foe-name">${c.name}</span><span class="od-bar" role="img"><i class="od-trail"></i><i class="od-fill"></i></span></div>`;
 }
-
-const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Un pixel de sprite fait un nombre entier de pixels réels, avec la même règle que la scène peinte (framing.ts) :
 // --scene-px, en pixels CSS, vaut donc k / devicePixelRatio
@@ -180,12 +204,24 @@ interface DomActor {
 // La scène DOM : les sprites dans #hero-area et #enemy-area ; les couleurs par les classes de style.css
 export function createDomStage(): Stage {
   syncPixelScale();
+  applyTints($("#battle-scene").style); // l'or, la mort, le coup reçu : les filtres de style.css (tints.ts)
   window.addEventListener("resize", () => { syncPixelScale(); snapSprites(); });
   const actors = new Map<string, DomActor>();
-  // Couche des effets spéciaux (MAE-95), sur toute la scène ; un pixel de sprite y vaut --scene-px
+  // Couche des effets (MAE-95, MAE-31), sur toute la scène ; un pixel de sprite y vaut celui des sprites : --px, qui est
+  // --scene-px sur ordinateur et 1 sur téléphone (style.css). Sans sprite en scène, --scene-px
   const scene = $("#battle-scene");
-  const fx = createFxLayer(scene, () => parseFloat(getComputedStyle(scene).getPropertyValue("--scene-px")));
+  const fx = createFxLayer(scene, () => {
+    const sprite = scene.querySelector(".sprite");
+    return parseFloat(sprite ? getComputedStyle(sprite).getPropertyValue("--px") : getComputedStyle(scene).getPropertyValue("--scene-px"));
+  });
   const pngOf = (a: DomActor) => $(".sprite-img", a.element);
+  // Les chiffres se posent devant la couche des effets (MAE-31) : dans une couche à part, au-dessus d'elle, sur une
+  // boîte qui recouvre le sprite du combattant au moment où le chiffre naît. Posés dans le sprite, ils passeraient
+  // derrière elle : chaque sprite a son propre empilement (style.css, .popup-layer)
+  const popupLayer = document.createElement("div");
+  popupLayer.className = "popup-layer";
+  scene.appendChild(popupLayer);
+  const popupBoxes = new Map<string, HTMLElement>();
 
   function actorOf(c: Combatant) {
     const actor = actors.get(c.id);
@@ -237,7 +273,7 @@ export function createDomStage(): Stage {
     actor.slide = 0;
     const from = actor.x;
     const place = (x: number) => { actor.x = x; actor.element.style.setProperty("--slide", String(Math.round(x))); };
-    if (reducedMotion() || duration <= 0 || from === target) { place(target); return; }
+    if (isReducedMotion() || duration <= 0 || from === target) { place(target); return; }
     const start = performance.now();
     const step = (now: number) => {
       const p = Math.min(1, (now - start) / duration);
@@ -261,6 +297,12 @@ export function createDomStage(): Stage {
     const created = list.map(([c, slot, phase]) => createActor(c, slot, phase));
     for (const actor of created) actors.set(actor.combatant.id, actor);
     $(`#${area}`).replaceChildren(...created.map(actor => actor.element));
+    // Les boîtes à chiffres de ceux qui ont quitté la scène partent avec eux
+    for (const [id, box] of popupBoxes) {
+      if (actors.has(id)) continue;
+      box.remove();
+      popupBoxes.delete(id);
+    }
   }
 
   function refresh() {
@@ -297,6 +339,25 @@ export function createDomStage(): Stage {
 
     anchor: spriteEl,
 
+    popupAnchor(c) {
+      const sprite = spriteEl(c);
+      if (!sprite) return null;
+      let box = popupBoxes.get(c.id);
+      if (!box) {
+        box = document.createElement("div");
+        box.className = "popup-box";
+        box.dataset.popupFor = c.id; // de qui sont ces chiffres : le sprite n'est plus leur parent
+        popupLayer.appendChild(box);
+        popupBoxes.set(c.id, box);
+      }
+      // Le rectangle du sprite dans la scène, à cet instant : le chiffre s'y place comme il se plaçait dans le sprite
+      const within = scene.getBoundingClientRect(), rect = sprite.getBoundingClientRect();
+      Object.assign(box.style, {
+        left: `${rect.left - within.left}px`, top: `${rect.top - within.top}px`, width: `${rect.width}px`, height: `${rect.height}px`,
+      });
+      return box;
+    },
+
     async actionStart(actor, ability) {
       const a = actorOf(actor);
       if (actor.side === "hero") {
@@ -328,6 +389,15 @@ export function createDomStage(): Stage {
       a.element.classList.remove("acting");
       followHero(a.sprite, heroFlags(actor), false, a.celebrating);
       slideTo(a, restingX(actor), CONFIG.timing.slide, easeOut);
+    },
+
+    impact(effect, targets) {
+      // Seulement sur ceux qui sont à l'écran : ni mort (caché, mais son rectangle reste), ni sorti de scène
+      const shown = targets.flatMap((combatant) => {
+        const a = actors.get(combatant.id);
+        return a && !a.away && !a.element.classList.contains("dead") ? [{ id: combatant.id, element: pngOf(a), rows: a.sprite.shownRows() }] : [];
+      });
+      playAbilityFx(fx, effect, shown, blowFacing(targets));
     },
 
     hit(target, effect) {
@@ -415,6 +485,8 @@ export function createDomStage(): Stage {
 
     dispose() {
       fx.dispose();
+      popupLayer.replaceChildren();
+      popupBoxes.clear();
       for (const a of actors.values()) { a.sprite.dispose(); cancelAnimationFrame(a.slide); }
       actors.clear();
       $("#enemy-area").replaceChildren();

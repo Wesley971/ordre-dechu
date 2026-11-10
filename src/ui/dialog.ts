@@ -7,6 +7,7 @@ import type { Question, Telling } from "../game-view.ts";
 import { Input } from "../input/input.ts";
 import { Sfx } from "../audio/sfx.ts";
 import { pickOption } from "./pick-option.ts";
+import { isReducedMotion } from "./reduced-motion.ts";
 import { $, setLevelUps } from "./view.ts";
 // Une page est une chaîne HTML, ou { html, sfx } pour jouer un son à l'ouverture de la page
 
@@ -15,12 +16,11 @@ const SCROLL_STEP = 40;  // pixels par appui sur une flèche
 const TAP_TOLERANCE = 8; // au-delà, un glissé du doigt n'est plus un toucher
 
 const scroller = () => $("#dialog-scroll");
-const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const atBottom = (el: HTMLElement) => el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
 
 function scrollToEnd(smooth: boolean) {
   const el = scroller();
-  el.scrollTo({ top: el.scrollHeight, behavior: smooth && !reducedMotion() ? "smooth" : "auto" });
+  el.scrollTo({ top: el.scrollHeight, behavior: smooth && !isReducedMotion() ? "smooth" : "auto" });
 }
 
 // La page en cours tient-elle dans la bande, sous le dégradé ?

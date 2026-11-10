@@ -107,5 +107,7 @@ export const CONFIG = {
     powerReturn:   1600, // l'or quitte Maelor vers le Dragon, pendant le texte qui le dit (non attendu)
     gild:          700,  // éclat doré de Maelor quand l'or le quitte (CSS hero-gild)
     unravel:       1200, // l'écho de Maelor se défait en lumière (sprite-motion.ts, unravel ; CSS echo-unravel) : attendu, mais il est seul, c'est la fin du combat
+    // Effets des capacités (MAE-31, battle-fx.ts) : joués sur les cibles quand elles sont touchées, jamais attendus
+    abilityFx:     660,  // huit images de la grille. Lancé sur la marque suivante de la grille (une image au plus), l'effet est retiré à la fin de la pause de lecture des chiffres (effect) au plus tard, mouvement réduit compris (testé). À vitesse normale seulement : la grille reste à douze images par seconde en mode test accéléré, où deux effets peuvent se suivre de près
   },
 };

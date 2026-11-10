@@ -2,9 +2,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { CONFIG } from "../config.ts";
 import palette from "../../docs/character-palette.md?raw";
-import { along, ashCloud, ashVeil, between, FX_COLORS, goldStream, lightRise, pick, seeded, streamsGold, type FxBox, type FxPlan } from "../ui/battle-fx.ts";
+import { ATTACK, ENEMY_SKILLS, ITEMS, SPELLS, type AbilityEffect } from "../data/game-data.ts";
+import {
+  abilityEffect, abilityFx, along, ashCloud, ashVeil, between, FX_COLORS, goldStream, lightRise, pick, seeded, SLASH_SPARKS, still, streamsGold, touched,
+  type FxBox, type FxPlan, type FxTarget,
+} from "../ui/battle-fx.ts";
 import { composeFrame, frameLayout, opaqueRuns, REST_BODY, type BodyPose, type OpaqueRuns } from "../ui/sprite-frames.ts";
-import { frameCount, unravelCleared } from "../ui/sprite-motion.ts";
+import { FRAME_MS, frameCount, unravelCleared } from "../ui/sprite-motion.ts";
 import { layerGeometry } from "../ui/fx-layer.ts";
 
 describe("moteur des effets", () => {
@@ -293,6 +297,304 @@ describe("l'or quitte Maelor", () => {
     const frames = all(goldStream(maelor, standing, dragon, empty, count, 6));
     for (let index = Math.ceil(0.86 * (count - 1)); index < count; index++) {
       for (const { y } of frames[index]) expect(ground(y)).toBe(true);
+    }
+  });
+});
+
+// — Effets des capacités (MAE-31) —
+
+// Une cible de la taille d'un héros (47 × 66), dont la silhouette est un corps en deux moitiés sous une tête plus étroite
+function target(left: number, top: number): FxTarget {
+  const rows: OpaqueRuns[] = Array.from({ length: 66 }, (_, row) => (row < 4 ? [] : row < 18 ? [[18, 30]] : [[10, 22], [24, 38]]));
+  return { box: { left, top, right: left + 47, bottom: top + 66 }, rows };
+}
+const opaqueAt = ({ box, rows }: FxTarget, x: number, y: number) => (rows[y - box.top] ?? []).some(([from, to]) => x - box.left >= from && x - box.left < to);
+const framesOf = (plan: FxPlan) => Array.from({ length: plan.count }, (_, i) => plan.frame(i));
+// Chaque nom de AbilityEffect : un nom oublié ici ne compile pas (Record), un nom en trop non plus
+const EFFECTS = Object.keys({ slash: true, wick: true, frost: true, bell: true, sulfur: true } satisfies Record<AbilityEffect, true>) as AbilityEffect[]; // as : Object.keys perd le type des clés
+const FX_COUNT = frameCount(CONFIG.timing.abilityFx);
+
+describe("effets des capacités : le socle", () => {
+  it("un effet est retiré avant la fin de la pause de lecture des chiffres, même lancé juste après une marque de la grille", () => {
+    // La couche le lance sur la marque suivante de la grille (une image au plus), puis le montre FX_COUNT images
+    expect((FX_COUNT + 1) * FRAME_MS).toBeLessThanOrEqual(CONFIG.timing.effect);
+    expect(FX_COUNT).toBe(8);
+  });
+
+  it("sur un « Raté », l'effet de la capacité ne joue pas ; sur tout autre résultat, « Sans effet » compris, il joue", () => {
+    const hit = (target: string, type: string) => ({ target, effect: { type } });
+    expect(touched([hit("a", "damage"), hit("b", "miss"), hit("c", "none"), hit("d", "heal")])).toEqual(["a", "c", "d"]);
+    expect(touched([hit("a", "miss")])).toEqual([]);
+    expect(touched([])).toEqual([]);
+  });
+
+  it("chaque capacité a son effet : le sien, sinon l'entaille pour un coup d'arme, sinon pas encore de pixels", () => {
+    expect(abilityEffect(ATTACK)).toBe("slash");
+    for (const ability of [SPELLS.fallenBlade, SPELLS.whirlwind, ENEMY_SKILLS.chains, ENEMY_SKILLS.pillar, ENEMY_SKILLS.echoBlade]) {
+      expect(abilityEffect(ability)).toBe("slash");
+    }
+    for (const ability of [SPELLS.cure, SPELLS.curePlus, SPELLS.life, ITEMS.potion, ITEMS.ether, ITEMS.phoenix, ENEMY_SKILLS.ashCloud]) {
+      expect(abilityEffect(ability)).toBeNull();
+    }
+  });
+
+  it.each(EFFECTS)("%s : ne tire jamais Math.random, rend les mêmes images pour la même graine, et d'autres pour une autre", (effect) => {
+    const input = { targets: [target(100, 50), target(200, 80)], facing: 1 as const, count: FX_COUNT }; // as const : le sens du coup, de type 1 | -1
+    const spy = vi.spyOn(Math, "random");
+    try {
+      expect(framesOf(abilityFx(effect, { ...input, seed: 4 }, false))).toEqual(framesOf(abilityFx(effect, { ...input, seed: 4 }, false)));
+      expect(framesOf(abilityFx(effect, { ...input, seed: 4 }, false))).not.toEqual(framesOf(abilityFx(effect, { ...input, seed: 5 }, false)));
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it.each(EFFECTS)("%s : des pixels entiers, aux couleurs de la palette, autour de ses cibles, dès la première image", (effect) => {
+    const targets = [target(100, 120), target(200, 150)];
+    const all = framesOf(abilityFx(effect, { targets, facing: 1, count: FX_COUNT, seed: 2 }, false));
+    const colors: string[] = Object.values(FX_COLORS);
+    expect(all[0].length).toBeGreaterThan(0);
+    for (const pixels of all) {
+      for (const { x, y, color } of pixels) {
+        expect(Number.isInteger(x) && Number.isInteger(y)).toBe(true);
+        expect(colors).toContain(color);
+        // Autour des cibles : à moins d'une demi-largeur de héros de leurs rectangles ; au-dessus, un effet peut tomber de haut
+        expect(x).toBeGreaterThanOrEqual(100 - 24);
+        expect(x).toBeLessThan(247 + 24);
+        expect(y).toBeGreaterThanOrEqual(0);
+        expect(y).toBeLessThan(216 + 24);
+      }
+    }
+  });
+
+  it.each(EFFECTS)("%s : touche chacune de ses cibles", (effect) => {
+    const targets = [target(100, 120), target(200, 150)];
+    const all = framesOf(abilityFx(effect, { targets, facing: 1, count: FX_COUNT, seed: 3 }, false)).flat();
+    for (const { box } of targets) {
+      expect(all.some(({ x, y }) => x >= box.left && x < box.right && y >= box.top && y < box.bottom)).toBe(true);
+    }
+  });
+
+  it.each(EFFECTS)("%s : sans cible, rien ; sans image chargée, sur le rectangle du PNG ; plus court (mode test accéléré), sans casser", (effect) => {
+    expect(framesOf(abilityFx(effect, { targets: [], facing: 1, count: FX_COUNT, seed: 1 }, false)).flat()).toEqual([]);
+    const unloaded: FxTarget = { box: { left: 100, top: 50, right: 147, bottom: 116 }, rows: [] };
+    expect(framesOf(abilityFx(effect, { targets: [unloaded], facing: 1, count: FX_COUNT, seed: 1 }, false)).flat().length).toBeGreaterThan(0);
+    for (const count of [1, 2, 3, 5]) {
+      const short = framesOf(abilityFx(effect, { targets: [target(100, 50)], facing: -1, count, seed: 1 }, false));
+      expect(short).toHaveLength(count);
+      expect(short.flat().length).toBeGreaterThan(0);
+    }
+  });
+
+  it.each(EFFECTS)("%s : avec le mouvement réduit, une seule image fixe, la plus fournie de l'effet", (effect) => {
+    const input = { targets: [target(100, 50)], facing: 1 as const, count: FX_COUNT, seed: 7 }; // as const : idem
+    const moving = framesOf(abilityFx(effect, input, false));
+    const reduced = framesOf(abilityFx(effect, input, true));
+    const fullest = Math.max(...moving.map((pixels) => pixels.length));
+    expect(reduced).toHaveLength(FX_COUNT);
+    for (const pixels of reduced) {
+      expect(pixels).toEqual(reduced[0]);
+      expect(pixels).toHaveLength(fullest);
+    }
+    expect(moving).toContainEqual(reduced[0]);
+  });
+
+  it("still garde le nombre d'images, et rend une image vide pour un effet vide", () => {
+    const empty: FxPlan = { count: 4, frame: () => [] };
+    expect(framesOf(still(empty))).toEqual([[], [], [], []]);
+  });
+});
+
+describe("l'entaille (Frapper)", () => {
+  const one = target(100, 50);
+  const cut = (facing: 1 | -1) => framesOf(abilityFx("slash", { targets: [one], facing, count: FX_COUNT, seed: 9 }, false));
+  const xs = (pixels: { x: number }[]) => pixels.map(({ x }) => x);
+
+  it("se trace en trois images depuis le côté de celui qui frappe, traverse la silhouette, puis s'efface", () => {
+    const right = cut(1);
+    const width = (pixels: { x: number }[]) => Math.max(...xs(pixels)) - Math.min(...xs(pixels));
+    expect(width(right[0])).toBeLessThan(width(right[1]));
+    expect(width(right[1])).toBeLessThan(width(right[2]));
+    expect(right[2].some(({ x, y }) => opaqueAt(one, x, y))).toBe(true);
+    // Un coup vers la droite part de la gauche de la cible
+    expect(Math.max(...xs(right[0]))).toBeLessThan((one.box.left + one.box.right) / 2);
+    expect(right[FX_COUNT - 1]).toEqual([]);
+    expect(right[FX_COUNT - 2].length).toBeLessThan(right[4].length);
+  });
+
+  it("vers la gauche, c'est le miroir : un ennemi frappe un héros depuis la droite", () => {
+    const right = cut(1), left = cut(-1);
+    // Même graine : chaque pixel du trait est le symétrique de l'autre par rapport au centre de la silhouette
+    const centre = (Math.min(...xs(right[2])) + Math.max(...xs(left[2]))) / 2;
+    const ascending = (a: number, b: number) => a - b;
+    expect(xs(left[0]).map((x) => 2 * centre - x).sort(ascending)).toEqual(xs(right[0]).sort(ascending));
+    expect(Math.min(...xs(left[0]))).toBeGreaterThan(Math.max(...xs(right[0])));
+  });
+
+  it("est parchemin sur cendré clair tant qu'elle est fraîche, puis cendré clair seul", () => {
+    const right = cut(1);
+    expect(new Set(right[3].map(({ color }) => color))).toEqual(new Set([FX_COLORS.parchment, FX_COLORS.paleAsh]));
+    // Dès que le trait passe au cendré clair (l'image 4, où il est encore presque entier), seuls les éclats restent parchemin
+    const late = right[4];
+    expect(late.filter(({ color }) => color === FX_COLORS.paleAsh).length).toBeGreaterThan(0);
+    expect(late.filter(({ color }) => color === FX_COLORS.parchment).length).toBeLessThanOrEqual(SLASH_SPARKS);
+  });
+});
+
+describe("les sorts de Corvin : Mèche, Nuit blanche, Tocsin, Soufre", () => {
+  const one = target(100, 120);
+  const CORVIN = ["wick", "frost", "bell", "sulfur"] as const; // as const : des noms de AbilityEffect, pas des chaînes
+  const play = (effect: AbilityEffect, targets: FxTarget[] = [one], seed = 11) => framesOf(abilityFx(effect, { targets, facing: 1, count: FX_COUNT, seed }, false));
+  const meanY = (pixels: { y: number }[]) => pixels.reduce((sum, { y }) => sum + y, 0) / pixels.length;
+  const tally = (all: { color: string }[][]) => {
+    const counts = new Map<string, number>();
+    for (const { color } of all.flat()) counts.set(color, (counts.get(color) ?? 0) + 1);
+    return counts;
+  };
+  const SEEDS = [1, 2, 3, 11, 57, 404]; // les propriétés ci-dessous valent pour toute graine : plusieurs sont essayées
+  // Centre du rectangle qui entoure des pixels : celui d'une onde, qui est symétrique autour du point touché
+  const centreOf = (pixels: { x: number; y: number }[]) => ({
+    x: (Math.min(...pixels.map(({ x }) => x)) + Math.max(...pixels.map(({ x }) => x))) / 2,
+    y: (Math.min(...pixels.map(({ y }) => y)) + Math.max(...pixels.map(({ y }) => y))) / 2,
+  });
+
+  it("chacun a son effet, déclaré dans les données, et les cinq dessins sont tous différents", () => {
+    expect([SPELLS.fire, SPELLS.ice, SPELLS.thunder, SPELLS.blaze].map(abilityEffect)).toEqual(["wick", "frost", "bell", "sulfur"]);
+    const drawings = EFFECTS.map((effect) => JSON.stringify(play(effect)));
+    expect(new Set(drawings).size).toBe(EFFECTS.length);
+  });
+
+  it("ses sorts n'ont que ses couleurs : ni or ni braise (pas d'orange), et le bleu pâle y est", () => {
+    const allowed: string[] = [FX_COLORS.parchment, FX_COLORS.paleBlue, FX_COLORS.nightBlue, FX_COLORS.ash, FX_COLORS.shadow];
+    for (const effect of CORVIN) {
+      const used = tally(play(effect));
+      for (const color of used.keys()) expect(allowed).toContain(color);
+      expect(used.has(FX_COLORS.paleBlue)).toBe(true);
+    }
+  });
+
+  it("le feu de Corvin est bleu pâle : c'est la couleur la plus présente de Mèche et de Soufre", () => {
+    for (const effect of ["wick", "sulfur"] as const) { // as const : idem
+      for (const seed of SEEDS) {
+        const used = tally(play(effect, [one], seed));
+        const blue = used.get(FX_COLORS.paleBlue) ?? 0;
+        for (const [color, count] of used) if (color !== FX_COLORS.paleBlue) expect(count, `${effect}, graine ${seed}, ${color}`).toBeLessThan(blue);
+      }
+    }
+  });
+
+  it("une image redemandée, ou demandée dans le désordre, est la même : rien n'est tiré pendant le dessin", () => {
+    for (const effect of EFFECTS) {
+      const plan = abilityFx(effect, { targets: [one, target(200, 150)], facing: 1, count: FX_COUNT, seed: 11 }, false);
+      const forward = framesOf(plan);
+      const backward = Array.from({ length: plan.count }, (_, i) => plan.frame(plan.count - 1 - i)).reverse();
+      expect(backward).toEqual(forward);
+      expect(framesOf(plan)).toEqual(forward);
+    }
+  });
+
+  it("sur un ennemi de la taille du Dragon, Mèche et Nuit blanche se densifient au lieu de se perdre", () => {
+    const rows: OpaqueRuns[] = Array.from({ length: 88 }, (_, row) => (row < 6 ? [] : [[8, 134]]));
+    const dragon: FxTarget = { box: { left: 60, top: 100, right: 202, bottom: 188 }, rows };
+    const fullest = (effect: AbilityEffect, targets: FxTarget[]) => Math.max(...play(effect, targets).map((pixels) => pixels.length));
+    for (const effect of ["wick", "frost"] as const) { // as const : idem
+      expect(fullest(effect, [dragon])).toBeGreaterThan(3 * fullest(effect, [one]));
+      expect(fullest(effect, [dragon])).toBeLessThan(2000); // et le nombre de pixels par image reste borné
+    }
+  });
+
+  it("Mèche : le feu prend aux pieds dès la première image, sur la silhouette, monte, et il est éteint à la dernière", () => {
+    for (const seed of SEEDS) {
+      const flames = play("wick", [one], seed);
+      // Une langue de flamme prend pied sur un pixel de la cible, dans son quart bas
+      expect(flames[0].some(({ x, y }) => opaqueAt(one, x, y) && y > one.box.top + 50)).toBe(true);
+      expect(meanY(flames[0])).toBeGreaterThan(one.box.top + 40);
+      expect(meanY(flames[3])).toBeLessThan(meanY(flames[0]));
+      expect(meanY(flames[5])).toBeLessThan(meanY(flames[3]));
+      expect(flames[FX_COUNT - 1]).toEqual([]);
+    }
+  });
+
+  it("Nuit blanche : le givre se pose dès la première image, descend de la tête aux pieds et reste posé", () => {
+    for (const seed of SEEDS) {
+      const frostFrames = play("frost", [one], seed);
+      const crystals = (index: number) => frostFrames[index].filter(({ x, y }) => opaqueAt(one, x, y));
+      expect(crystals(0).length).toBeGreaterThan(0);
+      expect(meanY(crystals(0))).toBeLessThan(one.box.top + 25);               // d'abord la tête
+      expect(crystals(2).length).toBeGreaterThan(crystals(0).length);
+      expect(crystals(5).length).toBeGreaterThan(crystals(2).length);          // il s'accumule : rien ne fond
+      expect(meanY(crystals(5))).toBeGreaterThan(meanY(crystals(0)));
+      // Un cristal posé ne bouge plus : ce qui n'a pas bougé de l'image 3 à l'image 4 (le givre ; un flocon, lui, tombe)
+      // est encore là à l'image 5
+      const at = (index: number) => new Set(frostFrames[index].map(({ x, y }) => `${x},${y}`));
+      const posed = [...at(3)].filter((key) => at(4).has(key));
+      expect(posed.length).toBeGreaterThan(10);
+      expect(posed.filter((key) => at(5).has(key)).length).toBeGreaterThanOrEqual(posed.length * 0.95);
+    }
+  });
+
+  it("Nuit blanche : à la fin, le givre se détache, tombe, et il n'en reste qu'une partie", () => {
+    for (const seed of SEEDS) {
+      const frostFrames = play("frost", [one], seed);
+      const posed = new Set(frostFrames[5].map(({ x, y }) => `${x},${y}`));
+      // À la dernière image, un pixel bleu pâle est un cristal (les flocons sont parchemin) : il était posé trois pixels plus haut
+      const fallen = frostFrames[FX_COUNT - 1].filter(({ color }) => color === FX_COLORS.paleBlue);
+      expect(fallen.length).toBeGreaterThan(0);
+      for (const { x, y } of fallen) expect(posed.has(`${x},${y - 3}`)).toBe(true);
+      expect(frostFrames[FX_COUNT - 1].length).toBeLessThan(frostFrames[5].length);
+    }
+  });
+
+  it("Tocsin : un éclair tombe d'en haut pile sur un pixel de la cible, puis des ondes s'élargissent autour de lui", () => {
+    for (const seed of SEEDS) {
+      const bolt = play("bell", [one], seed);
+      const xs = (pixels: { x: number }[]) => pixels.map(({ x }) => x);
+      expect(Math.min(...bolt[0].map(({ y }) => y))).toBeLessThan(one.box.top - 40); // il vient de bien au-dessus d'elle
+      // L'éclair est passé à l'image 3 : il ne reste que les ondes, centrées sur le point touché, un pixel de la cible
+      expect(Math.min(...bolt[3].map(({ y }) => y))).toBeGreaterThan(one.box.top - 10);
+      const strike = centreOf(bolt[3]);
+      expect(opaqueAt(one, strike.x, strike.y)).toBe(true);
+      // Et l'éclair y arrivait pile : son pied, parchemin bordé de bleu pâle, est sur ce pixel à la première image
+      const colorAt = (dx: number) => bolt[0].find(({ x, y }) => x === strike.x + dx && y === strike.y)?.color;
+      expect([colorAt(-1), colorAt(0), colorAt(1), colorAt(2)]).toEqual([FX_COLORS.paleBlue, FX_COLORS.parchment, FX_COLORS.parchment, FX_COLORS.paleBlue]);
+      const width = (index: number) => Math.max(...xs(bolt[index])) - Math.min(...xs(bolt[index]));
+      expect(width(4)).toBeGreaterThan(width(3));
+      expect(width(3)).toBeGreaterThan(8);
+    }
+  });
+
+  it("Tocsin : si le centre de la cible est un creux, l'éclair frappe le pixel de sa silhouette le plus proche", () => {
+    // Deux bras levés, rien entre eux en haut : le centre du rectangle est vide à la hauteur visée
+    const rows: OpaqueRuns[] = Array.from({ length: 60 }, (_, row) => (row < 30 ? [[2, 10], [36, 44]] : [[2, 44]]));
+    const hollow: FxTarget = { box: { left: 100, top: 120, right: 147, bottom: 180 }, rows };
+    const strike = centreOf(play("bell", [hollow])[3]);
+    expect(opaqueAt(hollow, 123, strike.y)).toBe(false); // le centre du rectangle, à cette hauteur : un creux
+    expect(opaqueAt(hollow, strike.x, strike.y)).toBe(true);
+  });
+
+  it("Tocsin : près du haut de la scène, l'éclair part du bord, jamais d'au-dessus", () => {
+    for (const top of [2, -3, -10]) {
+      for (const pixels of play("bell", [target(100, top)])) for (const { y } of pixels) expect(y).toBeGreaterThanOrEqual(Math.min(0, top));
+      // L'éclair lui-même (la première image, sans les ondes) ne dépasse jamais le haut de la scène
+      const bolt = play("bell", [target(100, top)])[0].filter(({ x }) => Math.abs(x - 123) <= 9);
+      for (const { y } of bolt) expect(y).toBeGreaterThanOrEqual(Math.min(0, top + 4));
+    }
+  });
+
+  it("Soufre : chaque ennemi saute l'un après l'autre, les éclats s'écartent de son centre, puis la fumée monte", () => {
+    const two = [target(100, 120), target(200, 150)];
+    for (const seed of SEEDS) {
+      const blast = play("sulfur", two, seed);
+      const on = (index: number, { box }: FxTarget) => blast[index].filter(({ x }) => x >= box.left - 24 && x < box.right + 24);
+      expect(on(0, two[0]).length).toBeGreaterThan(0);
+      expect(on(0, two[1])).toEqual([]);                                       // le second attend son tour
+      expect(on(1, two[1]).length).toBeGreaterThan(0);
+      const centre = { x: 123.5, y: 154.5 };
+      const reach = (index: number) => Math.max(...on(index, two[0]).map(({ x, y }) => Math.hypot(x - centre.x, y - centre.y)));
+      expect(reach(3)).toBeGreaterThan(reach(1));
+      const smoke = blast[FX_COUNT - 1].filter(({ color }) => color === FX_COLORS.ash || color === FX_COLORS.shadow);
+      expect(smoke.length).toBeGreaterThan(0);
     }
   });
 });

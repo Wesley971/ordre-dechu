@@ -16,6 +16,7 @@ import { Music } from "../audio/music.ts";
 import { Dialog } from "./dialog.ts";
 import { Menu } from "./battle-menu.ts";
 import { pickOption } from "./pick-option.ts";
+import { abilityEffect, touched } from "./battle-fx.ts";
 import { createDomStage, embersHtml, overlayHtml, type Stage } from "./stage.ts";
 import {
   $, wait, pulse, showScreen, setSceneTint, renderPartyWindow, renderMenu, updateBattleUI, updateAtbUI, setBattleRunning, setBossPanel,
@@ -174,8 +175,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     // Achever : le héros s'avance et porte le coup de grâce
     async animateFinishingBlow(hero, enemy) {
       await stage.actionStart(hero, ATTACK);
-      const anchor = stage.anchor(enemy);
-      if (anchor) spawnFx(anchor, "slash");
+      stage.impact("slash", [enemy]);
       Sfx.play("crit");
       stage.quake();
       Sfx.play("enemyDie");
@@ -238,7 +238,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
 
     showDefend(hero) {
       Sfx.play("defend");
-      const anchor = stage.anchor(hero);
+      const anchor = stage.popupAnchor(hero);
       if (anchor) spawnPopup(anchor, "Garde", "info");
     },
 
@@ -248,12 +248,16 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     },
 
     async showEffects(hits, ability) {
+      // L'effet de la capacité sur ceux qu'elle touche : en pixels s'il existe (MAE-31), sinon le halo de son élément
+      // ou du soin. Un « Raté » ne le montre pas (décision de Wesley du 10/11/2026 ; touched, battle-fx.ts)
+      const pixels = abilityEffect(ability);
+      if (pixels) stage.impact(pixels, touched(hits));
       for (const { target, effect } of hits) {
         const anchor = stage.anchor(target);
         if (!anchor) continue;
-        spawnFx(anchor, effectVisual(ability));
+        if (!pixels && effect.type !== "miss") spawnFx(anchor, effectVisual(ability));
         Sfx.play(effectSound(effect, ability));
-        spawnPopup(anchor, popupText(effect), popupClasses(effect));
+        spawnPopup(stage.popupAnchor(target) ?? anchor, popupText(effect), popupClasses(effect));
         stage.hit(target, effect);
         if (effect.crit) stage.quake();
       }

@@ -17,7 +17,7 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 * Coups critiques, attaques ratées, héros **éteints** et ranimés
 * **Boss** avec phase de fureur sous 50 % de PV
 * **Écran de victoire** : XP, Couronnes, objets trouvés, montées de niveau, nouveaux souffles appris
-* Chiffres de dégâts rebondissants, effets de souffles, héros qui s'avancent pour agir
+* Chiffres de dégâts rebondissants, des effets en pixels pour les coups d'arme et les sorts de Corvin (l'entaille, la flamme bleue, le givre, la foudre, l'explosion), un halo pour les soins et les objets en attendant les leurs, héros qui s'avancent pour agir
 * Dialogues avec **texte qui s'écrit lettre par lettre**
 * **Fragments de mémoire** : le blason de Maelor révèle, chapitre après chapitre, le passé de l'Ordre et son lien avec les dragons
 * **Choix** : prendre ou refuser le pouvoir du Cœur d'Aure-Hin, puis épargner ou achever le Dragon vaincu ; quatre fins différentes
@@ -58,6 +58,10 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 | `src/ui/sprite-frames.ts` | Image d'un combattant dans une pose, composée à partir de son PNG : chaque pixel affiché est un pixel du PNG |
 | `src/ui/sprite-motion.ts` | Animations des combattants en code : poses de fond, gestes, durées, mouvement réduit |
 | `src/ui/animated-sprite.ts` | Un combattant animé dans un canvas, partagé par les deux scènes (DOM et peinte) |
+| `src/ui/battle-fx.ts` | Effets du combat en pixel art, calculés sans DOM : les effets spéciaux et les effets des capacités |
+| `src/ui/fx-layer.ts` | La couche où ces effets sont dessinés, en pixels de sprite, dans les deux scènes |
+| `src/ui/reduced-motion.ts` | Le réglage « mouvement réduit », lu à un seul endroit |
+| `src/ui/tints.ts` | Teintes passagères des combattants (l'or, la mort, le coup reçu), définies une seule fois |
 | `src/ui/view.ts` | Affichage DOM : écrans, fenêtres, menus, bandeau, chiffres de dégâts et effets |
 | `src/ui/battle-menu.ts` | Menus de commande et sélection des cibles ; rend l'ordre du joueur à la logique |
 | `src/ui/dialog.ts` | Fenêtre de dialogue avec effet machine à écrire, et questions à choix |
@@ -70,7 +74,7 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 | `public/images/` | Images, copiées telles quelles dans le build |
 | `public/audio/` | Musiques (MP3 96 kbps), chargées seulement quand elles servent |
 | `public/licenses/` | Texte des licences à publier avec le jeu (Three.js) |
-| `vite.config.ts` | Configuration de Vite (`base` de GitHub Pages) |
+| `vite.config.ts` | Configuration de Vite (`base` de GitHub Pages) et de Vitest (`test.css` : un test peut lire la feuille de style comme du texte) |
 | `tsconfig.json` | Configuration de TypeScript (mode strict) |
 | `eslint.config.js` | Règles d'ESLint, dont la séparation entre logique et affichage |
 | `.nvmrc` | Version de Node, la même sur le PC et sur GitHub |
@@ -121,7 +125,7 @@ Le code a d'abord été refactorisé en 5 chantiers (extraction de fonctions, é
 | **Logique séparée de l'affichage** | `battle.ts` et `game-flow.ts` ne connaissent que l'interface `GameView` ; `dom-view.ts` l'implémente sur la page |
 | **Un objet par module qui garde un état**, nommé en PascalCase | `GameState`, `Battle`, `Menu`, `Dialog`, `Input`, `Sfx` |
 | **Réglages dans `config.ts`, contenu dans `game-data.ts`** | `CONFIG.timing.death`, `CONFIG.damage.critChance`, `ENEMIES.vahn` |
-| **Couleurs de l'interface via les tokens** (seuls les effets de souffles et les ombres ont leurs propres valeurs) | `var(--gold-bright)`, `var(--state-heal)` |
+| **Couleurs de l'interface via les tokens** (seuls les halos des souffles qui restent et les ombres ont leurs propres valeurs ; les effets en pixels suivent la palette des personnages) | `var(--gold-bright)`, `var(--state-heal)` |
 | **Fichiers et images en kebab-case anglais**, rangés par domaine sous `src/` ; l'image d'un héros porte son id | `src/ui/battle-menu.ts`, `images/maelor.png` |
 
 ## 🎨 Design System
