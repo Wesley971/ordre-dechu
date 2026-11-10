@@ -66,8 +66,9 @@ export type Affinity = "weak" | "resist" | "absorb";
 export type TargetType = "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" | "none";
 
 // Effet en pixels d'une capacité sur ses cibles (MAE-31), dessiné par l'affichage (src/ui/battle-fx.ts) : un nom par
-// dessin. slash : l'entaille de Frapper, que montre aussi tout coup d'arme sans effet à lui
-export type AbilityEffect = "slash";
+// dessin. slash : l'entaille de Frapper, que montre aussi tout coup d'arme sans effet à lui ; wick, frost, bell et
+// sulfur : Mèche, Nuit blanche, Tocsin et Soufre de Corvin
+export type AbilityEffect = "slash" | "wick" | "frost" | "bell" | "sulfur";
 
 interface AbilityBase {
   name: string;
@@ -171,13 +172,13 @@ export const SPELLS = {
                  desc: "« Côte à côte » : frappe double qui ignore la défense." },
   whirlwind:   { name: "Édrag",        mp: 10, kind: "physical", power: 1.2, target: "all-foes",
                  desc: "« La garde » : balaie tous les ennemis." },
-  fire:        { name: "Mèche",        mp: 4,  kind: "magic", power: 28, element: "fire",    target: "foe",
+  fire:        { name: "Mèche",        mp: 4,  kind: "magic", power: 28, element: "fire",    target: "foe", effect: "wick",
                  desc: "Flammes sur un ennemi." },
-  ice:         { name: "Nuit blanche", mp: 4,  kind: "magic", power: 28, element: "ice",     target: "foe",
+  ice:         { name: "Nuit blanche", mp: 4,  kind: "magic", power: 28, element: "ice",     target: "foe", effect: "frost",
                  desc: "Givre sur un ennemi." },
-  thunder:     { name: "Tocsin",       mp: 5,  kind: "magic", power: 34, element: "thunder", target: "foe",
+  thunder:     { name: "Tocsin",       mp: 5,  kind: "magic", power: 34, element: "thunder", target: "foe", effect: "bell",
                  desc: "Éclair sur un ennemi." },
-  blaze:       { name: "Soufre",       mp: 12, kind: "magic", power: 30, element: "fire",    target: "all-foes",
+  blaze:       { name: "Soufre",       mp: 12, kind: "magic", power: 30, element: "fire",    target: "all-foes", effect: "sulfur",
                  desc: "Flammes sur tous les ennemis." },
   cure:        { name: "Nios",         mp: 5,  kind: "heal", power: 40, target: "ally",
                  desc: "« Soin » : rend des PV à un allié." },

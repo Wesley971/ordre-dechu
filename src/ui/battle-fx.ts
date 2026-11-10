@@ -19,6 +19,8 @@ export const FX_COLORS = {
   brightGold: "#f0c95a", // or vif (yeux de Maelor et de l'écho)
   parchment: "#f1e4c3", // parchemin (haut de la rampe d'or de l'écho ; cœur clair des effets des capacités)
   paleAsh: "#c2b69f",   // cendré clair (cheveux de Maelor ; l'acier d'une lame qui passe)
+  paleBlue: "#8fb8e0",  // flamme et sorts de Corvin : le feu de sa lanterne est bleu pâle
+  nightBlue: "#141c2e", // bleu nuit de Corvin : ce que son feu laisse en s'éteignant
 } as const; // as const : les couleurs gardent leur valeur exacte, qui forme le type FxColor
 export type FxColor = (typeof FX_COLORS)[keyof typeof FX_COLORS];
 
@@ -310,7 +312,7 @@ export interface AbilityFxInput {
 }
 
 // L'effet en pixels d'une capacité : le sien, sinon l'entaille pour un coup d'arme. null : pas encore d'effet en
-// pixels, la scène garde le halo de son élément ou du soin (les souffles de Corvin, les capacités d'Elwen et les objets jusqu'à la suite de
+// pixels, la scène garde le halo de son élément ou du soin (les capacités d'Elwen et les objets jusqu'à la suite de
 // MAE-31, l'impact de la Nuée de cendre jusqu'à MAE-98)
 export function abilityEffect(ability: Ability): AbilityEffect | null {
   return ability.effect ?? (ability.kind === "physical" ? "slash" : null);
@@ -335,6 +337,9 @@ interface Shape {
   left: number; right: number; top: number; bottom: number; // bornes comprises
   width: number; height: number; cx: number; cy: number;
   point(random: () => number, from: number, to: number): FxPoint;
+  // Le pixel opaque le plus proche du centre, sur la rangée à cette part de la hauteur (ou la rangée pleine la plus
+  // proche) : là où frappe ce qui vise la cible, jamais dans un creux de sa silhouette
+  anchor(part: number): FxPoint;
 }
 
 function shapeOf({ box, rows }: FxTarget): Shape {
@@ -355,6 +360,17 @@ function shapeOf({ box, rows }: FxTarget): Shape {
       const first = rowAt(from), last = Math.max(first, rowAt(to));
       const opaque = filled.length > 0 ? opaquePoint(random, box, rows, first - box.top, last - box.top + 1) : null;
       return opaque ?? { x: between(random, left, right), y: between(random, first, last) };
+    },
+    anchor(part) {
+      const y = rowAt(part);
+      if (filled.length === 0) return { x: cx, y };
+      const row = filled.reduce((best, candidate) => (Math.abs(box.top + candidate - y) < Math.abs(box.top + best - y) ? candidate : best));
+      let x = cx, gap = Infinity;
+      for (const [from, to] of rows[row]) {
+        const near = Math.max(box.left + from, Math.min(box.left + to - 1, cx));
+        if (Math.abs(near - cx) < gap) { gap = Math.abs(near - cx); x = near; }
+      }
+      return { x, y: box.top + row };
     },
   };
 }
@@ -414,8 +430,236 @@ function slash({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
   };
 }
 
+// Mèche (Corvin, feu) : « la mèche de la lanterne, qui allume tout ». Le feu prend aux pieds de la cible et monte le
+// long de sa silhouette : chaque langue de flamme naît sur un de ses pixels, grandit puis retombe en montant d'un pixel
+// par pas. Elle est bleu pâle, comme la lanterne : seul son pied est de parchemin, et sa pointe, qui vacille,
+// s'éteint en bleu nuit. Le feu est éteint à la dernière image
+const TONGUE_GROWTH = [0.6, 1, 1, 0.6, 0.3]; // hauteur d'une langue à chaque pas de sa vie, en part de sa pleine hauteur
+const WICK_RISE = 4;                         // le feu met quatre pas à monter des pieds à la tête
+
+function wick({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const tongues = targets.flatMap((target) => {
+    const shape = shapeOf(target);
+    const total = Math.max(12, Math.min(140, Math.round((shape.width * shape.height) / 70)));
+    return Array.from({ length: total }, (_, i) => {
+      const start = i === 0 ? 0 : random() * WICK_RISE; // la première prend dès la première image
+      const level = 1 - start / WICK_RISE;              // 1 : aux pieds, 0 : à la tête
+      return {
+        start, at: shape.point(random, level - 0.18, level + 0.12),
+        // Aucune langue ne survit au dernier pas
+        life: Math.min(between(random, 3, TONGUE_GROWTH.length), Math.floor(STEPS - start)),
+        height: between(random, 5, 10), sway: between(random, -1, 1), wide: random() < 0.5,
+      };
+    });
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      for (const tongue of tongues) {
+        const age = Math.floor(step - tongue.start);
+        if (step < tongue.start || age >= tongue.life) continue;
+        const height = Math.max(3, Math.round(tongue.height * TONGUE_GROWTH[age]));
+        for (let k = 0; k < height; k++) {
+          const x = tongue.at.x + (k >= height / 2 ? tongue.sway : 0), y = tongue.at.y - age - k;
+          pixels.push({ x, y, color: k === 0 ? FX_COLORS.parchment : k === height - 1 ? FX_COLORS.nightBlue : FX_COLORS.paleBlue });
+          if (tongue.wide && k > 0 && k < height / 2) pixels.push({ x: x + 1, y, color: FX_COLORS.paleBlue });
+        }
+      }
+      return pixels;
+    },
+  };
+}
+
+// Nuit blanche (Corvin, givre) : « la veille sans sommeil, et le blanc du givre ». Le givre descend sur la cible, de la
+// tête aux pieds : chaque cristal se pose sur un de ses pixels dans un éclat de parchemin, y reste en bleu pâle (un
+// sur trois en croix), scintille, puis se détache et tombe à la fin, où il n'en reste qu'un sur trois ; des flocons
+// descendent autour d'elle
+const FROST_FLAKES = 8;
+const FROST_SETTLE = 4; // le givre met quatre pas à descendre de la tête aux pieds
+
+function frost({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const crystals = targets.flatMap((target) => {
+    const shape = shapeOf(target);
+    const total = Math.max(16, Math.min(280, Math.round((shape.width * shape.height) / 45)));
+    return Array.from({ length: total }, (_, i) => {
+      const start = i === 0 ? 0 : random() * FROST_SETTLE; // le premier cristal se pose dès la première image
+      const level = start / FROST_SETTLE;
+      // Le premier scintille au rythme de ceux qui restent jusqu'au bout
+      return { start, at: shape.point(random, level - 0.15, level + 0.15), cross: random() < 0.3, twinkle: i === 0 ? 0 : between(random, 0, 2) };
+    });
+  });
+  const flakes = targets.flatMap((target) => {
+    const shape = shapeOf(target);
+    return Array.from({ length: FROST_FLAKES }, () => ({
+      x: between(random, shape.left - 4, shape.right + 4), y: shape.top - between(random, 4, 14),
+      start: random() * 3, drift: between(random, -1, 1), bottom: shape.bottom,
+    }));
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      const fall = step > 6.5 ? Math.ceil((step - 6.5) * 2) : 0; // la fin : le givre se détache et tombe
+      for (const crystal of crystals) {
+        if (step < crystal.start || (step >= STEPS && crystal.twinkle !== 0)) continue; // au dernier pas, il n'en reste qu'un sur trois
+        const age = Math.floor(step - crystal.start);
+        const bright = age === 0 || (Math.floor(step) + crystal.twinkle) % 3 === 0;
+        const { x } = crystal.at, y = crystal.at.y + fall;
+        pixels.push({ x, y, color: bright ? FX_COLORS.parchment : FX_COLORS.paleBlue });
+        if (crystal.cross && age >= 1 && fall === 0) {
+          for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) pixels.push({ x: x + dx, y: y + dy, color: FX_COLORS.paleBlue });
+        }
+      }
+      for (const flake of flakes) {
+        if (step < flake.start) continue;
+        const age = step - flake.start;
+        const y = flake.y + Math.floor(age * 2);
+        if (y > flake.bottom) continue;
+        pixels.push({ x: flake.x + flake.drift * Math.floor(age / 3), y, color: FX_COLORS.parchment });
+      }
+      return pixels;
+    },
+  };
+}
+
+// Tocsin (Corvin, foudre) : « la cloche d'alarme des veilleurs ; la foudre tombe comme un coup de cloche ». Un éclair
+// brisé tombe sur la cible, parchemin bordé de bleu pâle, et l'éclaire deux pas ; puis deux ondes s'élargissent
+// autour du point touché, l'une après l'autre, comme un son de cloche, et s'éteignent en pointillé
+const BOLT_HEIGHT = 96; // l'éclair tombe d'aussi haut, au plus : du bord de la scène s'il est plus près
+const BOLT_KNOT = 7;    // un coude tous les sept pixels environ
+const RINGS = [1, 3];   // pas où naît chaque onde
+
+function ring(center: FxPoint, radius: number, dotted: boolean, color: FxColor): FxPixel[] {
+  const rx = Math.max(1, Math.round(radius)), ry = Math.max(1, Math.round(radius * 0.6));
+  const seen = new Set<string>();
+  const pixels: FxPixel[] = [];
+  const points = Math.ceil(2 * Math.PI * rx);
+  for (let k = 0; k < points; k++) {
+    if (dotted && k % 2 === 1) continue;
+    const angle = (2 * Math.PI * k) / points;
+    const x = center.x + Math.round(Math.cos(angle) * rx), y = center.y + Math.round(Math.sin(angle) * ry);
+    const key = `${x},${y}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    pixels.push({ x, y, color });
+  }
+  return pixels;
+}
+
+function bell({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const strikes = targets.map((target) => {
+    const shape = shapeOf(target);
+    const at = shape.anchor(0.2); // un pixel de la cible, vers le haut de sa silhouette
+    const height = Math.max(1, Math.min(BOLT_HEIGHT, at.y)); // jamais d'au-dessus de la scène
+    // Coudes de l'éclair, à intervalles égaux du haut vers le point touché, où il arrive pile (le dernier coude est sur lui)
+    const last = Math.ceil(height / BOLT_KNOT), span = height / last;
+    const knots = Array.from({ length: last + 1 }, (_, k) => (k === last ? 0 : between(random, -6, 6)));
+    const path = Array.from({ length: height + 1 }, (_, i): FxPoint => {
+      const k = Math.min(last - 1, Math.floor(i / span)), part = Math.min(1, (i - k * span) / span);
+      return { x: at.x + Math.round(knots[k] + (knots[k + 1] - knots[k]) * part), y: at.y - height + i };
+    });
+    return { at, path, lit: Array.from({ length: 14 }, () => shape.point(random, 0, 1)) };
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      for (const strike of strikes) {
+        if (step < 1) {
+          for (const { x, y } of strike.path) {
+            pixels.push({ x: x - 1, y, color: FX_COLORS.paleBlue }, { x, y, color: FX_COLORS.parchment }, { x: x + 1, y, color: FX_COLORS.parchment }, { x: x + 2, y, color: FX_COLORS.paleBlue });
+          }
+        } else if (step < 2) {
+          for (const { x, y } of strike.path) pixels.push({ x, y, color: FX_COLORS.parchment }, { x: x + 1, y, color: FX_COLORS.paleBlue });
+        } else if (step < 3) {
+          strike.path.forEach(({ x, y }, i) => { if (i % 3 !== 0) pixels.push({ x, y, color: FX_COLORS.paleBlue }); });
+        }
+        if (step < 2) for (const point of strike.lit) pixels.push({ ...point, color: step < 1 ? FX_COLORS.parchment : FX_COLORS.paleBlue });
+        for (const born of RINGS) {
+          const age = step - born;
+          if (age < 0 || age >= 4.5) continue;
+          pixels.push(...ring(strike.at, 2 + age * 3, age >= 3, age < 1.5 ? FX_COLORS.parchment : FX_COLORS.paleBlue));
+        }
+      }
+      return pixels;
+    },
+  };
+}
+
+// Soufre (Corvin, feu sur tous) : « le soufre mêlé au Souffle, l'explosion ». Sur chaque ennemi, l'un après l'autre :
+// un cœur de parchemin éclate et grossit, cerné de bleu pâle, puis s'ouvre en un anneau qui s'élargit ; des éclats
+// partent en étoile en laissant une traînée, retombent et s'éteignent en bleu nuit ; une fumée de cendre monte de sa
+// silhouette. L'explosion est à la taille de l'ennemi : `unit`, un quatorzième de son petit côté, de 3 à 6 pixels
+const SULFUR_SMOKE = 14;
+// Le cœur de l'explosion à chaque pas, en `unit` : rayon du losange, et rayon en dessous duquel il est vide (un anneau)
+const SULFUR_CORE = [{ radius: 1, hollow: 0 }, { radius: 2, hollow: 0 }, { radius: 2.7, hollow: 1.8 }, { radius: 3.3, hollow: 3 }];
+
+function sulfur({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const blasts = targets.map((target, rank) => {
+    const shape = shapeOf(target);
+    const unit = Math.max(3, Math.min(6, Math.round(Math.min(shape.width, shape.height) / 14)));
+    const sparks = Math.max(14, Math.min(28, Math.round((shape.width + shape.height) / 4)));
+    return {
+      delay: rank * 0.75, // les ennemis sautent l'un après l'autre
+      center: { x: shape.cx, y: shape.cy }, unit,
+      sparks: Array.from({ length: sparks }, () => ({ angle: random() * 2 * Math.PI, speed: (unit / 3) * (2.5 + random() * 2.5), life: 3 + random() * 2.5 })),
+      smoke: Array.from({ length: SULFUR_SMOKE }, () => ({ at: shape.point(random, 0, 0.6), start: 2.5 + random() * 3, life: between(random, 3, 4), drift: between(random, -1, 1) })),
+    };
+  });
+  const sparkAt = (center: FxPoint, spark: { angle: number; speed: number }, age: number): FxPoint => ({
+    x: center.x + Math.round(Math.cos(spark.angle) * spark.speed * age * 1.6),
+    y: center.y + Math.round(Math.sin(spark.angle) * spark.speed * age * 1.3 + 0.12 * age * age),
+  });
+  return {
+    count,
+    frame(index) {
+      const pixels: FxPixel[] = [];
+      for (const blast of blasts) {
+        // Un effet d'une seule image montre chaque explosion à son milieu, sans décalage
+        const step = clock(index, count) - (count <= 1 ? 0 : blast.delay);
+        if (step < 0) continue;
+        const { center, unit } = blast;
+        const phase = Math.floor(step);
+        if (phase < SULFUR_CORE.length) {
+          const radius = Math.round(SULFUR_CORE[phase].radius * unit), hollow = Math.round(SULFUR_CORE[phase].hollow * unit);
+          const fading = phase === SULFUR_CORE.length - 1; // le dernier anneau s'éteint en pointillé
+          for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+              const distance = Math.abs(dx) + Math.abs(dy);
+              if (distance > radius || distance < hollow || (fading && (dx + dy) % 2 !== 0)) continue;
+              pixels.push({ x: center.x + dx, y: center.y + dy, color: hollow === 0 && distance <= radius - unit ? FX_COLORS.parchment : FX_COLORS.paleBlue });
+            }
+          }
+        }
+        for (const spark of blast.sparks) {
+          const age = step - 0.5;
+          if (age < 0 || age >= spark.life) continue;
+          // La traînée : où l'éclat était un tiers et deux tiers d'image plus tôt
+          for (const back of [0.66, 0.33]) if (age >= back) pixels.push({ ...sparkAt(center, spark, age - back), color: FX_COLORS.paleBlue });
+          pixels.push({ ...sparkAt(center, spark, age), color: age < 1.5 ? FX_COLORS.parchment : age < spark.life - 1 ? FX_COLORS.paleBlue : FX_COLORS.nightBlue });
+        }
+        for (const puff of blast.smoke) {
+          const age = Math.floor(step - puff.start);
+          if (step < puff.start || age >= puff.life) continue;
+          const x = puff.at.x + (age >= 2 ? puff.drift : 0), y = puff.at.y - age, color = age < 2 ? FX_COLORS.ash : FX_COLORS.shadow;
+          pixels.push({ x, y, color }, { x: x + 1, y, color });
+        }
+      }
+      return pixels;
+    },
+  };
+}
+
 // L'effet de chaque capacité. Ajouter une capacité : son nom dans AbilityEffect (game-data.ts), son dessin ici
-const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash };
+const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash, wick, frost, bell, sulfur };
 
 // Les images de l'effet d'une capacité sur ses cibles ; avec le mouvement réduit, son image la plus fournie, fixe
 export function abilityFx(effect: AbilityEffect, input: AbilityFxInput, reduced: boolean): FxPlan {
