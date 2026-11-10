@@ -553,9 +553,9 @@ body.scene-painted #battle-scene { pointer-events: none; }
 
 /* ─── EFFETS DE SOUFFLES ───────────────────────────────────────────── */
 
-/* Halos des capacités qui n'ont pas encore leur effet en pixels (battle-fx.ts, MAE-31) : les soins et les objets
-   jusqu'à la suite de MAE-31, l'impact de la Nuée de cendre (le seul feu qui reste ici) jusqu'à MAE-98. Les coups d'arme
-   et les sorts de Corvin ont leur effet en pixels. */
+/* Halos des capacités qui n'ont pas encore leur effet en pixels (battle-fx.ts, MAE-31) : les objets jusqu'à la suite
+   de MAE-31, l'impact de la Nuée de cendre (le seul feu qui reste ici) jusqu'à MAE-98. Les coups d'arme, les gestes de
+   Maelor, les sorts de Corvin et ceux d'Elwen ont leur effet en pixels. */
 
 .fx {
   position: absolute;

@@ -313,8 +313,8 @@ export interface AbilityFxInput {
 }
 
 // L'effet en pixels d'une capacité : le sien, sinon l'entaille pour un coup d'arme. null : pas encore d'effet en
-// pixels, la scène garde le halo de son élément ou du soin (les capacités d'Elwen et les objets jusqu'à la suite de
-// MAE-31, l'impact de la Nuée de cendre jusqu'à MAE-98)
+// pixels, la scène garde le halo de son élément ou du soin (les objets jusqu'à la suite de MAE-31, l'impact de la
+// Nuée de cendre jusqu'à MAE-98)
 export function abilityEffect(ability: Ability): AbilityEffect | null {
   return ability.effect ?? (ability.kind === "physical" ? "slash" : null);
 }
@@ -781,8 +781,144 @@ function sulfur({ targets, count, seed }: AbilityFxInput): FxPlan {
   };
 }
 
+// Nios (Elwen, soin) : « soin ». Des grains d'or montent le long de l'allié : chacun naît sur un de ses pixels, dans une
+// bande qui monte des pieds à la tête en quatre pas, puis monte de deux pixels par pas en passant du parchemin à l'or
+// vif puis à l'or ancien, et s'éteint ; un grain sur trois laisse une traînée d'or ancien. Tout est éteint au dernier pas
+const MEND_RISE = 4; // la bande où naissent les grains met quatre pas à monter des pieds à la tête
+const GOLD_FADE: readonly FxColor[] = [FX_COLORS.parchment, FX_COLORS.brightGold, FX_COLORS.brightGold, FX_COLORS.oldGold, FX_COLORS.oldGold];
+
+function mend({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const grains = targets.flatMap((target) => {
+    const shape = shapeOf(target);
+    const total = Math.max(20, Math.min(200, Math.round((shape.width * shape.height) / 30)));
+    return Array.from({ length: total }, (_, i) => {
+      const start = i === 0 ? 0 : random() * MEND_RISE; // le premier naît dès la première image
+      const level = 1 - start / MEND_RISE;               // 1 : aux pieds, 0 : à la tête
+      return {
+        start, at: shape.point(random, level - 0.15, level + 0.1),
+        life: Math.min(between(random, 3, GOLD_FADE.length), Math.floor(STEPS - start)), // aucun ne survit au dernier pas
+        trail: random() < 1 / 3,
+      };
+    });
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      for (const grain of grains) {
+        const age = Math.floor(step - grain.start);
+        if (step < grain.start || age >= grain.life) continue;
+        const x = grain.at.x, y = grain.at.y - 2 * age;
+        pixels.push({ x, y, color: GOLD_FADE[Math.min(GOLD_FADE.length - 1, Math.floor((age * GOLD_FADE.length) / grain.life))] });
+        if (grain.trail && age > 0) pixels.push({ x, y: y + 1, color: FX_COLORS.oldGold });
+      }
+      return pixels;
+    },
+  };
+}
+
+// Aurésor (Elwen, soin du groupe) : « rosée d'or ». Une rosée d'or tombe sur chaque allié : chaque goutte, or vif sous
+// un reflet de parchemin, tombe de six pixels par pas, de 24 pixels de haut au plus (celles qui se posent tôt sont déjà
+// en chute à la première image, comme une pluie qui entre dans le cadre), et se pose sur un pixel de la moitié haute
+// de sa silhouette ; posée, elle brille un pas (un pixel de parchemin cerné d'une croix d'or vif), scintille en
+// or vif, puis s'éteint en or ancien
+const DEW_FALL = 6;  // pixels par pas
+const DEW_GLINT = 3; // pas de vie d'une goutte posée
+
+function dew({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const drops = targets.flatMap((target) => {
+    const shape = shapeOf(target);
+    const total = Math.max(10, Math.min(60, Math.round((shape.width * shape.height) / 110)));
+    return Array.from({ length: total }, (_, i) => {
+      const at = shape.point(random, 0, 0.5);
+      const fall = between(random, 2, 4);                         // pas de chute avant de se poser
+      const landed = i === 0 ? 1 : 1 + random() * (STEPS - DEW_GLINT - 2); // le pas où elle se pose : la première, très tôt
+      return { at, fall, landed, top: Math.min(at.y, Math.max(0, at.y - fall * DEW_FALL)) };
+    });
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      for (const drop of drops) {
+        const before = drop.landed - step; // pas restant avant de se poser
+        if (before > drop.fall) continue;
+        if (before > 0) {
+          // En chute : de son point de départ (jamais au-dessus de la scène) vers le pixel où elle se pose
+          const y = Math.max(drop.top, drop.at.y - Math.round(before * DEW_FALL));
+          pixels.push({ x: drop.at.x, y: y - 1, color: FX_COLORS.parchment }, { x: drop.at.x, y, color: FX_COLORS.brightGold });
+          continue;
+        }
+        const age = -before;
+        if (age >= DEW_GLINT) continue;
+        const { x, y } = drop.at;
+        if (age < 1) {
+          pixels.push({ x, y, color: FX_COLORS.parchment });
+          for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) pixels.push({ x: x + dx, y: y + dy, color: FX_COLORS.brightGold });
+        } else pixels.push({ x, y, color: age < 2 ? FX_COLORS.brightGold : FX_COLORS.oldGold });
+      }
+      return pixels;
+    },
+  };
+}
+
+// Liéver (Elwen, ranime un allié) : « réveil ». Une colonne de lumière dorée se dresse sur l'allié éteint, de son corps
+// jusqu'à 48 pixels au-dessus de lui (la hauteur d'un héros relevé) : elle naît mince, s'élargit jusqu'à 29 pixels au
+// plus (le tiers d'un héros couché, centrée sur lui), tient, puis se resserre et s'éteint. Ses bords sont d'or ancien,
+// son cœur un trait de parchemin, et l'intérieur un semis d'or vif qui scintille, assez clair pour qu'on voie l'allié à
+// travers ; des grains de parchemin et d'or vif y montent
+const WAKE_HEIGHT = 48;                     // la colonne monte jusqu'à cette hauteur au-dessus de lui, au plus
+// Demi-largeur à chaque pas, en quarts de sa pleine demi-largeur. À huit images, le dernier pas (7) n'est pas montré :
+// la dernière image est le pas 8, vide ; il sert à un effet plus long ou plus court (mode test)
+const WAKE_WIDTH = [1, 2, 4, 4, 4, 4, 2, 1];
+const WAKE_MOTES = 14;
+
+function wake({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const columns = targets.map((target) => {
+    const shape = shapeOf(target);
+    const half = Math.max(3, Math.min(14, Math.round(shape.width * 0.3)));
+    const top = Math.min(shape.top, Math.max(0, shape.top - WAKE_HEIGHT)); // jamais d'au-dessus de la scène
+    return {
+      cx: shape.cx, top, bottom: shape.bottom, half,
+      motes: Array.from({ length: WAKE_MOTES }, () => ({ dx: between(random, -half + 1, half - 1), y: between(random, shape.top, shape.bottom), start: random() * 4, speed: between(random, 2, 4) })),
+    };
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const phase = Math.min(WAKE_WIDTH.length - 1, Math.floor(step));
+      const pixels: FxPixel[] = [];
+      if (step >= STEPS) return pixels; // éteinte au dernier pas
+      for (const column of columns) {
+        const half = Math.max(1, Math.round((column.half * WAKE_WIDTH[phase]) / 4));
+        for (let y = column.top; y <= column.bottom; y++) {
+          pixels.push({ x: column.cx - half, y, color: FX_COLORS.oldGold }, { x: column.cx + half, y, color: FX_COLORS.oldGold });
+          if (y % 2 === 0) pixels.push({ x: column.cx, y, color: FX_COLORS.parchment });
+          for (let dx = -half + 1; dx < half; dx++) {
+            if (dx !== 0 && (dx * 3 + y * 5 + phase * 7) % 9 === 0) pixels.push({ x: column.cx + dx, y, color: FX_COLORS.brightGold });
+          }
+        }
+        for (const mote of column.motes) {
+          const age = step - mote.start;
+          if (age < 0 || Math.abs(mote.dx) >= half) continue;
+          const y = mote.y - Math.round(age * mote.speed);
+          if (y < column.top) continue;
+          pixels.push({ x: column.cx + mote.dx, y, color: age < 2 ? FX_COLORS.parchment : FX_COLORS.brightGold });
+        }
+      }
+      return pixels;
+    },
+  };
+}
+
 // L'effet de chaque capacité. Ajouter une capacité : son nom dans AbilityEffect (game-data.ts), son dessin ici
-const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash, twin, sweep, wick, frost, bell, sulfur };
+const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash, twin, sweep, wick, frost, bell, sulfur, mend, dew, wake };
 
 // Les images de l'effet d'une capacité sur ses cibles ; avec le mouvement réduit, son image la plus fournie, fixe
 export function abilityFx(effect: AbilityEffect, input: AbilityFxInput, reduced: boolean): FxPlan {

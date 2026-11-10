@@ -67,8 +67,9 @@ export type TargetType = "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" 
 
 // Effet en pixels d'une capacité sur ses cibles (MAE-31), dessiné par l'affichage (src/ui/battle-fx.ts) : un nom par
 // dessin. slash : l'entaille de Frapper, que montre aussi tout coup d'arme sans effet à lui ; twin et sweep : Vordrak
-// et Édrag de Maelor ; wick, frost, bell et sulfur : Mèche, Nuit blanche, Tocsin et Soufre de Corvin
-export type AbilityEffect = "slash" | "twin" | "sweep" | "wick" | "frost" | "bell" | "sulfur";
+// et Édrag de Maelor ; wick, frost, bell et sulfur : Mèche, Nuit blanche, Tocsin et Soufre de Corvin ; mend, dew et
+// wake : Nios, Aurésor et Liéver d'Elwen
+export type AbilityEffect = "slash" | "twin" | "sweep" | "wick" | "frost" | "bell" | "sulfur" | "mend" | "dew" | "wake";
 
 interface AbilityBase {
   name: string;
@@ -180,11 +181,11 @@ export const SPELLS = {
                  desc: "Éclair sur un ennemi." },
   blaze:       { name: "Soufre",       mp: 12, kind: "magic", power: 30, element: "fire",    target: "all-foes", effect: "sulfur",
                  desc: "Flammes sur tous les ennemis." },
-  cure:        { name: "Nios",         mp: 5,  kind: "heal", power: 40, target: "ally",
+  cure:        { name: "Nios",         mp: 5,  kind: "heal", power: 40, target: "ally", effect: "mend",
                  desc: "« Soin » : rend des PV à un allié." },
-  curePlus:    { name: "Aurésor",      mp: 14, kind: "heal", power: 30, target: "all-allies",
+  curePlus:    { name: "Aurésor",      mp: 14, kind: "heal", power: 30, target: "all-allies", effect: "dew",
                  desc: "« Rosée d'or » : rend des PV à tout le groupe." },
-  life:        { name: "Liéver",       mp: 12, kind: "revive", target: "ko-ally",
+  life:        { name: "Liéver",       mp: 12, kind: "revive", target: "ko-ally", effect: "wake",
                  desc: "« Réveil » : ranime un allié éteint." },
 } satisfies Record<string, Spell>;
 export type SpellId = keyof typeof SPELLS;

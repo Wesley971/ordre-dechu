@@ -5,7 +5,7 @@ import palette from "../../docs/character-palette.md?raw";
 import { ATTACK, ENEMY_SKILLS, ITEMS, SPELLS, type AbilityEffect } from "../data/game-data.ts";
 import {
   abilityEffect, abilityFx, along, ashCloud, ashVeil, between, FX_COLORS, goldStream, lightRise, pick, seeded, SLASH_SPARKS, still, streamsGold, touched,
-  type FxBox, type FxPlan, type FxTarget,
+  type FxBox, type FxPixel, type FxPlan, type FxTarget,
 } from "../ui/battle-fx.ts";
 import { composeFrame, frameLayout, opaqueRuns, REST_BODY, type BodyPose, type OpaqueRuns } from "../ui/sprite-frames.ts";
 import { FRAME_MS, frameCount, unravelCleared } from "../ui/sprite-motion.ts";
@@ -311,7 +311,7 @@ function target(left: number, top: number): FxTarget {
 const opaqueAt = ({ box, rows }: FxTarget, x: number, y: number) => (rows[y - box.top] ?? []).some(([from, to]) => x - box.left >= from && x - box.left < to);
 const framesOf = (plan: FxPlan) => Array.from({ length: plan.count }, (_, i) => plan.frame(i));
 // Chaque nom de AbilityEffect : un nom oublié ici ne compile pas (Record), un nom en trop non plus
-const EFFECTS = Object.keys({ slash: true, twin: true, sweep: true, wick: true, frost: true, bell: true, sulfur: true } satisfies Record<AbilityEffect, true>) as AbilityEffect[]; // as : Object.keys perd le type des clés
+const EFFECTS = Object.keys({ slash: true, twin: true, sweep: true, wick: true, frost: true, bell: true, sulfur: true, mend: true, dew: true, wake: true } satisfies Record<AbilityEffect, true>) as AbilityEffect[]; // as : Object.keys perd le type des clés
 const FX_COUNT = frameCount(CONFIG.timing.abilityFx);
 
 describe("effets des capacités : le socle", () => {
@@ -333,7 +333,7 @@ describe("effets des capacités : le socle", () => {
     for (const ability of [ENEMY_SKILLS.chains, ENEMY_SKILLS.pillar, ENEMY_SKILLS.echoBlade]) {
       expect(abilityEffect(ability)).toBe("slash");
     }
-    for (const ability of [SPELLS.cure, SPELLS.curePlus, SPELLS.life, ITEMS.potion, ITEMS.ether, ITEMS.phoenix, ENEMY_SKILLS.ashCloud]) {
+    for (const ability of [ITEMS.potion, ITEMS.ether, ITEMS.phoenix, ENEMY_SKILLS.ashCloud]) {
       expect(abilityEffect(ability)).toBeNull();
     }
   });
@@ -689,6 +689,91 @@ describe("les gestes de Maelor : Vordrak, Édrag", () => {
       // Les rangées de deux colonnes voisines se touchent ou se chevauchent
       expect(highest.get(b) ?? 0).toBeLessThanOrEqual((lowest.get(a) ?? 0) + 1);
       expect(highest.get(a) ?? 0).toBeLessThanOrEqual((lowest.get(b) ?? 0) + 1);
+    }
+  });
+});
+
+describe("les soins d'Elwen : Nios, Aurésor, Liéver", () => {
+  const one = target(100, 120);
+  // Un héros au sol (pose dessinée « down », MAE-94) : large et bas, couché au pied de son image
+  const downRows: OpaqueRuns[] = Array.from({ length: 66 }, (_, row) => (row < 50 ? [] : [[6, 76]]));
+  const fallen: FxTarget = { box: { left: 100, top: 120, right: 181, bottom: 186 }, rows: downRows };
+  const play = (effect: AbilityEffect, targets: FxTarget[] = [one], seed = 17) => framesOf(abilityFx(effect, { targets, facing: -1, count: FX_COUNT, seed }, false));
+  const SEEDS = [1, 2, 3, 17, 57, 404];
+  const HEALS = ["mend", "dew", "wake"] as const; // as const : des noms de AbilityEffect
+  const meanY = (pixels: { y: number }[]) => pixels.reduce((sum, { y }) => sum + y, 0) / pixels.length;
+  const gold = (color: string) => color === FX_COLORS.brightGold || color === FX_COLORS.oldGold;
+
+  it("chacun a son effet, déclaré dans les données", () => {
+    expect([SPELLS.cure, SPELLS.curePlus, SPELLS.life].map(abilityEffect)).toEqual(["mend", "dew", "wake"]);
+  });
+
+  it("la lumière d'Elwen est d'or : l'or domine, avec le parchemin pour seul reflet, ni bleu, ni cendre, ni rouge", () => {
+    for (const effect of HEALS) {
+      for (const seed of SEEDS) {
+        const all = play(effect, effect === "wake" ? [fallen] : [one, target(200, 150)], seed).flat();
+        for (const { color } of all) expect([FX_COLORS.parchment, FX_COLORS.brightGold, FX_COLORS.oldGold]).toContain(color);
+        expect(all.filter(({ color }) => gold(color)).length, `${effect}, graine ${seed}`).toBeGreaterThan(all.length / 2);
+      }
+    }
+  });
+
+  it("Nios : les grains d'or naissent aux pieds dès la première image, sur la silhouette, montent, et sont éteints à la dernière", () => {
+    for (const seed of SEEDS) {
+      const grains = play("mend", [one], seed);
+      expect(grains[0].some(({ x, y }) => opaqueAt(one, x, y) && y > one.box.top + 45)).toBe(true);
+      expect(meanY(grains[4])).toBeLessThan(meanY(grains[1]));
+      expect(grains[FX_COUNT - 1]).toEqual([]);
+    }
+  });
+
+  it("Aurésor : la rosée tombe sur chaque allié du groupe et se pose sur le haut de sa silhouette", () => {
+    const group = [target(100, 120), target(160, 140), target(220, 160)];
+    for (const seed of SEEDS) {
+      const drops = play("dew", group, seed);
+      expect(drops[0].length).toBeGreaterThan(0);
+      for (const hero of group) {
+        // Une goutte posée : la croix d'or vif autour d'un pixel parchemin, sur un pixel du haut de sa silhouette
+        const landed = drops.flat().filter(({ x, y, color }) => color === FX_COLORS.parchment && opaqueAt(hero, x, y) && y < hero.box.top + 40);
+        expect(landed.length, `graine ${seed}`).toBeGreaterThan(0);
+      }
+      // Une goutte en chute (or vif sous un reflet de parchemin, sans croix autour) descend : sur un effet découpé en
+      // 49 images, chacune est, à l'image suivante, un pixel plus bas sur la même colonne (encore en chute, ou posée)
+      const fine = framesOf(abilityFx("dew", { targets: group, facing: -1, count: 49, seed }, false));
+      const at = (pixels: FxPixel[]) => new Map(pixels.map(({ x, y, color }) => [`${x},${y}`, color]));
+      const now = at(fine[0]), next = at(fine[1]);
+      const heads = fine[0].filter(({ x, y, color }) => color === FX_COLORS.brightGold && now.get(`${x},${y - 1}`) === FX_COLORS.parchment
+        && now.get(`${x - 1},${y}`) !== FX_COLORS.brightGold && now.get(`${x + 1},${y}`) !== FX_COLORS.brightGold);
+      expect(heads.length).toBeGreaterThan(0);
+      for (const { x, y } of heads) expect(next.has(`${x},${y + 1}`), `goutte en ${x},${y}`).toBe(true);
+    }
+  });
+
+  it("Liéver : une colonne d'or sur l'allié éteint, qui s'élargit, tient, se resserre puis s'éteint", () => {
+    for (const seed of SEEDS) {
+      const column = play("wake", [fallen], seed);
+      const span = (index: number) => {
+        const edges = column[index].filter(({ color }) => color === FX_COLORS.oldGold).map(({ x }) => x);
+        return Math.max(...edges) - Math.min(...edges);
+      };
+      expect(span(3)).toBeGreaterThan(span(0));
+      expect(span(6)).toBeLessThan(span(3));
+      expect(column[FX_COUNT - 1]).toEqual([]);
+      // Elle se dresse sur lui : elle couvre son corps couché et monte au-dessus
+      expect(column[3].some(({ x, y }) => opaqueAt(fallen, x, y))).toBe(true);
+      expect(Math.min(...column[3].map(({ y }) => y))).toBeLessThan(fallen.box.top + 50 - 30); // au-dessus de son corps couché (rangée 50)
+      // Assez claire pour qu'on le voie à travers : elle ne couvre pas la moitié de ses pixels
+      const covered = new Set(column[3].map(({ x, y }) => `${x},${y}`));
+      let body = 0, lit = 0;
+      downRows.forEach((runs, row) => runs.forEach(([from, to]) => { for (let x = from; x < to; x++) { body++; if (covered.has(`${fallen.box.left + x},${fallen.box.top + row}`)) lit++; } }));
+      expect(lit).toBeLessThan(body / 2);
+    }
+  });
+
+  it("Liéver : près du haut de la scène, la colonne part du bord, jamais d'au-dessus", () => {
+    for (const top of [10, 0, -5]) {
+      const near: FxTarget = { ...fallen, box: { left: 100, top, right: 181, bottom: top + 66 } };
+      for (const { y } of play("wake", [near]).flat()) expect(y).toBeGreaterThanOrEqual(Math.min(0, top));
     }
   });
 });
