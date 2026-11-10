@@ -1,8 +1,8 @@
 // animation-preview.ts - Aperçu des animations des combattants, en mode test (?animations=1, MAE-30)
 //
 // Chaque personnage joue chacune de ses animations en boucle, dans sa case : un pixel de sprite fait un nombre entier
-// de pixels réels (?zoom=1 à 4 ; 2 par défaut sur ordinateur, 1 sur téléphone ; ?zoom=3 : l'échelle d'un grand écran). Les couleurs
-// (teinte du coup reçu, éclair, mort) imitent celles des scènes. Les héros tombent, sont à genoux ou au sol dans
+// de pixels réels (?zoom=1 à 4 ; 2 par défaut sur ordinateur, 1 sur téléphone ; ?zoom=3 : l'échelle d'un grand écran). Les teintes du
+// coup reçu, de la mort et de l'or sont celles des scènes (tints.ts) ; l'éclair et la lueur du Souffle les imitent. Les héros tombent, sont à genoux ou au sol dans
 // leurs poses dessinées (MAE-94), comme dans les scènes.
 // Les effets spéciaux (MAE-95) ont leur case : la Nuée de cendre du Dragon vise un héros posé dans la même case, et
 // l'écho de Maelor se défait en lumière, et l'or quitte Maelor vers le Dragon posé dans sa case (ou, sans Dragon, son
@@ -17,6 +17,7 @@ import { isReducedMotion, overrideReducedMotion } from "../ui/reduced-motion.ts"
 import { opaqueRuns, type OpaqueRuns } from "../ui/sprite-frames.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
 import { HERO_CANVAS, playAshCloud, playGoldStream, playLightRise } from "../ui/stage.ts";
+import { TINTS } from "../ui/tints.ts";
 
 interface Character { name: string; url: string; rig: SpriteRig; height: number; facing: 1 | -1; boss: boolean; mouth?: { x: number; y: number }; vanish?: "light"; gold?: boolean }
 
@@ -30,10 +31,11 @@ const MARGIN = 8; // marge de la case autour de la toile, en pixels de sprite (p
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const PAUSE = 1200;
 
-// Couleurs des scènes (style.css) : coup reçu, éclair de l'ennemi qui agit, mort
-const HIT_TINT = "brightness(1.8) sepia(0.6) hue-rotate(-30deg)";
+// Couleurs des scènes : coup reçu, mort et or viennent de tints.ts, comme dans les scènes ; l'éclair de l'ennemi qui
+// agit et la lueur du Souffle imitent style.css
+const HIT_TINT = TINTS.hit.filter;
 const FLASH = "brightness(2.6)";
-const DEATH_TINT = "sepia(1) saturate(6) hue-rotate(250deg) brightness(0.9)";
+const DEATH_TINT = `${TINTS.death.filter} brightness(0.9)`; // l'éclat du mouvement réduit de style.css (.sprite.dying)
 const GLOW = "drop-shadow(0 0 4px #f0c95a)";
 
 const HERO_SCENARIOS: [string, Scenario][] = [
@@ -125,7 +127,7 @@ const ASH_SCENARIO: [string, Scenario] = ["Nuée de cendre", async ({ sprite, co
 }];
 // L'écho se défait en lumière (MAE-95) : en or, ses rangées s'effacent en lâchant des pixels dorés ; avec le mouvement
 // réduit, en or, puis il disparaît d'un coup (comme en combat, stage.ts)
-const GOLD = "brightness(1.45) sepia(1) saturate(2.2) hue-rotate(-8deg)"; // CSS echo-unravel
+const GOLD = TINTS.gold.filter;
 const LIGHT_SCENARIO: [string, Scenario] = ["Se défait en lumière", async ({ sprite, color, light }) => {
   color(GOLD, CONFIG.timing.unravel);
   if (!isReducedMotion()) {

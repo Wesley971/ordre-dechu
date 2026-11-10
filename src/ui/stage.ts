@@ -6,7 +6,9 @@
 // Chiffres de dégâts, effets, main de ciblage et bouclier sont du DOM posé sur l'« ancre » du combattant :
 // en DOM, le sprite lui-même ; dans la scène peinte, un élément qui suit le sprite à l'écran.
 // Les deux scènes affichent les mêmes images animées (animated-sprite.ts, MAE-30) : chaque pixel vient du PNG, et
-// tout déplacement se fait par pixels de sprite entiers. Les couleurs (coup reçu, éclair, mort) restent en CSS.
+// tout déplacement se fait par pixels de sprite entiers. Les couleurs (coup reçu, éclair, mort, or) sont appliquées par
+// les classes de style.css ; les valeurs des teintes de l'or, de la mort et du coup reçu viennent de tints.ts, communes
+// aux deux scènes (MAE-31).
 // Les effets spéciaux (MAE-95) sont dessinés dans une couche à part (fx-layer.ts), la même dans les deux scènes.
 
 import { CONFIG } from "../config.ts";
@@ -23,6 +25,7 @@ import { createFxLayer, type FxLayer } from "./fx-layer.ts";
 import type { OpaqueRuns } from "./sprite-frames.ts";
 import { followHero } from "./hero-pose.ts";
 import { frameCount, unravelCleared, type BaseName } from "./sprite-motion.ts";
+import { applyTints } from "./tints.ts";
 import { $, heroFlags, pulse, spriteEl, wait } from "./view.ts";
 
 export interface Stage {
@@ -179,6 +182,7 @@ interface DomActor {
 // La scène DOM : les sprites dans #hero-area et #enemy-area ; les couleurs par les classes de style.css
 export function createDomStage(): Stage {
   syncPixelScale();
+  applyTints($("#battle-scene").style); // l'or, la mort, le coup reçu : les filtres de style.css (tints.ts)
   window.addEventListener("resize", () => { syncPixelScale(); snapSprites(); });
   const actors = new Map<string, DomActor>();
   // Couche des effets spéciaux (MAE-95), sur toute la scène ; un pixel de sprite y vaut --scene-px
