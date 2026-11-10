@@ -16,7 +16,8 @@ import type { Hero } from "../party/heroes.ts";
 import { isAlive } from "../battle/battle.ts";
 import type { BattleState, Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
-import { createAnimatedSprite, isReducedMotion, type AnimatedSprite } from "./animated-sprite.ts";
+import { createAnimatedSprite, type AnimatedSprite } from "./animated-sprite.ts";
+import { isReducedMotion } from "./reduced-motion.ts";
 import { ashCloud, ashVeil, goldStream, lightRise, streamsGold } from "./battle-fx.ts";
 import { createFxLayer, type FxLayer } from "./fx-layer.ts";
 import type { OpaqueRuns } from "./sprite-frames.ts";
@@ -145,8 +146,6 @@ export function overlayHtml(c: Combatant) {
   return `<div class="od-foe"><span class="od-foe-name">${c.name}</span><span class="od-bar" role="img"><i class="od-trail"></i><i class="od-fill"></i></span></div>`;
 }
 
-const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 // Un pixel de sprite fait un nombre entier de pixels réels, avec la même règle que la scène peinte (framing.ts) :
 // --scene-px, en pixels CSS, vaut donc k / devicePixelRatio
 function syncPixelScale() {
@@ -237,7 +236,7 @@ export function createDomStage(): Stage {
     actor.slide = 0;
     const from = actor.x;
     const place = (x: number) => { actor.x = x; actor.element.style.setProperty("--slide", String(Math.round(x))); };
-    if (reducedMotion() || duration <= 0 || from === target) { place(target); return; }
+    if (isReducedMotion() || duration <= 0 || from === target) { place(target); return; }
     const start = performance.now();
     const step = (now: number) => {
       const p = Math.min(1, (now - start) / duration);

@@ -14,7 +14,8 @@ import { CONFIG } from "../config.ts";
 import type { Decor } from "../data/decors.ts";
 import type { Hero } from "../party/heroes.ts";
 import { isAlive, type Combatant } from "../battle/battle.ts";
-import { createAnimatedSprite, isReducedMotion, type AnimatedSprite } from "../ui/animated-sprite.ts";
+import { createAnimatedSprite, type AnimatedSprite } from "../ui/animated-sprite.ts";
+import { isReducedMotion } from "../ui/reduced-motion.ts";
 import type { BaseName } from "../ui/sprite-motion.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
 import { enemyPhase, facingOf, playAshCloud, playGoldStream, playLightRise, showPose, type Stage } from "../ui/stage.ts";
@@ -189,7 +190,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
 
   function composePoses(t: number) {
     if (!actors) return;
-    const moving = !stage.reducedMotion;
+    const moving = !isReducedMotion();
     const nowMs = t * 1000;
     for (const tween of [...tweens]) {
       if (tween.start === null) tween.start = nowMs;

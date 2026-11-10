@@ -12,7 +12,8 @@
 
 import { CONFIG } from "../config.ts";
 import { ENEMIES, HEROES, type EnemyDef, type SpriteRig } from "../data/game-data.ts";
-import { createAnimatedSprite, isReducedMotion, overrideReducedMotion, type AnimatedSprite } from "../ui/animated-sprite.ts";
+import { createAnimatedSprite, type AnimatedSprite } from "../ui/animated-sprite.ts";
+import { isReducedMotion, overrideReducedMotion } from "../ui/reduced-motion.ts";
 import { opaqueRuns, type OpaqueRuns } from "../ui/sprite-frames.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
 import { HERO_CANVAS, playAshCloud, playGoldStream, playLightRise } from "../ui/stage.ts";

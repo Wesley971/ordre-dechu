@@ -15,6 +15,7 @@ import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { CONFIG } from "../config.ts";
 import type { Decor } from "../data/decors.ts";
+import { isReducedMotion, onReducedMotionChange } from "../ui/reduced-motion.ts";
 import { buildActors, type ActorBox, type ActorDef, type ActorsView } from "./actors.ts";
 import { buildAtmosphere, type AtmosphereView } from "./atmosphere.ts";
 import { computeFraming, type Framing, type GroupExtent } from "./framing.ts";
@@ -55,7 +56,6 @@ export interface PaintedStage {
   requestRedraw(): void;
   // Oscillation de la caméra, qui révèle le relief. Outil de contrôle, sans effet en mouvement réduit.
   setParallax(on: boolean): void;
-  readonly reducedMotion: boolean;
   measure(): StageMeasure;
   dispose(): void;
 }
@@ -168,7 +168,6 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
   let decorScale = 1;
 
   const time = { value: 0 };
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const startTime = performance.now();
   let view: DecorView | null = null;
   let cast: CastView | null = null;
@@ -287,7 +286,7 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
       renderer.setAnimationLoop(null);
       return;
     }
-    if (reducedMotion.matches) {
+    if (isReducedMotion()) {
       renderer.setAnimationLoop(null);
       drawStill();
     } else {
@@ -299,7 +298,7 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
     if (disposed) return;
     layout();
     // Sans attendre la prochaine image : changer la taille du canvas l'efface, on verrait un flash
-    if (reducedMotion.matches) drawStill();
+    if (isReducedMotion()) drawStill();
     else draw();
   }
 
@@ -321,7 +320,8 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
   };
   canvas.addEventListener("webglcontextlost", onContextLost);
   canvas.addEventListener("webglcontextrestored", onContextRestored);
-  reducedMotion.addEventListener("change", applyMotionPreference);
+  // Le réglage du système peut changer en cours de partie : reduced-motion.ts prévient
+  const stopWatchingMotion = onReducedMotionChange(applyMotionPreference);
 
   function removeView(old: DecorView) {
     scene.remove(old.root);
@@ -400,15 +400,11 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
 
     requestRedraw() {
       if (disposed || !view) return;
-      if (reducedMotion.matches) drawStill();
+      if (isReducedMotion()) drawStill();
     },
 
     setParallax(on) {
       parallax = on;
-    },
-
-    get reducedMotion() {
-      return reducedMotion.matches;
     },
 
     measure() {
@@ -425,7 +421,7 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
         ratio,
         deviceWidth,
         deviceHeight,
-        reducedMotion: reducedMotion.matches,
+        reducedMotion: isReducedMotion(),
         boxes: cast?.actors.boxes(deviceWidth, deviceHeight) ?? [],
         memory: { geometries: memory.geometries, textures: memory.textures, programs: programs?.length ?? 0 },
         frame: { calls: render.calls, triangles: render.triangles },
@@ -440,7 +436,7 @@ export function createPaintedStage(container: HTMLElement, quality: SceneQuality
       window.removeEventListener("resize", refresh);
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
-      reducedMotion.removeEventListener("change", applyMotionPreference);
+      stopWatchingMotion();
       if (cast) removeCast(cast);
       cast = null;
       if (view) removeView(view);
