@@ -185,9 +185,13 @@ export function createDomStage(): Stage {
   applyTints($("#battle-scene").style); // l'or, la mort, le coup reçu : les filtres de style.css (tints.ts)
   window.addEventListener("resize", () => { syncPixelScale(); snapSprites(); });
   const actors = new Map<string, DomActor>();
-  // Couche des effets spéciaux (MAE-95), sur toute la scène ; un pixel de sprite y vaut --scene-px
+  // Couche des effets (MAE-95, MAE-31), sur toute la scène ; un pixel de sprite y vaut celui des sprites : --px, qui est
+  // --scene-px sur ordinateur et 1 sur téléphone (style.css). Sans sprite en scène, --scene-px
   const scene = $("#battle-scene");
-  const fx = createFxLayer(scene, () => parseFloat(getComputedStyle(scene).getPropertyValue("--scene-px")));
+  const fx = createFxLayer(scene, () => {
+    const sprite = scene.querySelector(".sprite");
+    return parseFloat(sprite ? getComputedStyle(sprite).getPropertyValue("--px") : getComputedStyle(scene).getPropertyValue("--scene-px"));
+  });
   const pngOf = (a: DomActor) => $(".sprite-img", a.element);
 
   function actorOf(c: Combatant) {
