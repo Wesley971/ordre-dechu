@@ -268,19 +268,25 @@ function buildCell(character: Character, label: string, scenario: Scenario, px: 
 
 // — Effets des capacités (MAE-31) —
 // Ce que vise une capacité de héros dans sa case, en images fixes : un ennemi, deux pour une capacité sur tous les
-// ennemis, un héros pour un soin, le groupe pour un soin de groupe
-interface Dummy { id: string; side: "hero" | "enemy"; url: string; width: number; height: number }
+// ennemis, un héros pour un soin, le groupe pour un soin de groupe, un héros au sol pour une réanimation. Sans taille
+// donnée (la pose au sol), celle de son image
+interface Dummy { id: string; side: "hero" | "enemy"; url: string; width?: number; height?: number }
 const HEADROOM = BOLT_HEIGHT; // place au-dessus des cibles, en pixels de sprite : l'éclair de Tocsin y tombe de toute sa hauteur, comme sur un ennemi seul en combat
 const DUMMY_GAP = 12;         // écart entre deux cibles
 
 const heroDummy = (index: number): Dummy => ({ id: HEROES[index].id, side: "hero", url: HEROES[index].image, width: HERO_CANVAS.w, height: HERO_CANVAS.h });
 const enemyDummy = (def: EnemyDef, id: string): Dummy => ({ id, side: "enemy", url: def.image, width: def.canvasWidth, height: def.canvasHeight });
+// Un héros éteint, dans sa pose dessinée au sol (MAE-94), comme en combat ; debout s'il n'en a pas
+const downDummy = (index: number): Dummy => {
+  const down = HEROES[index].rig.poses?.down;
+  return down ? { id: HEROES[index].id, side: "hero", url: down.image } : heroDummy(index);
+};
 
 function abilityDummies(ability: Ability): Dummy[] {
   switch (ability.target) {
     case "all-foes": return [enemyDummy(ENEMIES.sankri, "sankri-0"), enemyDummy(ENEMIES.gautik, "gautik-1")];
-    case "ally":
-    case "ko-ally": return [heroDummy(0)];
+    case "ally": return [heroDummy(0)];
+    case "ko-ally": return [downDummy(0)];
     case "all-allies": return HEROES.map((_, index) => heroDummy(index));
     default: return [enemyDummy(ENEMIES.sankri, "sankri-0")];
   }
@@ -297,31 +303,38 @@ function buildAbilityCell(label: string, effect: AbilityEffect, dummies: Dummy[]
   const caption = document.createElement("figcaption");
   caption.textContent = label;
   figure.append(box, caption);
-  const tallest = Math.max(...dummies.map((dummy) => dummy.height));
-  const width = dummies.reduce((sum, dummy) => sum + dummy.width, 0) + DUMMY_GAP * (dummies.length - 1) + 2 * MARGIN;
-  Object.assign(box.style, { width: `${width * px}px`, height: `${(HEADROOM + tallest + MARGIN) * px}px` });
-  let left = MARGIN;
   const images = dummies.map((dummy) => {
     const image = document.createElement("img");
     image.src = dummy.url;
     image.className = "anim-target anim-dummy";
-    // Les pieds au même niveau, comme les combattants d'une scène
-    Object.assign(image.style, {
-      width: `${dummy.width * px}px`, height: `${dummy.height * px}px`, left: `${left * px}px`, top: `${(HEADROOM + tallest - dummy.height) * px}px`,
-    });
-    left += dummy.width + DUMMY_GAP;
     box.appendChild(image);
     return image;
   });
   const fx = createFxLayer(box, () => px);
-  void Promise.all(images.map((image) => image.decode())).then(async () => {
-    const targets = images.map((image, i) => ({ id: dummies[i].id, element: image, rows: imageRows(image) }));
+  // ready : la case a sa taille (images chargées), pour la caler ensuite sur un pixel réel (snap)
+  const ready = Promise.all(images.map((image) => image.decode())).then(() => {
+    // La taille de chaque cible : celle donnée, sinon celle de son image, une fois chargée
+    const sizes = images.map((image, i) => ({ width: dummies[i].width ?? image.naturalWidth, height: dummies[i].height ?? image.naturalHeight }));
+    const tallest = Math.max(...sizes.map(({ height }) => height));
+    const width = sizes.reduce((sum, size) => sum + size.width, 0) + DUMMY_GAP * (sizes.length - 1) + 2 * MARGIN;
+    Object.assign(box.style, { width: `${width * px}px`, height: `${(HEADROOM + tallest + MARGIN) * px}px` });
+    let left = MARGIN;
+    images.forEach((image, i) => {
+      // Les pieds au même niveau, comme les combattants d'une scène
+      Object.assign(image.style, {
+        width: `${sizes[i].width * px}px`, height: `${sizes[i].height * px}px`, left: `${left * px}px`, top: `${(HEADROOM + tallest - sizes[i].height) * px}px`,
+      });
+      left += sizes[i].width + DUMMY_GAP;
+    });
+    return images.map((image, i) => ({ id: dummies[i].id, element: image, rows: imageRows(image) }));
+  });
+  void ready.then(async (targets) => {
     for (;;) {
       playAbilityFx(fx, effect, targets, facing);
       await wait(CONFIG.timing.abilityFx + PAUSE);
     }
   }).catch((error: unknown) => { caption.textContent = `${label} : ${String(error)}`; });
-  return figure;
+  return { figure, ready };
 }
 
 const STYLE = `
@@ -384,11 +397,13 @@ export function openAnimationPreview() {
   fxTitle.textContent = "Effets des capacités";
   const fxRow = document.createElement("div");
   fxRow.className = "anim-row";
+  const cells: Promise<unknown>[] = [];
+  const addCell = (cell: ReturnType<typeof buildAbilityCell>) => { fxRow.appendChild(cell.figure); cells.push(cell.ready); };
   for (const ability of [ATTACK, ...Object.values<Ability>(SPELLS), ...Object.values<Ability>(ITEMS)]) {
-    if (ability.effect) fxRow.appendChild(buildAbilityCell(ability.name, ability.effect, abilityDummies(ability), px));
+    if (ability.effect) addCell(buildAbilityCell(ability.name, ability.effect, abilityDummies(ability), px));
   }
   // Un ennemi qui frappe : la même entaille, sur un héros, depuis la droite
-  if (ATTACK.effect) fxRow.appendChild(buildAbilityCell(`${ATTACK.name}, reçu par un héros`, ATTACK.effect, [heroDummy(0)], px));
+  if (ATTACK.effect) addCell(buildAbilityCell(`${ATTACK.name}, reçu par un héros`, ATTACK.effect, [heroDummy(0)], px));
   page.append(fxTitle, fxRow);
 
   // Chaque case commence sur un pixel réel : sinon le pixel art afficherait des rangées irrégulières (comme stage.ts)
@@ -407,6 +422,6 @@ export function openAnimationPreview() {
     pending = true;
     requestAnimationFrame(() => { pending = false; snap(); });
   });
-  // Une fois toutes les cases à leur taille (images chargées), puis à chaque changement
-  void Promise.allSettled(sprites.map((sprite) => sprite.ready)).then(() => requestAnimationFrame(snap));
+  // Une fois toutes les cases à leur taille (images chargées, celles des effets comprises), puis à chaque changement
+  void Promise.allSettled([...sprites.map((sprite) => sprite.ready), ...cells]).then(() => requestAnimationFrame(snap));
 }

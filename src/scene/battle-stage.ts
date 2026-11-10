@@ -323,9 +323,13 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
 
   if (options.counter) {
     const { overlay, startCounter } = await import("../dev/fps-counter.ts");
-    const element = overlay("Mesure en cours…", { left: "8px", top: "8px" });
-    container.appendChild(element);
-    stopCounter = startCounter(() => stage.measure(), element);
+    // Devant l'interface, en haut à droite : posé dans la scène, derrière l'interface, il était caché par la plaque du
+    // groupe (MAE-31). Sur téléphone, sous le bandeau du groupe (--party-height) ; sur ordinateur, sous le bouton du son
+    // (#sound-btn : 12 px du haut et 44 px de haut, soit 56 px)
+    const element = overlay("Mesure en cours…", { position: "fixed", right: "8px", top: "calc(var(--party-height, 56px) + 8px)" });
+    document.body.appendChild(element);
+    const stopMeasure = startCounter(() => stage.measure(), element);
+    stopCounter = () => { stopMeasure(); element.remove(); };
   }
 
   const battleStage: BattleStage = {

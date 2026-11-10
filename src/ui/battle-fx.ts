@@ -21,6 +21,7 @@ export const FX_COLORS = {
   paleAsh: "#c2b69f",   // cendré clair (cheveux de Maelor ; l'acier d'une lame qui passe)
   paleBlue: "#8fb8e0",  // flamme et sorts de Corvin : le feu de sa lanterne est bleu pâle
   nightBlue: "#141c2e", // bleu nuit de Corvin : ce que son feu laisse en s'éteignant
+  wine: "#6e1626",      // rouge vin de Maelor : le liseré de ses gestes
 } as const; // as const : les couleurs gardent leur valeur exacte, qui forme le type FxColor
 export type FxColor = (typeof FX_COLORS)[keyof typeof FX_COLORS];
 
@@ -312,8 +313,7 @@ export interface AbilityFxInput {
 }
 
 // L'effet en pixels d'une capacité : le sien, sinon l'entaille pour un coup d'arme. null : pas encore d'effet en
-// pixels, la scène garde le halo de son élément ou du soin (les capacités d'Elwen et les objets jusqu'à la suite de
-// MAE-31, l'impact de la Nuée de cendre jusqu'à MAE-98)
+// pixels, la scène garde le halo de son élément (l'impact de la Nuée de cendre jusqu'à MAE-98)
 export function abilityEffect(ability: Ability): AbilityEffect | null {
   return ability.effect ?? (ability.kind === "physical" ? "slash" : null);
 }
@@ -425,6 +425,128 @@ function slash({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
           pixels.push({ x: end.x + Math.round(spark.dx * age), y: end.y - Math.round(spark.dy * age) + Math.round(age * age * 0.5), color: FX_COLORS.parchment });
         }
       }
+      return pixels;
+    },
+  };
+}
+
+// Vordrak (Maelor) : « côte à côte », la frappe double. Deux entailles parallèles en diagonale, tracées ensemble en
+// deux images depuis le côté de celui qui frappe, parchemin bordées dessous de rouge vin ; elles tiennent, puis
+// s'effacent pixel par pixel en cendré clair, toujours bordées de rouge vin, pendant que des éclats filent au bout de
+// chacune. Le rouge vin seul se perdrait dans la nuit : il reste le liseré d'un trait clair
+const TWIN_SPARKS = 3; // éclats au bout de chaque entaille
+
+function twin({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const pairs = targets.map((target) => {
+    const shape = shapeOf(target);
+    const length = Math.max(10, Math.min(40, Math.round(Math.min(shape.width, shape.height) * 0.8)));
+    const half = Math.floor(length / 2);
+    const gap = Math.max(4, Math.round(length / 6)); // écart entre les deux entailles, le long de l'horizontale
+    return {
+      // Les deux départs, de part et d'autre du centre de la silhouette
+      starts: [-1, 1].map((side): FxPoint => ({ x: shape.cx - facing * half + side * Math.ceil(gap / 2), y: shape.cy - half })),
+      length,
+      fades: Array.from({ length: 2 * length }, random), // l'instant où chaque pixel s'efface, de 0 à 1
+      sparks: Array.from({ length: 2 * TWIN_SPARKS }, () => ({ dx: facing * (1.5 + random() * 2), dy: 0.5 + random() * 2, start: 2 + random() * 2 })),
+    };
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      for (const pair of pairs) {
+        const drawn = Math.min(pair.length, Math.ceil((pair.length * (step + 1)) / 2));
+        const fresh = step <= 4;
+        const fade = fresh ? 0 : (step - 4) / (STEPS - 4);
+        pair.starts.forEach((from, cut) => {
+          for (let i = 0; i < drawn; i++) {
+            if (pair.fades[cut * pair.length + i] < fade) continue;
+            const x = from.x + facing * i, y = from.y + i;
+            pixels.push({ x, y, color: fresh ? FX_COLORS.parchment : FX_COLORS.paleAsh }, { x, y: y + 1, color: FX_COLORS.wine });
+          }
+          const end = { x: from.x + facing * (pair.length - 1), y: from.y + pair.length - 1 };
+          for (const spark of pair.sparks.slice(cut * TWIN_SPARKS, (cut + 1) * TWIN_SPARKS)) {
+            const age = step - spark.start;
+            if (age < 0 || age >= 3) continue;
+            pixels.push({ x: end.x + Math.round(spark.dx * age), y: end.y - Math.round(spark.dy * age) + Math.round(age * age * 0.5), color: FX_COLORS.parchment });
+          }
+        });
+      }
+      return pixels;
+    },
+  };
+}
+
+// Édrag (Maelor) : « la garde », qui balaie tous les ennemis. Un seul grand arc de lame passe d'un ennemi à l'autre,
+// dans le sens du coup, à hauteur de hanche, et bombe vers le haut sur toute sa longueur : sa tête, plus épaisse,
+// parchemin ; derrière elle, un trait de deux pixels parchemin sur cendré clair. Des éclats partent de chaque ennemi
+// quand la lame le traverse. L'arc entier tient, puis s'efface pixel par pixel en cendré clair, comme l'entaille. Deux
+// ennemis l'un au-dessus de l'autre : la lame passe de l'un à l'autre à la verticale
+const SWEEP_TRACE = 4;        // la lame met quatre pas à traverser
+const SWEEP_SPARKS = 4;       // éclats par ennemi traversé
+const SWEEP_LEVEL = 0.6;      // hauteur de la lame dans chaque silhouette (0 en haut, 1 en bas)
+
+function sweep({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  // Les cibles dans l'ordre où la lame les traverse
+  const shapes = targets.map(shapeOf).sort((a, b) => facing * (a.cx - b.cx));
+  const path: FxPoint[] = [];
+  const passes: { at: number; center: FxPoint }[] = []; // où la lame traverse chaque cible : rang dans le trajet
+  if (shapes.length > 0) {
+    const first = shapes[0], last = shapes[shapes.length - 1];
+    const level = (shape: Shape) => shape.top + Math.round((shape.height - 1) * SWEEP_LEVEL);
+    const start = (facing > 0 ? first.left : first.right) - facing * 6;
+    const end = (facing > 0 ? last.right : last.left) + facing * 6;
+    const knots = [{ x: start, y: level(first) }, ...shapes.map((shape) => ({ x: shape.cx, y: level(shape) })), { x: end, y: level(last) }];
+    const span = Math.max(1, Math.abs(end - start));
+    const bulge = Math.max(3, Math.min(12, Math.round(span * 0.08)));
+    let previous: FxPoint | null = null;
+    for (let i = 0; i <= span; i++) {
+      const x = start + facing * i;
+      // Hauteur de base : entre les deux repères qui entourent x, puis l'arc qui bombe vers le haut
+      const k = Math.max(0, knots.findIndex((knot, n) => n > 0 && facing * (knot.x - x) >= 0) - 1);
+      const a = knots[k], b = knots[Math.min(knots.length - 1, k + 1)];
+      const part = b.x === a.x ? 0 : (x - a.x) / (b.x - a.x);
+      const q = i / span;
+      const y = Math.round(a.y + (b.y - a.y) * part - bulge * 4 * q * (1 - q));
+      // Pas de trou : d'une colonne à l'autre, la lame descend ou monte pixel par pixel
+      if (previous) for (let fill = previous.y + Math.sign(y - previous.y); Math.abs(y - fill) > 0; fill += Math.sign(y - fill)) path.push({ x, y: fill });
+      path.push({ x, y });
+      previous = { x, y };
+    }
+    // Le point du trajet le plus proche de chaque cible, à sa hauteur : deux cibles de même colonne ont chacune le sien
+    for (const shape of shapes) {
+      const distance = (point: FxPoint) => Math.abs(point.x - shape.cx) + Math.abs(point.y - level(shape));
+      const at = path.reduce((best, point, i) => (distance(point) < distance(path[best]) ? i : best), 0);
+      passes.push({ at, center: path[at] });
+    }
+  }
+  const fades = Array.from({ length: path.length }, random);
+  const sparks = passes.map(() => Array.from({ length: SWEEP_SPARKS }, () => ({ dx: facing * (1 + random() * 2), dy: -2 + random() * 4 })));
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      const head = Math.min(path.length, Math.ceil((path.length * (step + 1)) / SWEEP_TRACE));
+      const fresh = step <= SWEEP_TRACE + 1;
+      const fade = fresh ? 0 : (step - SWEEP_TRACE - 1) / (STEPS - SWEEP_TRACE - 1);
+      for (let i = 0; i < head; i++) {
+        if (fades[i] < fade) continue;
+        const { x, y } = path[i];
+        if (!fresh) { pixels.push({ x, y, color: FX_COLORS.paleAsh }); continue; }
+        pixels.push({ x, y: y - 1, color: FX_COLORS.parchment }, { x, y, color: FX_COLORS.parchment }, { x, y: y + 1, color: FX_COLORS.paleAsh });
+        if (head < path.length && i >= head - 4) pixels.push({ x, y: y - 2, color: FX_COLORS.parchment }, { x, y: y + 2, color: FX_COLORS.paleAsh }); // la tête de la lame
+      }
+      passes.forEach((pass, n) => {
+        // Le pas où la tête de la lame traverse cette cible
+        const crossed = (pass.at * SWEEP_TRACE) / Math.max(1, path.length) - 1;
+        const age = step - crossed;
+        if (age < 0 || age >= 3) return;
+        for (const spark of sparks[n]) pixels.push({ x: pass.center.x + Math.round(spark.dx * (age + 1)), y: pass.center.y + Math.round(spark.dy * (age + 1)) + Math.round(age * age * 0.5), color: FX_COLORS.parchment });
+      });
       return pixels;
     },
   };
@@ -658,8 +780,303 @@ function sulfur({ targets, count, seed }: AbilityFxInput): FxPlan {
   };
 }
 
+// Nios (Elwen, soin) : « soin ». Des grains d'or montent le long de l'allié : chacun naît sur un de ses pixels, dans une
+// bande qui monte des pieds à la tête en quatre pas, puis monte de deux pixels par pas en passant du parchemin à l'or
+// vif puis à l'or ancien, et s'éteint ; un grain sur trois laisse une traînée d'or ancien. Tout est éteint au dernier pas
+const MEND_RISE = 4; // la bande où naissent les grains met quatre pas à monter des pieds à la tête
+const GOLD_FADE: readonly FxColor[] = [FX_COLORS.parchment, FX_COLORS.brightGold, FX_COLORS.brightGold, FX_COLORS.oldGold, FX_COLORS.oldGold];
+
+function mend({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const grains = targets.flatMap((target) => {
+    const shape = shapeOf(target);
+    const total = Math.max(20, Math.min(200, Math.round((shape.width * shape.height) / 30)));
+    return Array.from({ length: total }, (_, i) => {
+      const start = i === 0 ? 0 : random() * MEND_RISE; // le premier naît dès la première image
+      const level = 1 - start / MEND_RISE;               // 1 : aux pieds, 0 : à la tête
+      return {
+        start, at: shape.point(random, level - 0.15, level + 0.1),
+        life: Math.min(between(random, 3, GOLD_FADE.length), Math.floor(STEPS - start)), // aucun ne survit au dernier pas
+        trail: random() < 1 / 3,
+      };
+    });
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      for (const grain of grains) {
+        const age = Math.floor(step - grain.start);
+        if (step < grain.start || age >= grain.life) continue;
+        const x = grain.at.x, y = grain.at.y - 2 * age;
+        pixels.push({ x, y, color: GOLD_FADE[Math.min(GOLD_FADE.length - 1, Math.floor((age * GOLD_FADE.length) / grain.life))] });
+        if (grain.trail && age > 0) pixels.push({ x, y: y + 1, color: FX_COLORS.oldGold });
+      }
+      return pixels;
+    },
+  };
+}
+
+// Aurésor (Elwen, soin du groupe) : « rosée d'or ». Une rosée d'or tombe sur chaque allié : chaque goutte, or vif sous
+// un reflet de parchemin, tombe de six pixels par pas, de 24 pixels de haut au plus (celles qui se posent tôt sont déjà
+// en chute à la première image, comme une pluie qui entre dans le cadre), et se pose sur un pixel de la moitié haute
+// de sa silhouette ; posée, elle brille un pas (un pixel de parchemin cerné d'une croix d'or vif), scintille en
+// or vif, puis s'éteint en or ancien
+const DEW_FALL = 6;  // pixels par pas
+const DEW_GLINT = 3; // pas de vie d'une goutte posée
+
+function dew({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const drops = targets.flatMap((target) => {
+    const shape = shapeOf(target);
+    const total = Math.max(10, Math.min(60, Math.round((shape.width * shape.height) / 110)));
+    return Array.from({ length: total }, (_, i) => {
+      const at = shape.point(random, 0, 0.5);
+      const fall = between(random, 2, 4);                         // pas de chute avant de se poser
+      const landed = i === 0 ? 1 : 1 + random() * (STEPS - DEW_GLINT - 2); // le pas où elle se pose : la première, très tôt
+      return { at, fall, landed, top: Math.min(at.y, Math.max(0, at.y - fall * DEW_FALL)) };
+    });
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      for (const drop of drops) {
+        const before = drop.landed - step; // pas restant avant de se poser
+        if (before > drop.fall) continue;
+        if (before > 0) {
+          // En chute : de son point de départ (jamais au-dessus de la scène) vers le pixel où elle se pose
+          const y = Math.max(drop.top, drop.at.y - Math.round(before * DEW_FALL));
+          pixels.push({ x: drop.at.x, y: y - 1, color: FX_COLORS.parchment }, { x: drop.at.x, y, color: FX_COLORS.brightGold });
+          continue;
+        }
+        const age = -before;
+        if (age >= DEW_GLINT) continue;
+        const { x, y } = drop.at;
+        if (age < 1) {
+          pixels.push({ x, y, color: FX_COLORS.parchment });
+          for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) pixels.push({ x: x + dx, y: y + dy, color: FX_COLORS.brightGold });
+        } else pixels.push({ x, y, color: age < 2 ? FX_COLORS.brightGold : FX_COLORS.oldGold });
+      }
+      return pixels;
+    },
+  };
+}
+
+// Liéver (Elwen, ranime un allié) : « réveil ». Une colonne de lumière dorée se dresse sur l'allié éteint, de son corps
+// jusqu'à 48 pixels au-dessus de lui (la hauteur d'un héros relevé) : elle naît mince, s'élargit jusqu'à 29 pixels au
+// plus (le tiers d'un héros couché, centrée sur lui), tient, puis se resserre et s'éteint. Ses bords sont d'or ancien,
+// son cœur un trait de parchemin, et l'intérieur un semis d'or vif qui scintille, assez clair pour qu'on voie l'allié à
+// travers ; des grains de parchemin et d'or vif y montent
+const WAKE_HEIGHT = 48;                     // la colonne monte jusqu'à cette hauteur au-dessus de lui, au plus
+// Demi-largeur à chaque pas, en quarts de sa pleine demi-largeur. À huit images, le dernier pas (7) n'est pas montré :
+// la dernière image est le pas 8, vide ; il sert à un effet plus long ou plus court (mode test)
+const WAKE_WIDTH = [1, 2, 4, 4, 4, 4, 2, 1];
+const WAKE_MOTES = 14;
+
+function wake({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const columns = targets.map((target) => {
+    const shape = shapeOf(target);
+    const half = Math.max(3, Math.min(14, Math.round(shape.width * 0.3)));
+    const top = Math.min(shape.top, Math.max(0, shape.top - WAKE_HEIGHT)); // jamais d'au-dessus de la scène
+    return {
+      cx: shape.cx, top, bottom: shape.bottom, half,
+      motes: Array.from({ length: WAKE_MOTES }, () => ({ dx: between(random, -half + 1, half - 1), y: between(random, shape.top, shape.bottom), start: random() * 4, speed: between(random, 2, 4) })),
+    };
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const phase = Math.min(WAKE_WIDTH.length - 1, Math.floor(step));
+      const pixels: FxPixel[] = [];
+      if (step >= STEPS) return pixels; // éteinte au dernier pas
+      for (const column of columns) {
+        const half = Math.max(1, Math.round((column.half * WAKE_WIDTH[phase]) / 4));
+        for (let y = column.top; y <= column.bottom; y++) {
+          pixels.push({ x: column.cx - half, y, color: FX_COLORS.oldGold }, { x: column.cx + half, y, color: FX_COLORS.oldGold });
+          if (y % 2 === 0) pixels.push({ x: column.cx, y, color: FX_COLORS.parchment });
+          for (let dx = -half + 1; dx < half; dx++) {
+            if (dx !== 0 && (dx * 3 + y * 5 + phase * 7) % 9 === 0) pixels.push({ x: column.cx + dx, y, color: FX_COLORS.brightGold });
+          }
+        }
+        for (const mote of column.motes) {
+          const age = step - mote.start;
+          if (age < 0 || Math.abs(mote.dx) >= half) continue;
+          const y = mote.y - Math.round(age * mote.speed);
+          if (y < column.top) continue;
+          pixels.push({ x: column.cx + mote.dx, y, color: age < 2 ? FX_COLORS.parchment : FX_COLORS.brightGold });
+        }
+      }
+      return pixels;
+    },
+  };
+}
+
+// Sève (objet, rend des PV) : des gouttes pâles tombent sur l'allié, parchemin sur un pied de cendré clair, se posent
+// sur le haut de sa silhouette et y éclatent en deux gouttelettes de cendré clair qui glissent de part et d'autre ;
+// puis quelques reflets de parchemin perlent sur lui et s'éteignent
+const SAP_DROPS = 7;   // gouttes par allié
+const SAP_FALL = 6;    // pixels par pas
+const SAP_GLEAMS = 10; // reflets par allié
+
+function sap({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const allies = targets.map((target) => {
+    const shape = shapeOf(target);
+    return {
+      drops: Array.from({ length: SAP_DROPS }, (_, i) => {
+        const at = shape.point(random, 0, 0.35);
+        const fall = between(random, 2, 3);
+        return { at, fall, landed: i === 0 ? 1 : 1 + random() * 3, top: Math.min(at.y, Math.max(0, at.y - fall * SAP_FALL)) };
+      }),
+      gleams: Array.from({ length: SAP_GLEAMS }, () => ({ at: shape.point(random, 0.1, 0.9), start: 3 + random() * 2.5 })),
+    };
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      for (const ally of allies) {
+        for (const drop of ally.drops) {
+          const before = drop.landed - step;
+          if (before > drop.fall) continue;
+          const { x } = drop.at;
+          if (before > 0) {
+            const y = Math.max(drop.top + 2, drop.at.y - Math.round(before * SAP_FALL));
+            pixels.push({ x, y: y - 2, color: FX_COLORS.parchment }, { x, y: y - 1, color: FX_COLORS.parchment }, { x, y, color: FX_COLORS.paleAsh });
+            continue;
+          }
+          // Posée : elle éclate, puis ses deux gouttelettes glissent d'un pixel par pas, de part et d'autre
+          const age = Math.floor(-before);
+          if (age >= 3) continue;
+          if (age === 0) pixels.push({ x, y: drop.at.y, color: FX_COLORS.parchment });
+          pixels.push({ x: x - 1 - age, y: drop.at.y + age, color: FX_COLORS.paleAsh }, { x: x + 1 + age, y: drop.at.y + age, color: FX_COLORS.paleAsh });
+        }
+        for (const gleam of ally.gleams) {
+          const age = step - gleam.start;
+          if (age < 0 || age >= 2 || step >= STEPS) continue;
+          pixels.push({ ...gleam.at, color: FX_COLORS.parchment });
+        }
+      }
+      return pixels;
+    },
+  };
+}
+
+// Encens (objet, rend des PS) : des volutes de fumée montent des pieds de l'allié et l'enveloppent en ondulant : chaque
+// volute est un filet de cendré clair qui s'allonge vers le haut en serpentant, la tête parchemin, la queue de cendre ;
+// à la fin, elles se détachent, montent et s'éteignent
+const INCENSE_STRANDS = 4;
+const INCENSE_RISE = 7;   // pixels par pas de la tête d'une volute
+const INCENSE_LENGTH = 22; // longueur d'une volute, au plus
+
+function incense({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const strands = targets.flatMap((target) => {
+    const shape = shapeOf(target);
+    return Array.from({ length: INCENSE_STRANDS }, (_, i) => ({
+      // Pieds répartis sur la largeur de la silhouette, un peu au-delà de ses bords
+      x: shape.left - 2 + Math.round(((i + 0.5) * (shape.width + 4)) / INCENSE_STRANDS) + between(random, -1, 1),
+      base: shape.bottom - between(random, 0, 4),
+      start: i === 0 ? 0 : random() * 1.5,
+      amplitude: between(random, 2, 4),
+      period: 5 + random() * 3,
+      phase: random() * 2 * Math.PI,
+    }));
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      if (step >= STEPS) return pixels; // éteintes au dernier pas
+      for (const strand of strands) {
+        const age = step - strand.start;
+        if (age < 0) continue;
+        const head = strand.base - Math.round(age * INCENSE_RISE);
+        // Sa queue quitte le sol dès qu'elle dépasse sa longueur (vers le pas 3) ; à partir du pas 5, elle raccourcit
+        const length = Math.min(INCENSE_LENGTH, Math.round(age * INCENSE_RISE), step >= 5 ? Math.max(0, Math.round(INCENSE_LENGTH * (STEPS - step) / 3)) : INCENSE_LENGTH);
+        for (let k = 0; k <= length; k++) {
+          const y = head + k;
+          if (y > strand.base) break;
+          const x = strand.x + Math.round(strand.amplitude * Math.sin((y - strand.base) / strand.period + strand.phase));
+          pixels.push({ x, y, color: k === 0 ? FX_COLORS.parchment : k > length * 0.65 ? FX_COLORS.ash : FX_COLORS.paleAsh });
+        }
+      }
+      return pixels;
+    },
+  };
+}
+
+// Larme dorée (objet, ranime un allié) : une larme d'or tombe sur l'allié et éclate sur sa poitrine dans un éclair de
+// parchemin ; des éclats d'or partent en étoile et retombent, et des paillettes d'or scintillent sur lui jusqu'à la fin
+const TEAR_DROP = 3;     // la larme tombe pendant trois pas
+const TEAR_HEIGHT = 40;  // et d'aussi haut, au plus
+const TEAR_SPARKS = 12;
+const TEAR_FLECKS = 16;
+
+function tear({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const allies = targets.map((target) => {
+    const shape = shapeOf(target);
+    const at = shape.anchor(0.4); // un pixel de sa silhouette, vers la poitrine (ou le milieu du corps couché)
+    return {
+      // D'où elle tombe : de façon que sa pointe, trois pixels au-dessus de son pied, parte du haut de la scène au plus
+      at, top: Math.min(at.y, Math.max(3, at.y - TEAR_HEIGHT)),
+      sparks: Array.from({ length: TEAR_SPARKS }, (_, i) => ({ angle: ((i + random() * 0.6) * 2 * Math.PI) / TEAR_SPARKS, speed: 2 + random() * 2 })),
+      flecks: Array.from({ length: TEAR_FLECKS }, () => ({ at: shape.point(random, 0, 1), start: TEAR_DROP + 1 + random() * 3, twinkle: between(random, 0, 1) })),
+    };
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      if (step >= STEPS) return pixels; // éteinte au dernier pas
+      for (const ally of allies) {
+        const { at } = ally;
+        if (step < TEAR_DROP) {
+          // La larme : une pointe d'or vif, un corps d'or vif au reflet de parchemin, un pied d'or ancien. Sur un allié
+          // collé au haut de la scène, ce qui dépasserait du haut n'est pas dessiné
+          const y = Math.round(ally.top + ((at.y - ally.top) * step) / TEAR_DROP);
+          const drop: FxPixel[] = [
+            { x: at.x, y: y - 3, color: FX_COLORS.brightGold },
+            { x: at.x, y: y - 2, color: FX_COLORS.parchment }, { x: at.x + 1, y: y - 2, color: FX_COLORS.brightGold },
+            { x: at.x - 1, y: y - 1, color: FX_COLORS.brightGold }, { x: at.x, y: y - 1, color: FX_COLORS.brightGold }, { x: at.x + 1, y: y - 1, color: FX_COLORS.brightGold },
+            { x: at.x, y, color: FX_COLORS.oldGold },
+          ];
+          pixels.push(...drop.filter((pixel) => pixel.y >= 0));
+          continue;
+        }
+        const age = step - TEAR_DROP;
+        if (age < 1) {
+          for (let d = -2; d <= 2; d++) pixels.push({ x: at.x + d, y: at.y, color: FX_COLORS.parchment }, { x: at.x, y: at.y + d, color: FX_COLORS.parchment });
+        }
+        for (const spark of ally.sparks) {
+          if (age >= 3.5) continue;
+          pixels.push({
+            x: at.x + Math.round(Math.cos(spark.angle) * spark.speed * (age + 1) * 1.5),
+            y: at.y + Math.round(Math.sin(spark.angle) * spark.speed * (age + 1) + 0.6 * age * age),
+            color: age < 1.5 ? FX_COLORS.brightGold : FX_COLORS.oldGold,
+          });
+        }
+        for (const fleck of ally.flecks) {
+          if (step < fleck.start) continue;
+          pixels.push({ ...fleck.at, color: (Math.floor(step) + fleck.twinkle) % 2 === 0 ? FX_COLORS.brightGold : FX_COLORS.oldGold });
+        }
+      }
+      return pixels;
+    },
+  };
+}
+
 // L'effet de chaque capacité. Ajouter une capacité : son nom dans AbilityEffect (game-data.ts), son dessin ici
-const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash, wick, frost, bell, sulfur };
+const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash, twin, sweep, wick, frost, bell, sulfur, mend, dew, wake, sap, incense, tear };
 
 // Les images de l'effet d'une capacité sur ses cibles ; avec le mouvement réduit, son image la plus fournie, fixe
 export function abilityFx(effect: AbilityEffect, input: AbilityFxInput, reduced: boolean): FxPlan {

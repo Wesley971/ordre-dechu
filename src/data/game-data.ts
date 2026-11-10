@@ -66,9 +66,11 @@ export type Affinity = "weak" | "resist" | "absorb";
 export type TargetType = "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" | "none";
 
 // Effet en pixels d'une capacité sur ses cibles (MAE-31), dessiné par l'affichage (src/ui/battle-fx.ts) : un nom par
-// dessin. slash : l'entaille de Frapper, que montre aussi tout coup d'arme sans effet à lui ; wick, frost, bell et
-// sulfur : Mèche, Nuit blanche, Tocsin et Soufre de Corvin
-export type AbilityEffect = "slash" | "wick" | "frost" | "bell" | "sulfur";
+// dessin. slash : l'entaille de Frapper, que montre aussi tout coup d'arme sans effet à lui ; twin et sweep : Vordrak
+// et Édrag de Maelor ; wick, frost, bell et sulfur : Mèche, Nuit blanche, Tocsin et Soufre de Corvin ; mend, dew et
+// wake : Nios, Aurésor et Liéver d'Elwen ; sap, incense et tear : les objets Sève, Encens et Larme dorée
+export type AbilityEffect = "slash" | "twin" | "sweep" | "wick" | "frost" | "bell" | "sulfur" | "mend" | "dew" | "wake"
+  | "sap" | "incense" | "tear";
 
 interface AbilityBase {
   name: string;
@@ -168,9 +170,9 @@ export const COMMAND_HELP: Record<string, string> = {
 export const SPELLS = {
   // Noms de la langue de l'Ordre (Maelor), des mots de métier des Veilleurs (Corvin), de la langue des immortels
   // (Elwen) : docs/lexique.md
-  fallenBlade: { name: "Vordrak",      mp: 6,  kind: "physical", power: 2, pierce: true, target: "foe",
+  fallenBlade: { name: "Vordrak",      mp: 6,  kind: "physical", power: 2, pierce: true, target: "foe", effect: "twin",
                  desc: "« Côte à côte » : frappe double qui ignore la défense." },
-  whirlwind:   { name: "Édrag",        mp: 10, kind: "physical", power: 1.2, target: "all-foes",
+  whirlwind:   { name: "Édrag",        mp: 10, kind: "physical", power: 1.2, target: "all-foes", effect: "sweep",
                  desc: "« La garde » : balaie tous les ennemis." },
   fire:        { name: "Mèche",        mp: 4,  kind: "magic", power: 28, element: "fire",    target: "foe", effect: "wick",
                  desc: "Flammes sur un ennemi." },
@@ -180,19 +182,19 @@ export const SPELLS = {
                  desc: "Éclair sur un ennemi." },
   blaze:       { name: "Soufre",       mp: 12, kind: "magic", power: 30, element: "fire",    target: "all-foes", effect: "sulfur",
                  desc: "Flammes sur tous les ennemis." },
-  cure:        { name: "Nios",         mp: 5,  kind: "heal", power: 40, target: "ally",
+  cure:        { name: "Nios",         mp: 5,  kind: "heal", power: 40, target: "ally", effect: "mend",
                  desc: "« Soin » : rend des PV à un allié." },
-  curePlus:    { name: "Aurésor",      mp: 14, kind: "heal", power: 30, target: "all-allies",
+  curePlus:    { name: "Aurésor",      mp: 14, kind: "heal", power: 30, target: "all-allies", effect: "dew",
                  desc: "« Rosée d'or » : rend des PV à tout le groupe." },
-  life:        { name: "Liéver",       mp: 12, kind: "revive", target: "ko-ally",
+  life:        { name: "Liéver",       mp: 12, kind: "revive", target: "ko-ally", effect: "wake",
                  desc: "« Réveil » : ranime un allié éteint." },
 } satisfies Record<string, Spell>;
 export type SpellId = keyof typeof SPELLS;
 
 export const ITEMS = {
-  potion:  { name: "Sève",            kind: "heal",   amount: 100, target: "ally",    desc: "Rend 100 PV." },
-  ether:   { name: "Encens",          kind: "mp",     amount: 30,  target: "ally",    desc: "Rend 30 PS." },
-  phoenix: { name: "Larme dorée",     kind: "revive",              target: "ko-ally", desc: "Ranime un allié éteint." },
+  potion:  { name: "Sève",            kind: "heal",   amount: 100, target: "ally",    effect: "sap",     desc: "Rend 100 PV." },
+  ether:   { name: "Encens",          kind: "mp",     amount: 30,  target: "ally",    effect: "incense", desc: "Rend 30 PS." },
+  phoenix: { name: "Larme dorée",     kind: "revive",              target: "ko-ally", effect: "tear",    desc: "Ranime un allié éteint." },
 } satisfies Record<string, Item>;
 export type ItemId = keyof typeof ITEMS;
 
