@@ -17,7 +17,7 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 * Coups critiques, attaques ratées, héros **éteints** et ranimés
 * **Boss** avec phase de fureur sous 50 % de PV
 * **Écran de victoire** : XP, Couronnes, objets trouvés, montées de niveau, nouveaux souffles appris
-* Chiffres de dégâts rebondissants, un effet en pixels pour chaque capacité des héros et chaque objet (l'entaille de Frapper, la double entaille et le balayage de Maelor, la flamme bleue, le givre, la foudre et l'explosion de Corvin, la lumière d'or d'Elwen, les gouttes, la fumée et la larme d'or des objets), héros qui s'avancent pour agir
+* Chiffres de dégâts rebondissants, un effet en pixels pour chaque capacité des héros et chaque objet (l'entaille de Frapper, la double entaille et le balayage de Maelor, la flamme bleue, le givre, la foudre et l'explosion de Corvin, la lumière d'or d'Elwen, les gouttes, la fumée et la larme d'or des objets), et pour chaque capacité des ennemis (les chaînes qui cinglent, le pilier qui écrase, la double entaille dorée de l'écho, les braises de la Nuée de cendre), héros qui s'avancent pour agir
 * Dialogues avec **texte qui s'écrit lettre par lettre**
 * **Fragments de mémoire** : le blason de Maelor révèle, chapitre après chapitre, le passé de l'Ordre et son lien avec les dragons
 * **Choix** : prendre ou refuser le pouvoir du Cœur d'Aure-Hin, puis épargner ou achever le Dragon vaincu ; quatre fins différentes
@@ -62,7 +62,7 @@ Chaque fichier TypeScript est un module ES qui importe explicitement ce qu'il ut
 | `src/ui/fx-layer.ts` | La couche où ces effets sont dessinés, en pixels de sprite, dans les deux scènes |
 | `src/ui/reduced-motion.ts` | Le réglage « mouvement réduit », lu à un seul endroit |
 | `src/ui/tints.ts` | Teintes passagères des combattants (l'or, la mort, le coup reçu), définies une seule fois |
-| `src/ui/view.ts` | Affichage DOM : écrans, fenêtres, menus, bandeau, chiffres de dégâts et effets |
+| `src/ui/view.ts` | Affichage DOM : écrans, fenêtres, menus, bandeau, chiffres de dégâts |
 | `src/ui/battle-menu.ts` | Menus de commande et sélection des cibles ; rend l'ordre du joueur à la logique |
 | `src/ui/dialog.ts` | Fenêtre de dialogue avec effet machine à écrire, et questions à choix |
 | `src/ui/pick-option.ts` | Petit menu de choix (titre, dialogues) |
@@ -125,7 +125,7 @@ Le code a d'abord été refactorisé en 5 chantiers (extraction de fonctions, é
 | **Logique séparée de l'affichage** | `battle.ts` et `game-flow.ts` ne connaissent que l'interface `GameView` ; `dom-view.ts` l'implémente sur la page |
 | **Un objet par module qui garde un état**, nommé en PascalCase | `GameState`, `Battle`, `Menu`, `Dialog`, `Input`, `Sfx` |
 | **Réglages dans `config.ts`, contenu dans `game-data.ts`** | `CONFIG.timing.death`, `CONFIG.damage.critChance`, `ENEMIES.vahn` |
-| **Couleurs de l'interface via les tokens** (seuls le dernier halo, celui de la Nuée de cendre, et les ombres ont leurs propres valeurs ; les effets en pixels suivent la palette des personnages) | `var(--gold-bright)`, `var(--state-heal)` |
+| **Couleurs de l'interface via les tokens** (seuls l'éclair du début de combat, le voile doré de la ligne d'un héros (son tour, son nouveau niveau) et les ombres ont leurs propres valeurs ; les effets en pixels suivent la palette des personnages) | `var(--gold-bright)`, `var(--state-heal)` |
 | **Fichiers et images en kebab-case anglais**, rangés par domaine sous `src/` ; l'image d'un héros porte son id | `src/ui/battle-menu.ts`, `images/maelor.png` |
 
 ## 🎨 Design System

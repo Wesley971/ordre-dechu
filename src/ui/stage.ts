@@ -3,7 +3,7 @@
 // Deux scènes implémentent ce contrat : celle-ci, en DOM (sprites sur l'image de fond), et la scène peinte en 2,5D
 // (src/scene/battle-stage.ts), choisie par dom-view.ts quand le chapitre déclare un décor.
 // Une scène ne joue aucun son et ne touche pas au HUD : dom-view.ts s'en charge, dans le même ordre pour les deux.
-// Effets, main de ciblage et bouclier sont du DOM posé sur l'« ancre » du combattant : en DOM, le sprite lui-même ;
+// Marque ▼ de ciblage et bouclier sont du DOM posé sur l'« ancre » du combattant : en DOM, le sprite lui-même ;
 // dans la scène peinte, un élément qui suit le sprite à l'écran. Les chiffres de dégâts se posent là où la scène le
 // dit (popupAnchor), devant la couche des effets : l'ancre dans la scène peinte, une couche à part en DOM (MAE-31).
 // Les deux scènes affichent les mêmes images animées (animated-sprite.ts, MAE-30) : chaque pixel vient du PNG, et
@@ -34,7 +34,7 @@ export interface Stage {
   showBattle(state: BattleState): void;                      // les ennemis prennent place, pas encore visibles
   appear(): void;                                            // entrée en combat : les ennemis apparaissent
   refresh(): void;                                           // poses d'après l'état : éteint, en danger, actif, garde
-  anchor(c: Combatant): HTMLElement | null;                  // élément DOM posé sur le combattant (effets, main de ciblage)
+  anchor(c: Combatant): HTMLElement | null;                  // élément DOM posé sur le combattant (marque ▼ de ciblage, bouclier)
   popupAnchor(c: Combatant): HTMLElement | null;             // où poser ses chiffres : devant la couche des effets (MAE-31)
   actionStart(actor: Combatant, ability: Ability): Promise<void>; // élan et pas en avant, ou bond et éclair, puis lueur du Souffle
   stepBack(actor: Combatant): void;                          // le héros reprend sa place

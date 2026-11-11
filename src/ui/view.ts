@@ -1,4 +1,4 @@
-// view.ts - Affichage : écrans, fenêtres du bas, menus, bandeau, chiffres et effets
+// view.ts - Affichage : écrans, fenêtres du bas, menus, bandeau, chiffres
 //
 // Les combattants eux-mêmes (sprites, poses, animations) sont la « scène » : stage.ts en DOM, src/scene/battle-stage.ts
 // en 2,5D (MAE-29). Ce fichier ne joue aucun son : les sons sont dans dom-view.ts, les menus et le dialogue.
