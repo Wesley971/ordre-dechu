@@ -2,7 +2,7 @@
 //
 // Le canvas couvre tout l'écran, derrière l'interface ; la peinture est cadrée dans le rectangle de #battle-scene,
 // au-dessus des fenêtres du bas (zone de cadrage, framing.ts). Sur chaque combattant, une « ancre » DOM suit son
-// sprite à l'écran : elle reçoit les chiffres, effets, main de ciblage et bouclier (dom-view.ts, style.css), elle
+// sprite à l'écran : elle reçoit les chiffres, la marque ▼ de ciblage et le bouclier (dom-view.ts, style.css), elle
 // porte les mêmes classes d'état que les sprites DOM, et un toucher dessus vise le combattant.
 // Les combattants s'animent comme dans la scène DOM, avec les mêmes images (src/ui/animated-sprite.ts, MAE-30) :
 // chaque pixel vient du PNG, chaque déplacement se fait par pixels de sprite entiers (actors.ts). Ici, les couleurs

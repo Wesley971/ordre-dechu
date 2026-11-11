@@ -22,6 +22,9 @@ export const FX_COLORS = {
   paleBlue: "#8fb8e0",  // flamme et sorts de Corvin : le feu de sa lanterne est bleu pâle
   nightBlue: "#141c2e", // bleu nuit de Corvin : ce que son feu laisse en s'éteignant
   wine: "#6e1626",      // rouge vin de Maelor : le liseré de ses gestes
+  iron: "#3d3f42",      // fer (palette des ennemis ; chaînes des Gau-Tik, docs/enemy-sheets.md)
+  rust: "#6b3a22",      // rouille (palette des ennemis ; chaînes des Gau-Tik)
+  bone: "#8f8a7c",      // os gris (palette des ennemis) : l'arête claire des coups des ennemis (décision de Wesley du 11/11/2026)
 } as const; // as const : les couleurs gardent leur valeur exacte, qui forme le type FxColor
 export type FxColor = (typeof FX_COLORS)[keyof typeof FX_COLORS];
 
@@ -77,7 +80,7 @@ export function along(from: FxPoint, to: FxPoint, p: number, arc = 0): FxPoint {
 // puis s'éteignent un à un avant la fin. En vol, un grain laisse derrière lui une traînée de deux pixels d'ombre sur
 // son trajet : à douze images par seconde, il franchit l'écran par grands sauts, et la traînée dit d'où il vient.
 // Les grains se posent pour l'essentiel vers la fin du sort (CONFIG.timing.cast), quand l'impact frappe les héros.
-// L'impact garde le halo de feu (décision de Wesley du 09/11/2026) jusqu'à son effet en pixels, dans MAE-98.
+// L'impact sur les héros touchés est l'effet de la capacité (cinder, MAE-98), lancé avec les chiffres.
 const ASH_GRAINS: readonly (readonly [FxColor, number])[] = [[FX_COLORS.ash, 6], [FX_COLORS.shadow, 2], [FX_COLORS.ember, 2]];
 export const ASH_GRAINS_PER_TARGET = 36;
 export const ASH_VEIL_PER_TARGET = 48; // voile du mouvement réduit : un peu plus dense, puisqu'il ne bouge pas
@@ -312,8 +315,8 @@ export interface AbilityFxInput {
   seed: number;
 }
 
-// L'effet en pixels d'une capacité : le sien, sinon l'entaille pour un coup d'arme. null : pas encore d'effet en
-// pixels, la scène garde le halo de son élément (l'impact de la Nuée de cendre jusqu'à MAE-98)
+// L'effet en pixels d'une capacité : le sien, sinon l'entaille pour un coup d'arme. Toutes les capacités du jeu
+// déclarent le leur (game-data.ts) ; null : aucun effet (le Repli, qui ne touche personne)
 export function abilityEffect(ability: Ability): AbilityEffect | null {
   return ability.effect ?? (ability.kind === "physical" ? "slash" : null);
 }
@@ -433,11 +436,25 @@ function slash({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
 // Vordrak (Maelor) : « côte à côte », la frappe double. Deux entailles parallèles en diagonale, tracées ensemble en
 // deux images depuis le côté de celui qui frappe, parchemin bordées dessous de rouge vin ; elles tiennent, puis
 // s'effacent pixel par pixel en cendré clair, toujours bordées de rouge vin, pendant que des éclats filent au bout de
-// chacune. Le rouge vin seul se perdrait dans la nuit : il reste le liseré d'un trait clair
+// chacune. Le rouge vin seul se perdrait dans la nuit : il reste le liseré d'un trait clair.
+// Kardrov (l'écho de Maelor, MAE-98) : la même frappe, en miroir de haut en bas (les entailles montent), dans la rampe
+// d'or de l'écho (docs/character-palette.md, section 8 ; décision de Wesley du 11/11/2026) : parchemin bordées d'or
+// ancien, puis or ancien bordé de brun d'ombre en s'effaçant, et des éclats parchemin. Pas de rouge vin : il est à
+// Maelor. Pas d'or vif non plus : les petits éclats d'or vif sur un héros touché sont l'indice de son sang (MAE-98,
+// PR 2), que Kardrov ne doit pas brouiller. Le liseré reste sous le trait, comme une ombre portée. Un ennemi frappe
+// depuis la droite : retournée de gauche à droite par le sens du coup, puis de haut en bas, l'entaille de Kardrov a à
+// l'écran la même diagonale que Vordrak sur un ennemi, tracée dans l'autre sens (du bas vers le haut)
 const TWIN_SPARKS = 3; // éclats au bout de chaque entaille
 
-function twin({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
+// Le tracé et les couleurs d'une frappe double : rise, les entailles montent au lieu de descendre ; fresh et edge, le
+// trait et son liseré tant qu'il est frais ; faded et fadedEdge, en s'effaçant ; spark, les éclats
+interface TwinStyle { rise: boolean; fresh: FxColor; edge: FxColor; faded: FxColor; fadedEdge: FxColor; spark: FxColor }
+const VORDRAK: TwinStyle = { rise: false, fresh: FX_COLORS.parchment, edge: FX_COLORS.wine, faded: FX_COLORS.paleAsh, fadedEdge: FX_COLORS.wine, spark: FX_COLORS.parchment };
+const KARDROV: TwinStyle = { rise: true, fresh: FX_COLORS.parchment, edge: FX_COLORS.oldGold, faded: FX_COLORS.oldGold, fadedEdge: FX_COLORS.shadow, spark: FX_COLORS.parchment };
+
+function doubleCut({ targets, facing, count, seed }: AbilityFxInput, style: TwinStyle): FxPlan {
   const random = seeded(seed);
+  const down = style.rise ? -1 : 1; // sens vertical du tracé
   const pairs = targets.map((target) => {
     const shape = shapeOf(target);
     const length = Math.max(10, Math.min(40, Math.round(Math.min(shape.width, shape.height) * 0.8)));
@@ -445,7 +462,7 @@ function twin({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
     const gap = Math.max(4, Math.round(length / 6)); // écart entre les deux entailles, le long de l'horizontale
     return {
       // Les deux départs, de part et d'autre du centre de la silhouette
-      starts: [-1, 1].map((side): FxPoint => ({ x: shape.cx - facing * half + side * Math.ceil(gap / 2), y: shape.cy - half })),
+      starts: [-1, 1].map((side): FxPoint => ({ x: shape.cx - facing * half + side * Math.ceil(gap / 2), y: shape.cy - down * half })),
       length,
       fades: Array.from({ length: 2 * length }, random), // l'instant où chaque pixel s'efface, de 0 à 1
       sparks: Array.from({ length: 2 * TWIN_SPARKS }, () => ({ dx: facing * (1.5 + random() * 2), dy: 0.5 + random() * 2, start: 2 + random() * 2 })),
@@ -463,14 +480,14 @@ function twin({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
         pair.starts.forEach((from, cut) => {
           for (let i = 0; i < drawn; i++) {
             if (pair.fades[cut * pair.length + i] < fade) continue;
-            const x = from.x + facing * i, y = from.y + i;
-            pixels.push({ x, y, color: fresh ? FX_COLORS.parchment : FX_COLORS.paleAsh }, { x, y: y + 1, color: FX_COLORS.wine });
+            const x = from.x + facing * i, y = from.y + down * i;
+            pixels.push({ x, y, color: fresh ? style.fresh : style.faded }, { x, y: y + 1, color: fresh ? style.edge : style.fadedEdge });
           }
-          const end = { x: from.x + facing * (pair.length - 1), y: from.y + pair.length - 1 };
+          const end = { x: from.x + facing * (pair.length - 1), y: from.y + down * (pair.length - 1) };
           for (const spark of pair.sparks.slice(cut * TWIN_SPARKS, (cut + 1) * TWIN_SPARKS)) {
             const age = step - spark.start;
             if (age < 0 || age >= 3) continue;
-            pixels.push({ x: end.x + Math.round(spark.dx * age), y: end.y - Math.round(spark.dy * age) + Math.round(age * age * 0.5), color: FX_COLORS.parchment });
+            pixels.push({ x: end.x + Math.round(spark.dx * age), y: end.y - Math.round(spark.dy * age) + Math.round(age * age * 0.5), color: style.spark });
           }
         });
       }
@@ -478,6 +495,9 @@ function twin({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
     },
   };
 }
+
+const twin = (input: AbilityFxInput) => doubleCut(input, VORDRAK);
+const echo = (input: AbilityFxInput) => doubleCut(input, KARDROV);
 
 // Édrag (Maelor) : « la garde », qui balaie tous les ennemis. Un seul grand arc de lame passe d'un ennemi à l'autre,
 // dans le sens du coup, à hauteur de hanche, et bombe vers le haut sur toute sa longueur : sa tête, plus épaisse,
@@ -1075,8 +1095,193 @@ function tear({ targets, count, seed }: AbilityFxInput): FxPlan {
   };
 }
 
+// — Capacités ennemies (MAE-98) —
+// Elles frappent les héros, depuis le côté des ennemis (facing -1 en combat). Chaînes et Pilier ont les couleurs des
+// ennemis (docs/character-palette.md, section 7), avec l'os gris pour arête claire (décision de Wesley du 11/11/2026).
+
+// Chaînes (Gau-Tik) : un coup de fouet horizontal. Une ligne de maillons, fer et rouille, aux arêtes d'os gris, part du
+// côté de celui qui frappe et cingle le héros en travers, à hauteur de poitrine, en trois pas, en ondulant ; tendue, elle
+// tient pendant que des éclats d'os gris jaillissent là où elle mord, puis retombe maillon par maillon, la tête d'abord :
+// elle touche le sol aux pieds du héros, le reste la suit, sans jamais passer sous ses pieds, et tout s'éteint au
+// dernier pas. Un maillon sur deux est vu à plat (un anneau creux de trois
+// pixels de haut), l'autre par la tranche (une barre de rouille)
+const CHAIN_LINK = 4;      // longueur d'un maillon, en pixels
+const CHAIN_LEVEL = 0.35;  // hauteur du coup dans la silhouette (0 en haut, 1 en bas)
+const CHAIN_REACH = 6;     // la chaîne déborde la silhouette de six pixels de chaque côté
+const CHAIN_SPARKS = 4;    // éclats là où elle mord
+
+function chains({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const whips = targets.map((target) => {
+    const shape = shapeOf(target);
+    const bite = shape.anchor(CHAIN_LEVEL);
+    const start = (facing > 0 ? shape.left : shape.right) - facing * CHAIN_REACH; // du côté de celui qui frappe
+    const length = shape.width + 2 * CHAIN_REACH;
+    const links = Math.ceil(length / CHAIN_LINK);
+    return {
+      bite, start, length, links, floor: shape.bottom,
+      delays: Array.from({ length: links }, () => random()), // retard de chute de chaque maillon, en demi-pas
+      sparks: Array.from({ length: CHAIN_SPARKS }, () => ({ dx: facing * (0.5 + random() * 1.5), dy: 1 + random() * 1.5 })),
+    };
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      if (step >= STEPS) return pixels; // éteinte au dernier pas
+      const wave = step < 3 ? 2 * (1 - step / 3) : 0; // l'onde du fouet, qui s'éteint quand la chaîne se tend
+      for (const whip of whips) {
+        const drawn = Math.min(whip.length, Math.ceil((whip.length * (step + 1)) / 3));
+        for (let i = 0; i < drawn; i++) {
+          const link = Math.floor(i / CHAIN_LINK), k = i % CHAIN_LINK;
+          // Chute : la tête (le bout le plus loin) tombe la première, puis chaque maillon, jusqu'aux pieds
+          const age = step - 4 - (whip.links - 1 - link) / whip.links - whip.delays[link] * 0.5;
+          const drop = age > 0 ? Math.round(age * (4 + 6 * age)) : 0;
+          // Le maillon fait trois rangées (de y - 1 à y + 1) : la dernière s'arrête sur la rangée des pieds
+          const y = Math.min(whip.floor - 1, whip.bite.y + Math.round(wave * Math.sin(i / 2.5 - step * 2)) + drop);
+          const x = whip.start + facing * i;
+          if (link % 2 === 0) {
+            if (k === 0 || k === CHAIN_LINK - 1) pixels.push({ x, y, color: FX_COLORS.iron });
+            else pixels.push({ x, y: y - 1, color: FX_COLORS.bone }, { x, y: y + 1, color: FX_COLORS.iron });
+          } else {
+            pixels.push({ x, y, color: FX_COLORS.rust });
+            if (k === 1) pixels.push({ x, y: y - 1, color: FX_COLORS.bone });
+          }
+        }
+        for (const spark of whip.sparks) {
+          const age = step - 2.5;
+          if (age < 0 || age >= 3) continue;
+          pixels.push({ x: whip.bite.x + Math.round(spark.dx * age * 2), y: whip.bite.y - Math.round(spark.dy * age) + Math.round(age * age * 0.5), color: FX_COLORS.bone });
+        }
+      }
+      return pixels;
+    },
+  };
+}
+
+// Pilier (Painkush) : un écrasement vertical. Un bloc de pierre cendre, cannelé de fer comme leurs piliers sculptés,
+// aux arêtes d'os gris, tombe d'en haut sur la tête du héros en accélérant ; il frappe au troisième pas, s'enfonce
+// d'un pixel, puis se brise pixel par pixel, les éclats tombant en s'écartant, pendant que la poussière, cendre et os
+// gris, jaillit à ses pieds et s'écarte des deux côtés en rasant le sol. Près du haut de la scène, le bloc part du
+// bord, et rien n'est dessiné au-dessus
+const PILLAR_FALL = 3;     // le bloc met trois pas à tomber
+export const PILLAR_DROP = 36; // il tombe d'aussi haut, au plus : du bord de la scène s'il est plus près
+const PILLAR_CROWN = 2;    // son pied se pose sur cette rangée de la silhouette : le sommet du crâne
+const PILLAR_SHARD = 1.5;  // un éclat brisé tombe un pas et demi, puis disparaît
+const PILLAR_DUST = 8;     // grains de poussière de chaque côté
+const PILLAR_DUSTS: readonly (readonly [FxColor, number])[] = [[FX_COLORS.ash, 3], [FX_COLORS.bone, 2]];
+
+function pillar({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const blocks = targets.map((target) => {
+    const shape = shapeOf(target);
+    const width = Math.max(6, Math.min(12, Math.round(shape.width * 0.3)));
+    const height = Math.round(width * 2.2);
+    const left = shape.cx - Math.floor(width / 2);
+    const landed = shape.top + PILLAR_CROWN - height + 1; // haut du bloc posé : son pied sur le sommet du crâne
+    // Il part de PILLAR_DROP plus haut, ou du bord de la scène s'il est plus près. S'il ne tient pas sous le bord (un
+    // héros collé au haut de la scène), il est déjà posé, coupé par le bord, et ne tombe pas
+    const from = Math.max(Math.min(0, landed), landed - PILLAR_DROP);
+    // Le bloc : un chapiteau d'os gris un pixel plus large, le côté gauche éclairé (os gris), le droit dans l'ombre (fer),
+    // des cannelures de fer, un pied de fer. Chaque pixel se brise à son heure après l'impact, puis tombe en s'écartant
+    const cells: { dx: number; dy: number; color: FxColor; breaks: number }[] = [];
+    for (let dy = 0; dy < height; dy++) {
+      for (let dx = dy === 0 ? -1 : 0; dx < (dy === 0 ? width + 1 : width); dx++) {
+        const color = dy === 0 || dx === 0 ? FX_COLORS.bone
+          : dx === width - 1 || dy === height - 1 || dx % 3 === 2 ? FX_COLORS.iron : FX_COLORS.ash;
+        cells.push({ dx, dy, color, breaks: PILLAR_FALL + 1 + random() * (STEPS - PILLAR_FALL - 1 - PILLAR_SHARD - 0.1) }); // tous brisés et tombés avant le dernier pas
+      }
+    }
+    const dust = [-1, 1].flatMap((side) => Array.from({ length: PILLAR_DUST }, () => ({
+      side, speed: 1 + random() * 2, lift: between(random, 0, 2), life: 2.5 + random() * 2, color: pick(random, PILLAR_DUSTS),
+    })));
+    return { left, landed, from, width, cells, dust, cx: shape.cx, feet: shape.bottom };
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      for (const block of blocks) {
+        const p = Math.min(1, step / PILLAR_FALL);
+        const top = step < PILLAR_FALL ? Math.round(block.from + (block.landed - block.from) * p * p) : block.landed + (step >= PILLAR_FALL + 1 ? 1 : 0);
+        for (const cell of block.cells) {
+          // Brisé : il tombe en s'écartant du milieu du bloc, et disparaît un pas et demi plus tard
+          const age = step - cell.breaks;
+          if (age >= PILLAR_SHARD) continue;
+          const fall = age > 0 ? Math.round(age * (1 + 1.5 * age)) : 0;
+          const drift = age > 0 ? Math.sign(cell.dx - (block.width - 1) / 2) * Math.round(age) : 0;
+          const y = top + cell.dy + fall;
+          if (y >= 0 && y <= block.feet) pixels.push({ x: block.left + cell.dx + drift, y, color: cell.color });
+        }
+        for (const grain of block.dust) {
+          const age = step - PILLAR_FALL;
+          if (age < 0 || age >= grain.life) continue;
+          const x = block.cx + grain.side * (Math.ceil(block.width / 2) + Math.round(grain.speed * age * 1.5)), y = block.feet - grain.lift;
+          pixels.push({ x, y, color: grain.color });
+          if (age < 1) pixels.push({ x, y: y - 1, color: grain.color }); // la poussière jaillit, puis rase le sol
+        }
+      }
+      return pixels;
+    },
+  };
+}
+
+// Impact de la Nuée de cendre (le Dragon, MAE-98) : la cendre venue de sa gueule (ashCloud, pendant le sort) prend sur
+// les héros touchés. Des braises naissent sur le haut de leur silhouette, sur ses pixels opaques, dès la première
+// image et jusqu'au deuxième pas, et rougeoient (environ une sur deux en croix cernée de brun d'ombre, les autres en un
+// pixel posé sur son ombre) ; puis chacune s'éteint en cendre qui tombe en dérivant, et passe au brun d'ombre avant de
+// disparaître, avant le dernier pas. Sobre, sans couleur claire
+// (décision de Wesley du 11/11/2026) : braise sombre, cendre et brun d'ombre seulement, comme le feu du Dragon
+// (docs/character-palette.md, section 7)
+const CINDER_PER_TARGET = 20;
+const CINDER_FIRST = 4;    // braises qui prennent dès la première image, sur chaque héros
+const CINDER_REACH = 0.55; // part haute de la silhouette où les braises prennent
+
+function cinder({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const grains = targets.flatMap((target) => {
+    const shape = shapeOf(target);
+    return Array.from({ length: CINDER_PER_TARGET }, (_, i) => ({
+      at: shape.point(random, 0, CINDER_REACH),
+      start: i < CINDER_FIRST ? 0 : random() * 2, // naît dans les deux premiers pas, quelques-unes dès le premier
+      glow: 3 + random() * 2,     // rougeoie jusqu'à ce pas
+      end: 6 + random() * 1.9,    // éteinte avant le dernier pas
+      cross: random() < 0.5,
+      drift: between(random, -1, 1),
+    }));
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      for (const grain of grains) {
+        if (step < grain.start || step >= grain.end) continue;
+        const { x, y } = grain.at;
+        if (step < grain.glow) {
+          if (grain.cross) {
+            // Une croix de cinq pixels de braise, cernée de brun d'ombre aux coins : la braise, un peu plus claire que
+            // l'armure rouge vin de Maelor et tirant vers le brun orangé, et le brun d'ombre plus sombre qu'elle, la
+            // détachent de l'armure comme de la nuit
+            for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) pixels.push({ x: x + dx, y: y + dy, color: FX_COLORS.shadow });
+            for (const [dx, dy] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) pixels.push({ x: x + dx, y: y + dy, color: FX_COLORS.ember });
+          } else {
+            pixels.push({ x, y: y + 1, color: FX_COLORS.shadow }, { x, y, color: FX_COLORS.ember });
+          }
+          continue;
+        }
+        const age = step - grain.glow;
+        pixels.push({ x: x + grain.drift * Math.floor(age / 2), y: y + Math.floor(age * 1.5), color: age < 1.5 ? FX_COLORS.ash : FX_COLORS.shadow });
+      }
+      return pixels;
+    },
+  };
+}
+
 // L'effet de chaque capacité. Ajouter une capacité : son nom dans AbilityEffect (game-data.ts), son dessin ici
-const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash, twin, sweep, wick, frost, bell, sulfur, mend, dew, wake, sap, incense, tear };
+const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash, twin, sweep, wick, frost, bell, sulfur, mend, dew, wake, sap, incense, tear, chains, pillar, echo, cinder };
 
 // Les images de l'effet d'une capacité sur ses cibles ; avec le mouvement réduit, son image la plus fournie, fixe
 export function abilityFx(effect: AbilityEffect, input: AbilityFxInput, reduced: boolean): FxPlan {

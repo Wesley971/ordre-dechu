@@ -20,7 +20,7 @@ import { abilityEffect, touched } from "./battle-fx.ts";
 import { createDomStage, embersHtml, overlayHtml, type Stage } from "./stage.ts";
 import {
   $, wait, pulse, showScreen, setSceneTint, renderPartyWindow, renderMenu, updateBattleUI, updateAtbUI, setBattleRunning, setBossPanel,
-  onBattleUiUpdated, heroFlags, showBanner, hideBanner, showMessage, effectVisual, effectSound, popupText, popupClasses, spawnPopup, spawnFx,
+  onBattleUiUpdated, heroFlags, showBanner, hideBanner, showMessage, effectSound, popupText, popupClasses, spawnPopup,
 } from "./view.ts";
 
 // Options du mode test (src/dev/test-mode.ts), toutes neutres hors mode test
@@ -248,16 +248,13 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     },
 
     async showEffects(hits, ability) {
-      // L'effet de la capacité sur ceux qu'elle touche : en pixels s'il existe (MAE-31), sinon le halo de son élément
-      // (l'impact de la Nuée de cendre, jusqu'à MAE-98). Un « Raté » ne le montre pas (décision de Wesley du
-      // 10/11/2026 ; touched, battle-fx.ts)
+      // L'effet en pixels de la capacité sur ceux qu'elle touche (MAE-31, MAE-98). Un « Raté » ne le montre pas
+      // (décision de Wesley du 10/11/2026 ; touched, battle-fx.ts)
       const pixels = abilityEffect(ability);
-      const halo = pixels ? null : effectVisual(ability);
       if (pixels) stage.impact(pixels, touched(hits));
       for (const { target, effect } of hits) {
         const anchor = stage.anchor(target);
         if (!anchor) continue;
-        if (halo && effect.type !== "miss") spawnFx(anchor, halo);
         Sfx.play(effectSound(effect, ability));
         spawnPopup(stage.popupAnchor(target) ?? anchor, popupText(effect), popupClasses(effect));
         stage.hit(target, effect);

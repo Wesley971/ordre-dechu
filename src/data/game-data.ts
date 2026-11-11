@@ -68,9 +68,10 @@ export type TargetType = "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" 
 // Effet en pixels d'une capacité sur ses cibles (MAE-31), dessiné par l'affichage (src/ui/battle-fx.ts) : un nom par
 // dessin. slash : l'entaille de Frapper, que montre aussi tout coup d'arme sans effet à lui ; twin et sweep : Vordrak
 // et Édrag de Maelor ; wick, frost, bell et sulfur : Mèche, Nuit blanche, Tocsin et Soufre de Corvin ; mend, dew et
-// wake : Nios, Aurésor et Liéver d'Elwen ; sap, incense et tear : les objets Sève, Encens et Larme dorée
+// wake : Nios, Aurésor et Liéver d'Elwen ; sap, incense et tear : les objets Sève, Encens et Larme dorée ; chains,
+// pillar, echo et cinder : Chaînes, Pilier, Kardrov et l'impact de la Nuée de cendre des ennemis (MAE-98)
 export type AbilityEffect = "slash" | "twin" | "sweep" | "wick" | "frost" | "bell" | "sulfur" | "mend" | "dew" | "wake"
-  | "sap" | "incense" | "tear";
+  | "sap" | "incense" | "tear" | "chains" | "pillar" | "echo" | "cinder";
 
 interface AbilityBase {
   name: string;
@@ -78,7 +79,7 @@ interface AbilityBase {
   mp?: number;
   element?: ElementName;
   desc?: string;
-  effect?: AbilityEffect; // son effet sur ses cibles ; absent : l'entaille pour un coup d'arme, sinon pas encore d'effet en pixels
+  effect?: AbilityEffect; // son effet sur ses cibles, obligatoire pour les sorts, les objets et les capacités des ennemis (Spell, Item, EnemySkill)
   visual?: "ash"; // effet spécial dessiné en plus, pendant le sort (MAE-95) : la Nuée de cendre du Dragon
 }
 export interface PhysicalAbility extends AbilityBase { kind: "physical"; power: number; pierce?: boolean }
@@ -91,8 +92,11 @@ export interface RunAbility      extends AbilityBase { kind: "run" }
 export type HealAbility = HealSpell | HealItem;
 export type Ability = PhysicalAbility | MagicAbility | HealAbility | MpAbility | ReviveAbility | RunAbility;
 
-type Spell = Ability & { mp: number; desc: string };
-type Item = Ability & { desc: string };
+// Chaque sort, objet ou capacité d'ennemi déclare son effet en pixels (MAE-98) : sans lui, rien ne s'afficherait sur
+// ses cibles, sans aucune erreur. Un oubli ne compile pas
+type Spell = Ability & { mp: number; desc: string; effect: AbilityEffect };
+type Item = Ability & { desc: string; effect: AbilityEffect };
+type EnemySkill = Ability & { effect: AbilityEffect };
 
 // Réplique d'un personnage dans un dialogue
 const say = (name: string, text: string) => `<span class="speaker">${name} :</span> ${text}`;
@@ -199,11 +203,11 @@ export const ITEMS = {
 export type ItemId = keyof typeof ITEMS;
 
 export const ENEMY_SKILLS = {
-  chains:     { name: "Chaînes",          kind: "physical", power: 1.6, target: "foe" }, // Gau-Tik
-  pillar:     { name: "Pilier",           kind: "physical", power: 1.6, target: "foe" }, // Painkush, même effet
-  ashCloud:   { name: "Nuée de cendre",   kind: "magic", power: 34, element: "fire", target: "all-foes", visual: "ash" },
-  echoBlade:  { name: "Kardrov",          kind: "physical", power: 2, pierce: true, target: "foe" }, // Vordrak à l'envers : la technique de Maelor, en miroir
-} satisfies Record<string, Ability>;
+  chains:     { name: "Chaînes",          kind: "physical", power: 1.6, target: "foe", effect: "chains" }, // Gau-Tik : un coup de fouet
+  pillar:     { name: "Pilier",           kind: "physical", power: 1.6, target: "foe", effect: "pillar" }, // Painkush : un écrasement
+  ashCloud:   { name: "Nuée de cendre",   kind: "magic", power: 34, element: "fire", target: "all-foes", visual: "ash", effect: "cinder" },
+  echoBlade:  { name: "Kardrov",          kind: "physical", power: 2, pierce: true, target: "foe", effect: "echo" }, // Vordrak à l'envers : la technique de Maelor, en miroir, dans l'or de l'écho
+} satisfies Record<string, EnemySkill>;
 export type EnemySkillId = keyof typeof ENEMY_SKILLS;
 export type EnemyAction = "attack" | EnemySkillId;
 
