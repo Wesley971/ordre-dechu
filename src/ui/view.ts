@@ -13,7 +13,7 @@ import type { Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
 import type { CommandLevel, ListLevel, MenuController } from "./battle-menu.ts";
 import { screenOrder } from "./target-order.ts";
-import { blowDirection } from "./popup-motion.ts";
+import { nudgeInto, popupDrift, POPUP_STACK, SCREEN_EDGE, stackOffsets } from "./popup-motion.ts";
 import { isReducedMotion } from "./reduced-motion.ts";
 
 // Élément de la page, qui doit exister : son absence est une erreur de structure de index.html
@@ -495,16 +495,36 @@ export function popupClasses(effect: Effect) {
 }
 
 // Le chiffre monte au-dessus de sa cible puis s'efface (style.css, popup-rise, MAE-99). target : celui qui le reçoit,
-// pour le sens du glissement d'un « Raté ». Le mouvement réduit et le sens du coup passent par un attribut et une
-// variable, jamais par une classe : la classe du chiffre est relevée par le bot du labo, qui compare deux versions
+// pour le sens du glissement d'un « Raté ». Le mouvement réduit, le glissement, la pile et le recadrage passent par un
+// attribut et des variables, jamais par une classe : la classe du chiffre est relevée par le bot du labo, qui compare
+// deux versions
 export function spawnPopup(anchor: HTMLElement, text: string, className: string, target: Combatant) {
   const popup = document.createElement("span");
   popup.className = "popup " + className;
   popup.textContent = text;
   // Planche G3 : une faiblesse se dit toujours aussi par le mot, au-dessus du chiffre
   if (popup.classList.contains("weak")) popup.insertAdjacentHTML("afterbegin", `<span class="popup-word">Faiblesse</span>`);
-  popup.style.setProperty("--blow", String(blowDirection(target.side)));
+  const drift = popupDrift(target.side, popup.classList.contains("miss"));
+  popup.style.setProperty("--drift", `${drift}px`);
   if (isReducedMotion()) popup.dataset.still = ""; // apparaît et s'efface sans bouger
   anchor.appendChild(popup);
   setTimeout(() => popup.remove(), CONFIG.timing.popup);
+
+  // La pile de la cible : ses chiffres encore vivants, du plus récent au plus ancien ; au-delà de POPUP_STACK, le plus
+  // ancien part. Les hauteurs sont celles affichées, le zoom d'un critique compris
+  const live = [...anchor.children].filter((el): el is HTMLElement => el instanceof HTMLElement && el.classList.contains("popup")).reverse();
+  for (const old of live.splice(POPUP_STACK)) old.remove();
+  const offsets = stackOffsets(live.map((el) => el.getBoundingClientRect().height));
+  live.forEach((el, i) => el.style.setProperty("--stack", `${offsets[i]}px`));
+
+  // Dans l'écran, glissement compris : sur un écran de 390 px, un chiffre au bord déborderait. Il y naît déjà recadré :
+  // sans transition le temps de poser --nudge (seule la pile glisse), rétablie après un calcul du style
+  const { left, right } = popup.getBoundingClientRect();
+  const nudge = nudgeInto(left + Math.min(0, drift), right + Math.max(0, drift), SCREEN_EDGE, document.documentElement.clientWidth - SCREEN_EDGE);
+  if (nudge) {
+    popup.style.transition = "none";
+    popup.style.setProperty("--nudge", `${nudge}px`);
+    void popup.offsetWidth;
+    popup.style.transition = "";
+  }
 }

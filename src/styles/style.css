@@ -481,21 +481,26 @@ body.scene-painted #battle-scene { pointer-events: none; }
    finir au-dessus de la tête quelle que soit sa hauteur (critique, « Faiblesse » sur deux lignes ; contrôle du labo :
    tools/popup-check.mjs). Le même mouvement pour tous, fluide, en 1,2 s : la durée de CONFIG.timing.popup, qui le
    retire au moment où l'animation finit (testé). Seuls translate, scale et opacity bougent : rien à recalculer dans
-   la page. Deux accents : un petit coup de zoom pour le critique
-   (--pop-from), un léger glissement de côté pour « Raté » (--drift, dans le sens du coup : --blow, posé par spawnPopup).
-   Le centrage passe par transform, appliqué avant scale : l'origine du zoom est donc le bord gauche de la boîte,
-   qui est alors le centre du chiffre. */
+   la page. Deux accents : un petit coup de zoom pour le critique (--pop-from), un léger glissement de côté pour
+   « Raté » (--drift, dans le sens du coup, posé par spawnPopup).
+   Posés aussi par spawnPopup (popup-motion.ts) : --stack, de combien un chiffre est remonté au-dessus de ceux nés
+   après lui sur la même cible (il y glisse en 0,12 s), et --nudge, le décalage qui le garde dans l'écran (posé à sa
+   naissance, sans glisser). Les deux passent par transform, appliqué avant scale : l'origine du zoom
+   (transform-origin) est donc là où ils ont amené le centre du chiffre. */
 .popup {
   --born: 32px;
   --rise: 40px;
   --pop-from: 1;
   --drift: 0px;
+  --stack: 0px;
+  --nudge: 0px;
   position: absolute;
   left: 50%;
   bottom: calc(100% - var(--born));
   z-index: 7;
-  transform: translateX(-50%);
-  transform-origin: 0 50%;
+  transform: translate(calc(var(--nudge) - 50%), calc(-1 * var(--stack)));
+  transform-origin: var(--nudge) calc(50% - var(--stack));
+  transition: transform 0.12s ease-out; /* l'origine, elle, change d'un coup : sans effet tant que scale vaut 1 */
   font-family: var(--font-text);
   font-size: 32px;
   line-height: 1;
@@ -509,12 +514,11 @@ body.scene-painted #battle-scene { pointer-events: none; }
 }
 
 .popup.crit { --pop-from: 1.35; }
-.popup.miss { --drift: calc(var(--blow, 1) * 12px); }
 
-/* Mouvement réduit (MAE-58, décision de Wesley du 11/11/2026) : le chiffre apparaît puis s'efface sans bouger.
-   Choisi par spawnPopup (isReducedMotion, view.ts), comme toute animation du jeu en code : la simulation de l'aperçu
-   ?animations=1 s'y applique aussi */
-.popup[data-still] { animation-name: popup-fade; animation-timing-function: linear; }
+/* Mouvement réduit (MAE-58, décision de Wesley du 11/11/2026) : le chiffre apparaît puis s'efface sans bouger ; dans
+   une pile, il change de place d'un coup. Choisi par spawnPopup (isReducedMotion, view.ts), comme toute animation du
+   jeu en code : la simulation de l'aperçu ?animations=1 s'y applique aussi */
+.popup[data-still] { animation-name: popup-fade; animation-timing-function: linear; transition: none; }
 
 /* En scène DOM, les chiffres ne sont pas dans le sprite mais dans une couche à part, posée devant la couche des effets
    (MAE-31, stage.ts, popupAnchor) : chaque sprite a son propre empilement, et un chiffre posé dedans passerait derrière
