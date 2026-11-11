@@ -8,12 +8,13 @@
 // l'écho de Maelor se défait en lumière, et l'or quitte Maelor vers le Dragon posé dans sa case (ou, sans Dragon, son
 // éclat doré seul).
 // Les effets des capacités (MAE-31) ont leur section : chaque capacité qui a son effet en pixels le joue en boucle sur
-// ce qu'elle vise (un ennemi, deux, un héros ou le groupe, en images fixes).
+// ce qu'elle vise (un ennemi, deux, un héros ou le groupe, en images fixes). Les capacités des ennemis (MAE-98) visent un
+// héros, ou les trois pour une capacité sur tout le groupe.
 // Une case « Mouvement réduit » simule le réglage du système (MAE-58), effets spéciaux et effets des capacités compris. ?vitesse=X accélère les animations, comme en jeu
 // (pas les pauses entre deux tours de boucle). Le pas en avant d'un héros qui agit est fait par la scène : pas ici.
 
 import { CONFIG } from "../config.ts";
-import { ATTACK, ENEMIES, HEROES, ITEMS, SPELLS, type Ability, type AbilityEffect, type EnemyDef, type SpriteRig } from "../data/game-data.ts";
+import { ATTACK, ENEMIES, ENEMY_SKILLS, HEROES, ITEMS, SPELLS, type Ability, type AbilityEffect, type EnemyDef, type SpriteRig } from "../data/game-data.ts";
 import { createAnimatedSprite, type AnimatedSprite } from "../ui/animated-sprite.ts";
 import { isReducedMotion, overrideReducedMotion } from "../ui/reduced-motion.ts";
 import { opaqueRuns, type OpaqueRuns } from "../ui/sprite-frames.ts";
@@ -292,6 +293,10 @@ function abilityDummies(ability: Ability): Dummy[] {
   }
 }
 
+// Ce que vise une capacité d'ennemi : un héros, ou les trois pour une capacité sur tout le groupe (pour un ennemi,
+// "foe" désigne un héros)
+const enemyAbilityDummies = (ability: Ability): Dummy[] => (ability.target === "all-foes" ? HEROES.map((_, index) => heroDummy(index)) : [heroDummy(0)]);
+
 // Une case qui joue l'effet d'une capacité en boucle sur ses cibles, comme en combat (stage.ts, playAbilityFx). Le
 // sens du coup vient du camp de la première cible, comme en combat (blowFacing) : vers la gauche sur un héros
 function buildAbilityCell(label: string, effect: AbilityEffect, dummies: Dummy[], px: number) {
@@ -404,6 +409,11 @@ export function openAnimationPreview() {
   }
   // Un ennemi qui frappe : la même entaille, sur un héros, depuis la droite
   if (ATTACK.effect) addCell(buildAbilityCell(`${ATTACK.name}, reçu par un héros`, ATTACK.effect, [heroDummy(0)], px));
+  // Les capacités des ennemis (MAE-98), sur les héros, avec le nom de l'ennemi qui la lance
+  for (const [id, ability] of Object.entries<Ability>(ENEMY_SKILLS)) {
+    const caster = Object.values<EnemyDef>(ENEMIES).find((enemy) => enemy.skills?.some(({ skill }) => skill === id) || enemy.pattern?.some((action) => action === id));
+    if (ability.effect) addCell(buildAbilityCell(caster ? `${ability.name} (${caster.name})` : ability.name, ability.effect, enemyAbilityDummies(ability), px));
+  }
   page.append(fxTitle, fxRow);
 
   // Chaque case commence sur un pixel réel : sinon le pixel art afficherait des rangées irrégulières (comme stage.ts)

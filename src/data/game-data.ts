@@ -68,9 +68,10 @@ export type TargetType = "foe" | "all-foes" | "ally" | "all-allies" | "ko-ally" 
 // Effet en pixels d'une capacité sur ses cibles (MAE-31), dessiné par l'affichage (src/ui/battle-fx.ts) : un nom par
 // dessin. slash : l'entaille de Frapper, que montre aussi tout coup d'arme sans effet à lui ; twin et sweep : Vordrak
 // et Édrag de Maelor ; wick, frost, bell et sulfur : Mèche, Nuit blanche, Tocsin et Soufre de Corvin ; mend, dew et
-// wake : Nios, Aurésor et Liéver d'Elwen ; sap, incense et tear : les objets Sève, Encens et Larme dorée
+// wake : Nios, Aurésor et Liéver d'Elwen ; sap, incense et tear : les objets Sève, Encens et Larme dorée ; chains et
+// pillar : Chaînes et Pilier des ennemis (MAE-98)
 export type AbilityEffect = "slash" | "twin" | "sweep" | "wick" | "frost" | "bell" | "sulfur" | "mend" | "dew" | "wake"
-  | "sap" | "incense" | "tear";
+  | "sap" | "incense" | "tear" | "chains" | "pillar";
 
 interface AbilityBase {
   name: string;
@@ -199,8 +200,8 @@ export const ITEMS = {
 export type ItemId = keyof typeof ITEMS;
 
 export const ENEMY_SKILLS = {
-  chains:     { name: "Chaînes",          kind: "physical", power: 1.6, target: "foe" }, // Gau-Tik
-  pillar:     { name: "Pilier",           kind: "physical", power: 1.6, target: "foe" }, // Painkush, même effet
+  chains:     { name: "Chaînes",          kind: "physical", power: 1.6, target: "foe", effect: "chains" }, // Gau-Tik : un coup de fouet
+  pillar:     { name: "Pilier",           kind: "physical", power: 1.6, target: "foe", effect: "pillar" }, // Painkush : un écrasement
   ashCloud:   { name: "Nuée de cendre",   kind: "magic", power: 34, element: "fire", target: "all-foes", visual: "ash" },
   echoBlade:  { name: "Kardrov",          kind: "physical", power: 2, pierce: true, target: "foe" }, // Vordrak à l'envers : la technique de Maelor, en miroir
 } satisfies Record<string, Ability>;
