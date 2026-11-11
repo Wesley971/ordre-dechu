@@ -498,7 +498,7 @@ export function popupClasses(effect: Effect) {
 // pour le sens du glissement d'un « Raté ». Le mouvement réduit, le glissement, la pile et le recadrage passent par un
 // attribut et des variables, jamais par une classe : la classe du chiffre est relevée par le bot du labo, qui compare
 // deux versions
-export function spawnPopup(anchor: HTMLElement, text: string, className: string, target: Combatant) {
+export function spawnPopup(anchor: HTMLElement, text: string, className: string, target: Pick<Combatant, "side">) {
   const popup = document.createElement("span");
   popup.className = "popup " + className;
   popup.textContent = text;
