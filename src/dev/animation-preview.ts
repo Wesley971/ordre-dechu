@@ -10,10 +10,9 @@
 // Les effets des capacités (MAE-31) ont leur section : chaque capacité qui a son effet en pixels le joue en boucle sur
 // ce qu'elle vise (un ennemi, deux, un héros ou le groupe, en images fixes). Les capacités des ennemis (MAE-98) visent un
 // héros, ou les trois pour une capacité sur tout le groupe.
-// Le sang doré (MAE-98) a sa section : le coup reçu de Maelor et d'Elwen, sous chaque teinte candidate du coup reçu
-// (HIT_CANDIDATES, tints.ts), avec leurs éclats, réglés par des curseurs (nombre, taille, durée, luminosité). Chaque
-// teinte y est montrée sous ses deux formes : le filtre CSS de la scène DOM, et le mélange de couleur de la scène
-// peinte, imité sur une copie de la toile (painted).
+// Le sang doré (MAE-98) a sa section : le coup reçu de Maelor et d'Elwen avec leurs éclats, réglés par des curseurs
+// (nombre, taille, durée, luminosité). La teinte du coup reçu y est montrée sous ses deux formes : le filtre CSS de la
+// scène DOM, et la couleur de la scène peinte, imitée sur une copie de la toile (painted).
 // Une case « Mouvement réduit » simule le réglage du système (MAE-58), effets spéciaux et effets des capacités compris. ?vitesse=X accélère les animations, comme en jeu
 // (pas les pauses entre deux tours de boucle). Le pas en avant d'un héros qui agit est fait par la scène : pas ici.
 
@@ -25,7 +24,7 @@ import { opaqueRuns, type OpaqueRuns } from "../ui/sprite-frames.ts";
 import { BLOOD_LIMITS, BOLT_HEIGHT } from "../ui/battle-fx.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
 import { embersHtml, HERO_CANVAS, playAbilityFx, playAshCloud, playGoldBlood, playGoldStream, playLightRise } from "../ui/stage.ts";
-import { HIT_CANDIDATES, TINTS, type Tint } from "../ui/tints.ts";
+import { paintedTint, TINTS, type Tint } from "../ui/tints.ts";
 
 // blood : le héros dont la case joue le sang doré, et son réglage, modifié en direct par les curseurs ; embers :
 // l'identifiant du héros dont la case montre les braises (Elwen)
@@ -38,20 +37,15 @@ interface Character { name: string; url: string; rig: SpriteRig; height: number;
 interface Cell { sprite: AnimatedSprite; color(filter: string, ms: number): void; paintIn(tint: Tint, ms: number): void; ash(): void; light(): void; gold(): void; blood(): void }
 
 // La forme d'une teinte dans la scène peinte, appliquée aux pixels d'une image : la formule du shader des sprites
-// (src/scene/actors.ts), éclat puis mélange de la couleur, en lumière linéaire comme Three.js (textures et couleurs
-// sRGB y sont converties). Une imitation pour l'aperçu, sans le décor ni sa lumière
-const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-const toSrgb = (c: number) => (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055);
+// (paintedTint, tints.ts). Une imitation pour l'aperçu, sans le décor ni sa lumière
 function painted(image: ImageData, tint: Tint): ImageData {
-  const color = [1, 3, 5].map((at) => toLinear(parseInt(tint.color.slice(at, at + 2), 16) / 255));
-  const brightness = tint.brightness ?? 1;
   const { data } = image;
   for (let i = 0; i < data.length; i += 4) {
     if (!data[i + 3]) continue;
-    for (let k = 0; k < 3; k++) {
-      const value = toLinear(data[i + k] / 255) * brightness * (1 - tint.mix) + color[k] * tint.mix;
-      data[i + k] = Math.round(toSrgb(Math.min(1, value)) * 255);
-    }
+    const [r, g, b] = paintedTint([data[i] / 255, data[i + 1] / 255, data[i + 2] / 255], tint);
+    data[i] = Math.round(r * 255);
+    data[i + 1] = Math.round(g * 255);
+    data[i + 2] = Math.round(b * 255);
   }
   return image;
 }
@@ -179,8 +173,8 @@ const GOLD_SCENARIO = (label: string): [string, Scenario] => [label, async ({ co
   await wait(CONFIG.timing.powerReturn + PAUSE);
 }];
 const GOLD_TO_DRAGON = GOLD_SCENARIO("L'or le quitte");
-// Sang doré (MAE-98) : le coup reçu sous une teinte candidate, avec les éclats du sang, lancés comme en combat (stage.ts,
-// hit) ; la teinte sous sa forme de la scène DOM (filtre CSS) ou de la scène peinte
+// Sang doré (MAE-98) : le coup reçu, avec les éclats du sang, lancés comme en combat (stage.ts, hit) ; la teinte sous sa
+// forme de la scène DOM (filtre CSS) ou de la scène peinte
 const bloodScenario = (tint: Tint, scene: "dom" | "peinte"): Scenario => async ({ sprite, color, paintIn, blood }) => {
   blood();
   sprite.play("hit");
@@ -526,37 +520,35 @@ export function openAnimationPreview() {
   page.append(fxTitle, fxRow);
 
   // Sang doré (MAE-98) : en tête, le risque noté par Wesley ; puis les curseurs de Maelor et d'Elwen, et leur coup reçu
-  // sous chaque teinte candidate
+  // dans chaque scène
   const bloodTitle = document.createElement("h2");
   bloodTitle.textContent = "Sang doré (MAE-98)";
   const bloodText = document.createElement("div");
   bloodText.innerHTML = `<p class="anim-warning">À surveiller (noté par Wesley) : les braises d'Elwen sont déjà en or vif #f0c95a,
     la même couleur que les éclats de son sang.</p>
-    <p>Chaque case joue le coup reçu, sous une teinte candidate du coup reçu, avec les éclats du sang. Les curseurs règlent
+    <p>Chaque case joue le coup reçu, avec sa teinte et les éclats du sang. Les curseurs règlent
     tout de suite les éclats de toutes les cases du héros ; rien n'est enregistré, un rechargement remet les valeurs de
     sa fiche. Les valeurs à recopier dans la fiche (goldBlood, game-data.ts) s'affichent sous les curseurs. Sur téléphone,
     un pixel de sprite fait un pixel CSS : ?zoom=1 en donne l'idée sur ordinateur.</p>
-    <p>Une teinte a deux formes : le filtre CSS de la scène DOM, et le mélange de couleur de la scène peinte (son éclat,
-    puis sa couleur mêlée aux pixels). La seconde rangée imite celle de la scène peinte, sans le décor.</p>`;
+    <p>La teinte du coup reçu a deux formes : le filtre CSS de la scène DOM, et la couleur de la scène peinte (la
+    luminosité de chaque pixel prend la teinte de la rouille). La seconde rangée imite la scène peinte, sans le décor.</p>`;
   const controls = document.createElement("div");
   const bloodCells = document.createElement("div");
   const bleeding = HEROES.flatMap((hero) => (hero.goldBlood ? [{ hero, setting: { ...hero.goldBlood } }] : []));
   for (const { hero, setting } of bleeding) controls.appendChild(bloodControls(hero.name, setting));
-  for (const [scene, heading] of [["dom", "Scène DOM : le filtre CSS"], ["peinte", "Scène peinte : le mélange de couleur (imité)"]] as const) { // as const : les deux scènes, de type "dom" | "peinte"
+  for (const [scene, heading] of [["dom", "Scène DOM : le filtre CSS"], ["peinte", "Scène peinte : la couleur (imitée)"]] as const) { // as const : les deux scènes, de type "dom" | "peinte"
     const subtitle = document.createElement("h3");
     subtitle.textContent = heading;
     const row = document.createElement("div");
     row.className = "anim-row";
-    for (const candidate of HIT_CANDIDATES) {
-      for (const { hero, setting } of bleeding) {
-        const character: Character = {
-          name: hero.name, url: hero.image, rig: hero.rig, height: HERO_CANVAS.h, facing: 1, boss: false,
-          blood: { id: hero.id, setting }, embers: hero.embers ? hero.id : undefined,
-        };
-        const cell = buildCell(character, `${hero.name} · ${candidate.label} · ${scene}`, bloodScenario(candidate.tint, scene), px, undefined, true);
-        row.appendChild(cell.figure);
-        sprites.push(cell.sprite);
-      }
+    for (const { hero, setting } of bleeding) {
+      const character: Character = {
+        name: hero.name, url: hero.image, rig: hero.rig, height: HERO_CANVAS.h, facing: 1, boss: false,
+        blood: { id: hero.id, setting }, embers: hero.embers ? hero.id : undefined,
+      };
+      const cell = buildCell(character, `${hero.name} · Coup reçu · ${scene}`, bloodScenario(TINTS.hit, scene), px, undefined, true);
+      row.appendChild(cell.figure);
+      sprites.push(cell.sprite);
     }
     bloodCells.append(subtitle, row);
   }

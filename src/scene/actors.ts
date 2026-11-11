@@ -39,6 +39,7 @@ export interface ActorPose {
   gray: number;       // 0 à 1 : part de gris
   tint: Color;        // couleur mêlée aux pixels, à hauteur de tintMix
   tintMix: number;
+  tintGain: number;   // 0 : tint mêlée telle quelle ; sinon, la luminosité des pixels prend la teinte de tint, multipliée par tintGain (Tint.gain, paintedTint, src/ui/tints.ts, MAE-98)
   opacity: number;
   glow: number;       // 0 à 1 : lueur du Souffle derrière le sprite
   shadowShift: number;   // ombre au sol de la pose dessinée (MAE-94) : décalage en pixels de sprite, vers la droite
@@ -74,7 +75,7 @@ const GLOW_COLOR = "#f0c95a"; // or vif de la palette des personnages : la lueur
 const GLOW_OPACITY = 0.8;
 
 export function defaultPose(): ActorPose {
-  return { offsetX: 0, offsetY: 0, anchorX: 0, visible: true, brightness: 1, gray: 0, tint: new Color("#ffffff"), tintMix: 0, opacity: 1, glow: 0, shadowShift: 0, shadowStretch: 1 };
+  return { offsetX: 0, offsetY: 0, anchorX: 0, visible: true, brightness: 1, gray: 0, tint: new Color("#ffffff"), tintMix: 0, tintGain: 0, opacity: 1, glow: 0, shadowShift: 0, shadowStretch: 1 };
 }
 
 export function preloadImages(urls: string[]): Promise<Map<string, HTMLImageElement>> {
@@ -100,6 +101,7 @@ export function buildActors(
       uGray: { value: 0 },
       uTint: { value: new Color("#ffffff") },
       uTintMix: { value: 0 },
+      uTintGain: { value: 0 },
       uOpacity: { value: 1 },
     };
     const texture: CanvasTexture = bin.add(pixelTexture(def.frame.canvas));
@@ -108,13 +110,26 @@ export function buildActors(
     material.onBeforeCompile = (shader) => {
       Object.assign(shader.uniforms, uniforms);
       shader.fragmentShader = [
-        "uniform float uBrightness; uniform float uGray; uniform vec3 uTint; uniform float uTintMix; uniform float uOpacity;",
+        "uniform float uBrightness; uniform float uGray; uniform vec3 uTint; uniform float uTintMix; uniform float uTintGain; uniform float uOpacity;",
+        // Passages entre lumière linéaire (celle du shader) et sRGB (celle des filtres CSS), pour la luminosité colorée
+        "vec3 spriteToSrgb( vec3 c ) { return mix( c * 12.92, 1.055 * pow( c, vec3( 1.0 / 2.4 ) ) - 0.055, step( 0.0031308, c ) ); }",
+        "vec3 spriteToLinear( vec3 c ) { return mix( c / 12.92, pow( ( c + 0.055 ) / 1.055, vec3( 2.4 ) ), step( 0.04045, c ) ); }",
         shader.fragmentShader
           .replace("#include <map_fragment>", /* glsl */ `
             vec4 spriteTexel = texture2D( map, vMapUv );
             float luma = dot( spriteTexel.rgb, vec3( 0.299, 0.587, 0.114 ) );
             spriteTexel.rgb = mix( spriteTexel.rgb, vec3( luma ), uGray ) * uBrightness;
-            spriteTexel.rgb = mix( spriteTexel.rgb, uTint, uTintMix );
+            // Sans gain, la couleur mêlée telle quelle ; avec gain (MAE-98), la luminosité en sRGB prend la teinte de la
+            // couleur, comme sous le filtre CSS de la scène DOM (paintedTint, src/ui/tints.ts : la même formule)
+            if ( uTintGain > 0.0 ) {
+              vec3 shown = spriteToSrgb( clamp( spriteTexel.rgb, 0.0, 1.0 ) );
+              vec3 hue = spriteToSrgb( uTint );
+              hue /= max( max( hue.r, hue.g ), max( hue.b, 1e-4 ) );
+              vec3 colored = clamp( dot( shown, vec3( 0.299, 0.587, 0.114 ) ) * uTintGain * hue, 0.0, 1.0 );
+              spriteTexel.rgb = spriteToLinear( mix( shown, colored, uTintMix ) );
+            } else {
+              spriteTexel.rgb = mix( spriteTexel.rgb, uTint, uTintMix );
+            }
             diffuseColor *= spriteTexel;`)
           // Après le test d'opacité : une opacité de pose sous 0,5 effacerait tout le sprite sinon
           .replace("#include <alphatest_fragment>", "#include <alphatest_fragment>\n diffuseColor.a *= uOpacity;"),
@@ -194,6 +209,7 @@ export function buildActors(
     view.uniforms.uGray.value = pose.gray;
     view.uniforms.uTint.value.copy(pose.tint);
     view.uniforms.uTintMix.value = pose.tintMix;
+    view.uniforms.uTintGain.value = pose.tintGain;
     view.uniforms.uOpacity.value = pose.opacity;
     view.glowMaterial.opacity = GLOW_OPACITY * pose.glow;
   }

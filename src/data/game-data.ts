@@ -61,7 +61,7 @@ export interface HeroDef {
 }
 
 // Sang doré (MAE-98) : les petits éclats d'or qui jaillissent à chaque dégât reçu, dessinés par l'affichage
-// (goldBlood, src/ui/battle-fx.ts), à régler à l'œil par Wesley
+// (goldBlood, src/ui/battle-fx.ts), réglés à l'œil par Wesley dans ?animations=1
 export interface GoldBlood {
   count: number;  // éclats par dégât reçu
   size: number;   // côté d'un éclat, en pixels de sprite
@@ -133,7 +133,7 @@ export const HEROES: HeroDef[] = [
   {
     id: "maelor", name: "Maelor", job: "Chevalier déchu", image: "images/maelor.png",
     rig: { waist: 36, breath: 2.8, phase: 0, poses: drawnPoses("maelor", { stagger: 38, kneel: 43 }) },
-    // Un héritage lointain : surtout de l'or ancien. Valeurs de départ, avant le réglage de Wesley
+    // Un héritage lointain : surtout de l'or ancien. Réglage gardé par Wesley au dosage du 11/11/2026
     goldBlood: { count: 4, size: 1, frames: 5, bright: 0.25 },
     command: "Gestes",
     stats:  { maxHp: 160, maxMp: 18, atk: 18, def: 10, mag: 6,  res: 6,  spd: 9  },
@@ -151,7 +151,7 @@ export const HEROES: HeroDef[] = [
   {
     id: "elwen", name: "Elwen", job: "Source", image: "images/elwen.png",
     rig: { waist: 36, breath: 3.4, phase: 0.55, poses: drawnPoses("elwen", { stagger: 38, kneel: 47 }) },
-    // Le sang pur d'une immortelle : un peu plus lumineux, surtout de l'or vif. Valeurs de départ, avant le réglage de Wesley
+    // Le sang pur d'une immortelle : un peu plus lumineux, surtout de l'or vif. Réglage gardé par Wesley au dosage du 11/11/2026
     goldBlood: { count: 4, size: 1, frames: 5, bright: 0.8 },
     command: "Source",
     feminine: true,
