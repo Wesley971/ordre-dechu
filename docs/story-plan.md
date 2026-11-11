@@ -11,7 +11,7 @@ Comment l'histoire arrive au joueur : ce qu'il apprend, à quel moment, par quel
 Deux repères reviennent dans tout le document :
 
 - **Statut.** Trois niveaux, d'après MAE-103 :
-  - « Validé » : dans la liste des points retenus par Wesley le 11/11/2026 ;
+  - « Validé » : dans la liste des points retenus par Wesley le 11/11/2026, ou tranché ensuite par lui (ses décisions du même jour sur les points « À valider ») ;
   - « Sommaire » : dans le sommaire que Wesley a validé le 11/11/2026 comme direction, sans être dans cette liste ; le détail reste à relire ;
   - « À valider » : proposition de Claude, pas encore tranchée.
 - **Horizon.** « Aujourd'hui » : faisable avec l'enchaînement actuel des chapitres (pages, choix, haltes). « Avec l'exploration » : attend les dioramas à parcourir (MAE-13).
@@ -90,7 +90,7 @@ Entre deux chapitres, il n'y a rien : la dernière page d'un chapitre mène au t
 - **Les morts sans poids.** Le thème du jeu est qu'il n'y a pas de grand méchant et que chaque peuple a ses raisons. Elwen le dit devant le Painkush : « Ce n'est pas une bête. Il garde sa terre, comme nous garderions la nôtre. » Puis le Painkush meurt, comme les Sankri, sans une ligne après le combat. Le choix final (épargner ou achever) n'est préparé par rien de ce que le groupe a fait avant.
 - **Le butin.** Après la trêve du chapitre II et la reddition du chapitre III, l'écran des récompenses dit « Le groupe ramasse » des Couronnes (`formatRewards`, `src/story/game-flow.ts`) : sur des alliés, puis sur des gardiens à genoux. Les Sankri, des bêtes, portent 25 Couronnes chacun, alors que la réécriture du chapitre I leur a retiré leur bourse (`docs/lore.md`, « Textes du jeu : état »).
 - **Le repli.** Aux chapitres III et V, le repli reste permis (`canRun`). S'il réussit, le groupe passe quand même au chapitre suivant : il traverse le pont que deux Gau-Tik barraient, sans la scène de la reddition et sans le regard sur les cheveux de Maelor.
-- **Trente ans.** La vraie fin dit : « Vahn quitte son antre pour la première fois depuis trente ans. » La fausse fin dit : « Pour la première fois depuis trente ans, le ciel du Val Ténébreux est vide. » La première phrase suppose un Dragon qui n'est jamais sorti, la seconde un Dragon qu'on voyait dans le ciel. La bible parle d'une bête qui « ravage le Val » : selon la rumeur seulement, ou en vrai ? À trancher (voir 5.10).
+- **Trente ans.** La vraie fin dit : « Vahn quitte son antre pour la première fois depuis trente ans. » La fausse fin dit : « Pour la première fois depuis trente ans, le ciel du Val Ténébreux est vide. » La première phrase suppose un Dragon qui n'est jamais sorti, la seconde un Dragon qu'on voyait dans le ciel. La bible parle d'une bête qui « ravage le Val » : selon la rumeur seulement, ou en vrai ? Tranché par Wesley le 11/11/2026 : le Dragon n'est jamais sorti (voir 5.10).
 
 ## 3. Les principes
 
@@ -223,7 +223,7 @@ Statut : sommaire.
 - Aujourd'hui : la page de suite, jouée après une victoire (le jeu sait déjà jouer des pages après un combat gagné). Si le groupe se replie, les Sankri vivent et la page ne se joue pas.
 - Avec l'exploration : des Sankri qu'on peut contourner (MAE-35). Après la première mort, éviter un combat prend un sens. Comment finissent ces rencontres, sans défaire le principe d'une seule mise à mort, reste à décider dans MAE-35.
 
-**Sommaire.** La liste des points retenus par Wesley ne cite pas les Sankri ; le sommaire, si. Le butin des Sankri : de la Sève, que le groupe prend sur les arbres qu'ils sont redevenus, et plus de Couronnes (voir 8).
+**Validé par Wesley le 11/11/2026.** Les Sankri laissent de la Sève au lieu de Couronnes (voir 8). Détail à relire : le groupe la prend sur les arbres qu'ils sont redevenus.
 
 ### 5.4 Chapitre II · Le Champ des Échos
 
@@ -293,7 +293,7 @@ Statut : sommaire.
 
 **Horizon.** Aujourd'hui. Le jeu sait déjà changer un texte selon le pouvoir (la question posée devant le Dragon).
 
-**À valider.** Au Cœur, la marque de Corvin s'éclaire elle aussi, et personne ne le relève. La bible laisse cette marque ouverte ; la scène la montrerait sans rien trancher.
+**Validé par Wesley le 11/11/2026.** Au Cœur, la marque de lumière sur le front de Corvin s'éclaire elle aussi, et personne ne le relève : un indice discret, sans réponse, sur son mystère. La bible laisse cette marque ouverte, et la scène ne tranche rien.
 
 ### 5.7 Chapitre V · La Pierre Nue
 
@@ -304,7 +304,7 @@ Validé par Wesley le 11/11/2026 : les Painkush forgeaient pour l'Ordre ; le Pai
 **Ce que le joueur apprend.**
 - L'armure de Maelor est une vraie armure de l'Ordre.
 - Elle a été forgée ici, par les Painkush, dans les mues des Tyrdrak. L'Ordre n'avait pas que les Tyrdrak pour alliés.
-- Les premières traces du Dragon : sur la roche grise, des écailles tombées, couvertes de signes gravés (sommaire ; à accorder avec la question du Dragon jamais sorti de son antre, voir 11).
+- La première trace des Tyrdrak que Maelor peut toucher est sur lui : son armure, faite de leurs mues (validé par Wesley le 11/11/2026). Le Dragon n'est jamais sorti de son antre : il n'y a aucune écaille en chemin.
 
 **Par quel moyen.**
 - L'arrivée reste : les murs « trop droits pour être l'œuvre du hasard », et « On dit qu'ils forgent un métal que rien ne raye. »
@@ -318,7 +318,7 @@ Validé par Wesley le 11/11/2026 : les Painkush forgeaient pour l'Ordre ; le Pai
 
 **Horizon.**
 - Aujourd'hui : la fin sans mort, avec le mécanisme de la reddition ou celui de la trêve (à choisir dans le ticket). Le repli devient impossible sur ce chapitre.
-- Avec l'exploration : les écailles gravées, à trouver sur la plaine.
+- Avec l'exploration : la plaine et le pied des murs à parcourir.
 - Après la v1 : la forge des Painkush est la place naturelle de l'équipement (MAE-8).
 
 ### 5.8 Chapitre VI · Le Puits des Anciens
@@ -347,7 +347,7 @@ Validé par Wesley le 11/11/2026 : un immortel vit au Puits. Il a des couleurs v
 - Aujourd'hui : la scène, le menu, le marchand.
 - Avec l'exploration : la margelle comme lieu du fragment (MAE-36), l'immortel à l'écart.
 
-**À valider.** La fiche des personnages dit qu'à l'écran, Elwen est la seule touche de couleur vive. Avec l'immortel du Puits, ce n'est plus vrai le temps d'une scène. C'est un changement de la bible (voir 11).
+**Validé par Wesley le 11/11/2026.** La fiche des personnages disait qu'à l'écran, Elwen est la seule touche de couleur vive. Elle change : l'immortel du Puits garde des couleurs vives. La fiche est tenue hors du dépôt (projet claude.ai « RPG ») ; sa mise à jour est notée dans le ticket de l'immortel.
 
 ### 5.9 Chapitre VII · L'Antre du Dragon
 
@@ -377,7 +377,7 @@ Elles ne changent pas. Le village montré au début leur donne ce qui leur manqu
 - les cloches de la troisième fin et de la fausse fin (« Au village, on sonne les cloches ») sonnent dans un lieu que le joueur connaît ;
 - dans la vraie fin, « les villageois lèvent les yeux vers ses ailes et, pour une fois, ne s'enfuient pas » : ce sont ceux qu'il a entendus au départ.
 
-**À valider.** La contradiction relevée en 2.3 : le Dragon est-il sorti de son antre depuis trente ans ? Proposition : non. Personne au village ne l'a vu, et la rumeur d'une bête qui ravage le Val ne repose sur rien : c'est le thème du jeu. La phrase de la fausse fin sur le ciel vide serait alors à réécrire.
+**Validé par Wesley le 11/11/2026.** Le Dragon n'est jamais sorti de son antre depuis trente ans, comme le disent les fins. Personne au village ne l'a vu, et la rumeur d'une bête qui ravage le Val ne repose sur rien : c'est le thème du jeu. La phrase de la fausse fin sur le ciel vide, relevée en 2.3, est donc à réécrire.
 
 ## 6. Les cinq révélations
 
@@ -404,7 +404,7 @@ Ce qui reste flou, volontairement : ce qui a déclenché la rupture (bible).
 | Village | Une bête folle, que personne n'a vue. | Scène |
 | II | Les Tyrdrak mouraient aux côtés des hommes. Les autres ne sont pas venus. | Fragment (jeu) |
 | IV | « Même la bête du Val. » | Réplique (jeu) |
-| V | Des écailles tombées, gravées de signes. | Suite du combat, puis exploration |
+| V | L'armure de Maelor est faite de mues de Tyrdrak. | Suite du combat |
 | VI | Des empreintes de griffes et de mains, gravées ensemble. | Texte du lieu (jeu) |
 | VII | Le blason gardé, les signes gravés, la cendre. | Texte du lieu et fragment (jeu) |
 | Dragon épargné | Son nom. | Scène (jeu) |
@@ -417,7 +417,7 @@ Ce qui reste flou, volontairement : ce qui a déclenché la rupture (bible).
 | II | Il répète une rumeur sur les Hésiums, puis voit qu'elle était fausse. | Dialogue (jeu) |
 | II, halte | Son maître, brûlé par un village pris de terreur. | Corvin lui-même |
 | IV | Sa question trouve une réponse : le Souffle respire. | Dialogue (jeu) |
-| IV | Sa marque s'éclaire au Cœur. | Indice visuel (à valider) |
+| IV | Sa marque s'éclaire au Cœur. | Indice visuel (validé) |
 
 Ce qui reste ouvert : sa marque, et son appartenance possible au peuple à longue vie (bible).
 
@@ -493,7 +493,7 @@ Validé par Wesley le 11/11/2026 : le marchand entre en v1, avec les trois objet
 | Le feu des Hésiums (II) | Le colporteur hésium | Le pont, le Cœur, la Pierre Nue |
 | Le Puits des Anciens (VI) | Le colporteur hésium | Le Dragon |
 
-À valider, dans le ticket du marchand : ce que vend chacun. Piste : le marchand du village a une seule Larme dorée, chère, dont il ignore la nature. La bible dit que ce sont des larmes d'immortels ; le joueur le comprendra après le Cœur.
+Validé par Wesley le 11/11/2026 : le marchand du village n'a qu'une seule Larme dorée. Le reste de ce que vend chacun se décide dans le ticket du marchand. Piste à valider : cette larme est chère, et le marchand ignore sa nature. La bible dit que ce sont des larmes d'immortels ; le joueur le comprendra après le Cœur.
 
 ### D'où viennent les Couronnes
 
@@ -502,7 +502,7 @@ Validé par Wesley le 11/11/2026 : une bourse de départ, des dons après la tr�
 | Moment | Aujourd'hui | Demain |
 |---|---|---|
 | Départ | 0 Couronne | Une bourse de départ |
-| I · Sankri | 50, en butin | Sommaire : de la Sève, sans Couronnes |
+| I · Sankri | 50, en butin | De la Sève, sans Couronnes (validé) |
 | II · trêve | 80, en butin | Un don des Hésiums |
 | III · reddition | 180, en butin | Un don des Gau-Tik, dont la nature reste à décider |
 | IV · écho | Rien, et une Larme dorée | Inchangé |
@@ -564,7 +564,7 @@ Le même décor sert au combat, à la halte et, plus tard, à l'exploration.
 
 | Lieu | Ticket | À prévoir |
 |---|---|---|
-| Le village | À créer | Une place de nuit avec sa cloche, la porte du marchand, la route qui part vers la Lisière. La place des trois héros, sans ennemi. |
+| Le village | MAE-111 | Une place de nuit avec sa cloche, la porte du marchand, la route qui part vers la Lisière. La place des trois héros, sans ennemi. |
 | I · Lisière | Fait (MAE-2) | Rien. Plus tard : les deux arbres que deviennent les Sankri. |
 | II · Champ des Échos | MAE-3 | Un coin de feu près du tertre, avec la place du colporteur. |
 | III · Pont | MAE-4 | L'autre rive, où le groupe s'arrête. |
@@ -587,22 +587,24 @@ Le même décor sert au combat, à la halte et, plus tard, à l'exploration.
 | Un Hésium, colporteur, suit le groupe après l'alliance. | « Les peuples » |
 | Un immortel vit au Puits des Anciens. Il a des couleurs vives. | « Les immortels » |
 | Les Couronnes viennent d'une bourse de départ et de dons ; plus de butin pris sur des alliés. | « Le voyage » |
-| Le marchand du village est un humain. | « Le voyage » |
+| Le marchand du village est un humain. Il n'a qu'une seule Larme dorée. | « Le voyage » |
+| Le Dragon n'est pas sorti de son antre depuis trente ans ; la rumeur qui le dit ravager le Val ne repose sur rien. | « Les Tyrdrak et Vahn » |
+| Au chapitre V, la trace des Tyrdrak est l'armure de Maelor, faite de mues. Aucune écaille du Dragon en chemin. | « Le voyage » |
+| La marque de Corvin s'éclaire au Cœur d'Aure-Hin : un indice discret, sans réponse. | « Les héros » |
+| Les Sankri laissent de la Sève au lieu de Couronnes. | « Les peuples » |
+| Elwen n'est plus la seule touche de couleur vive à l'écran : l'immortel du Puits garde des couleurs vives. | « Les immortels », et la fiche des personnages (hors dépôt) |
 
 ### À valider
 
+Wesley tranchera ces points au moment de réécrire chaque chapitre, dans les tickets concernés (décision du 11/11/2026).
+
 | Changement | D'où il vient |
 |---|---|
-| Elwen n'est plus la seule touche de couleur vive à l'écran : l'immortel du Puits en est une autre, le temps de sa scène. | Fiche des personnages, « Univers » (27/10/2026) |
 | Le village est le dernier avant le Val, et Maelor n'en est pas. | 5.2 |
 | Corvin est rencontré au village, et non « en route ». | Fiche de Corvin |
 | Le nom du village, celui du colporteur, celui de l'immortel. | Lexique |
-| Le Dragon n'est pas sorti de son antre depuis trente ans ; la rumeur qui le dit ravager le Val ne repose sur rien. | 5.10 |
-| Des écailles gravées du Dragon sur la Pierre Nue (sommaire). Elles contredisent la ligne précédente : c'est l'un ou l'autre. Si le Dragon n'est jamais sorti, la trace du chapitre V devient l'armure de Maelor elle-même, faite de mues de Tyrdrak, et les écailles gravées restent dans l'antre. | 5.7, 6 |
 | Le Painkush fait un don au groupe, comme les Hésiums et les Gau-Tik. | 8 |
 | Chaque halte s'ouvre sur une scène obligatoire, avant son menu. | 4 |
-| Les Sankri ne portent pas de Couronnes ; le groupe prend de la Sève sur les arbres qu'ils redeviennent (sommaire ; la liste de Wesley ne cite pas les Sankri). | 5.3, 8 |
-| La marque de Corvin s'éclaire au Cœur d'Aure-Hin. | 5.6 |
 | Par où passe le colporteur entre le Champ des Échos et le Puits. | 7, et la carte du monde |
 
 ## 12. Repères pour les tickets
@@ -616,3 +618,51 @@ Ce que le plan touche dans le code, pour découper le travail. Rien n'est décid
 - **Les dons** changent le texte des récompenses (`formatRewards`) et les données des ennemis (`gil`).
 - **Le repli** est à interdire aux chapitres III et V (`canRun`).
 - **Les textes selon le pouvoir**, pour la halte d'après le Cœur, suivent le modèle de `DRAGON_FATE`.
+
+## 13. Tickets
+
+Créés le 11/11/2026, sur le feu vert de Wesley. Chaque ticket reprend ses décisions et ses points « À valider ».
+
+### Avant l'écriture
+
+| Ticket | Titre | Rôle |
+|---|---|---|
+| MAE-113 | Étoffer le lore des peuples et des personnages | Demandé par Wesley, hors des treize tickets du plan. À faire avant l'écriture des chapitres : pour chaque peuple et chaque personnage, la rumeur, la vérité et un secret à révéler. Les tickets d'écriture ci-dessous en dépendent. |
+
+### Les tickets du plan
+
+| Ticket | Titre | Sections du plan | Dépend de |
+|---|---|---|---|
+| MAE-106 | Dessiner la maquette de la halte et du marchand | 4, 8 | |
+| MAE-107 | Créer la halte : un arrêt du groupe entre deux combats | 4, 9, 12 | MAE-106 |
+| MAE-108 | Coder l'écran du marchand et l'achat des trois objets | 8 | MAE-106, MAE-107 |
+| MAE-109 | Remplacer le butin par une bourse de départ et des dons | 8 | |
+| MAE-110 | Écrire le village : la rumeur, la rencontre des trois, le marchand | 5.2 | MAE-107, MAE-113 |
+| MAE-111 | Créer le décor peint du village | 5.2, 10 | |
+| MAE-112 | Écrire les haltes de route : le feu des Hésiums, l'autre rive, l'après-Cœur | 5.4, 5.5, 5.6 | MAE-107, MAE-113 |
+| MAE-114 | Créer le colporteur hésium : fiche, sprite, nom, scènes | 7, 8 | MAE-107, MAE-113 |
+| MAE-115 | Faire reconnaître l'armure de Maelor par le Painkush, sans le tuer | 5.7 | MAE-113 |
+| MAE-116 | Créer l'immortel du Puits : fiche, sprite, nom, scène | 5.8, 7 | MAE-107, MAE-113 |
+| MAE-117 | Resserrer la révélation du Cœur d'Aure-Hin | 5.6 | MAE-113 |
+| MAE-118 | Réécrire le fragment de l'antre et accorder les fins sur les trente ans | 5.9, 5.10 | MAE-113 |
+| MAE-119 | Interdire le repli devant les Gau-Tik et le Painkush | 2.3 | |
+
+### Les tickets qui existaient, complétés par le plan
+
+| Ticket | Objet | Ce que le plan y ajoute |
+|---|---|---|
+| MAE-37 | Réduire le prologue à 1 ou 2 écrans, distiller le reste en jeu | Le contenu du prologue et la nouvelle place de ce qui en sort (5.1). Dépend de MAE-110 et de MAE-112. |
+| MAE-38 | Étoffer les chapitres I et III | La suite du combat de la Lisière (5.3) ; la halte de l'autre rive (5.5). |
+| MAE-39 | Équilibrer la difficulté pour une partie de 30 à 45 minutes | Bourse, dons, prix, stock de départ, repos des haltes, budget de durée (8, 9). |
+| MAE-35 | Placer les combats d'histoire et les rencontres optionnelles sur la carte | Une seule mise à mort : comment finissent les rencontres évitables (3, 5.3). |
+| MAE-9 | Marchand entre les chapitres | Epic du marchand : MAE-108 et MAE-109 pour la v1. |
+| MAE-3 | Décor du Champ des Échos | Un coin de feu près du tertre, la place du colporteur (10). |
+| MAE-4 | Décor du Pont de Pierre-Noire | L'autre rive, où le groupe s'arrête (10). |
+| MAE-78 | Décor de la Pierre Nue | Les murs et une porte de forge, fermée (10). |
+| MAE-5 | Décor du Puits des Anciens | La place de l'immortel et celle du colporteur (10). |
+
+### À la fin
+
+| Ticket | Titre | Rôle |
+|---|---|---|
+| MAE-105 | Relire tous les textes du jeu terminé à la lumière du plan du récit | Demandé par Wesley, hors des treize tickets du plan. Le contrôle d'ensemble, une fois tous les chapitres réécrits. |
