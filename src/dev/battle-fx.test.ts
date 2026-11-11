@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { CONFIG } from "../config.ts";
 import palette from "../../docs/character-palette.md?raw";
-import { ATTACK, ENEMY_SKILLS, ITEMS, SPELLS, type Ability, type AbilityEffect } from "../data/game-data.ts";
+import { ATTACK, ENEMY_SKILLS, ITEMS, RUN, SPELLS, type Ability, type AbilityEffect } from "../data/game-data.ts";
 import {
   abilityEffect, abilityFx, along, ashCloud, ashVeil, between, FX_COLORS, goldStream, lightRise, pick, PILLAR_DROP, seeded, SLASH_SPARKS, still, streamsGold, touched,
   type FxBox, type FxPixel, type FxPlan, type FxTarget,
@@ -311,7 +311,7 @@ function target(left: number, top: number): FxTarget {
 const opaqueAt = ({ box, rows }: FxTarget, x: number, y: number) => (rows[y - box.top] ?? []).some(([from, to]) => x - box.left >= from && x - box.left < to);
 const framesOf = (plan: FxPlan) => Array.from({ length: plan.count }, (_, i) => plan.frame(i));
 // Chaque nom de AbilityEffect : un nom oublié ici ne compile pas (Record), un nom en trop non plus
-const EFFECTS = Object.keys({ slash: true, twin: true, sweep: true, wick: true, frost: true, bell: true, sulfur: true, mend: true, dew: true, wake: true, sap: true, incense: true, tear: true, chains: true, pillar: true, echo: true } satisfies Record<AbilityEffect, true>) as AbilityEffect[]; // as : Object.keys perd le type des clés
+const EFFECTS = Object.keys({ slash: true, twin: true, sweep: true, wick: true, frost: true, bell: true, sulfur: true, mend: true, dew: true, wake: true, sap: true, incense: true, tear: true, chains: true, pillar: true, echo: true, cinder: true } satisfies Record<AbilityEffect, true>) as AbilityEffect[]; // as : Object.keys perd le type des clés
 const FX_COUNT = frameCount(CONFIG.timing.abilityFx);
 
 describe("effets des capacités : le socle", () => {
@@ -328,16 +328,16 @@ describe("effets des capacités : le socle", () => {
     expect(touched([])).toEqual([]);
   });
 
-  it("chaque capacité a son effet : le sien, sinon l'entaille pour un coup d'arme, sinon pas encore de pixels", () => {
+  it("chaque capacité a son effet : le sien, sinon l'entaille pour un coup d'arme ; le Repli n'en a aucun", () => {
     expect(abilityEffect(ATTACK)).toBe("slash");
     expect(abilityEffect(ENEMY_SKILLS.chains)).toBe("chains");
     expect(abilityEffect(ENEMY_SKILLS.pillar)).toBe("pillar");
     expect(abilityEffect(ENEMY_SKILLS.echoBlade)).toBe("echo");
     // Un coup d'arme qui ne déclare pas d'effet : l'entaille (aucune capacité du jeu ne l'est plus, celle-ci est fictive)
     expect(abilityEffect({ name: "Coup", kind: "physical", power: 1, target: "foe" })).toBe("slash");
-    for (const ability of [ENEMY_SKILLS.ashCloud]) {
-      expect(abilityEffect(ability)).toBeNull();
-    }
+    expect(abilityEffect(ENEMY_SKILLS.ashCloud)).toBe("cinder");
+    // Le Repli ne touche personne : aucun effet
+    expect(abilityEffect(RUN)).toBeNull();
   });
 
   // Les noms seulement : que chaque nom ait son propre dessin, c'est « tous les dessins sont différents », plus bas
@@ -1011,5 +1011,56 @@ describe("Kardrov, l'écho de Maelor : le miroir de Vordrak dans l'or de l'écho
       expect(echo[6].filter(({ color }) => color === FX_COLORS.oldGold).length).toBeGreaterThan(0);
       expect(echo[FX_COUNT - 1]).toEqual([]);
     }
+  });
+});
+
+describe("l'impact de la Nuée de cendre", () => {
+  const heroes = [target(100, 120), target(160, 120), target(220, 120)];
+  const SEEDS = [1, 2, 3, 13, 57, 404];
+  const play = (targets: FxTarget[] = heroes, seed = 13) => framesOf(abilityFx("cinder", { targets, facing: -1, count: FX_COUNT, seed }, false));
+  const SOBER: string[] = [FX_COLORS.ember, FX_COLORS.ash, FX_COLORS.shadow];
+
+  it("est déclaré dans les données, pour la Nuée de cendre seulement", () => {
+    expect(abilityEffect(ENEMY_SKILLS.ashCloud)).toBe("cinder");
+    expect(Object.values<Ability>(ENEMY_SKILLS).filter(({ effect }) => effect === "cinder")).toEqual([ENEMY_SKILLS.ashCloud]);
+  });
+
+  it("sobre : braise sombre, cendre et brun d'ombre seulement, sans aucune couleur claire", () => {
+    for (const seed of SEEDS) {
+      const all = play(heroes, seed).flat();
+      for (const { color } of all) expect(SOBER).toContain(color);
+      expect(all.some(({ color }) => color === FX_COLORS.ember)).toBe(true);
+    }
+  });
+
+  it("des braises prennent sur le haut de chaque héros touché, sur sa silhouette, dès la première image", () => {
+    for (const seed of SEEDS) {
+      const first = play(heroes, seed)[0].filter(({ color }) => color === FX_COLORS.ember);
+      for (const hero of heroes) {
+        const on = first.filter(({ x, y }) => opaqueAt(hero, x, y));
+        expect(on.length).toBeGreaterThan(0);
+        // Dans le haut du corps : au-dessus de 60 % de la hauteur de sa silhouette (rangées 4 à 65)
+        for (const { y } of on) expect(y).toBeLessThanOrEqual(hero.box.top + 4 + Math.round(61 * 0.6));
+      }
+    }
+  });
+
+  it("rougeoie, puis s'éteint en cendre qui tombe : plus de braise à la fin, la cendre plus bas que les braises, plus rien à la dernière image", () => {
+    for (const seed of SEEDS) {
+      const frames = play(heroes, seed);
+      const of = (index: number, color: string) => frames[index].filter((pixel) => pixel.color === color);
+      expect(of(2, FX_COLORS.ember).length).toBeGreaterThan(of(6, FX_COLORS.ember).length);
+      expect(of(6, FX_COLORS.ember)).toEqual([]);
+      const meanY = (pixels: FxPixel[]) => pixels.reduce((sum, { y }) => sum + y, 0) / pixels.length;
+      const fallen = [...of(5, FX_COLORS.ash), ...of(5, FX_COLORS.shadow)];
+      expect(fallen.length).toBeGreaterThan(0);
+      expect(meanY(fallen)).toBeGreaterThan(meanY(of(1, FX_COLORS.ember)));
+      expect(frames[FX_COUNT - 1]).toEqual([]);
+    }
+  });
+
+  it("sur un héros à genoux, rien ne passe sous la dernière rangée de sa silhouette", () => {
+    const kneeling: FxTarget = { box: { left: 100, top: 120, right: 147, bottom: 186 }, rows: Array.from({ length: 66 }, (_, row) => (row >= 20 && row <= 50 ? [[10, 38]] : [])) };
+    for (const seed of SEEDS) for (const { y } of play([kneeling], seed).flat()) expect(y).toBeLessThanOrEqual(120 + 50);
   });
 });

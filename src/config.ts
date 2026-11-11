@@ -91,7 +91,6 @@ export const CONFIG = {
     blink:         450,  // clignotement d'un ennemi qui agit (CSS enemy-blink)
     cast:          350,  // lueur du Souffle (CSS cast-glow)
     hit:           400,  // coup reçu : recul et tremblement (sprite-motion.ts), teinte (CSS .damaged)
-    spellFx:       700,  // effet de souffle (CSS fx-*)
     popup:         1200, // chiffre de dégâts (CSS popup-bounce)
     death:         700,  // disparition d'un ennemi (CSS enemy-dissolve)
     flee:          700,  // sortie de scène du groupe (glissement des scènes, fleeSlide compris)

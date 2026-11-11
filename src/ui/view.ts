@@ -5,7 +5,7 @@
 
 import { CONFIG } from "../config.ts";
 import { COMMAND_HELP, ELEMENT_NAMES, GameState, HEROES } from "../data/game-data.ts";
-import type { Ability, Chapter, ElementName } from "../data/game-data.ts";
+import type { Ability, Chapter } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import type { SoundName } from "../audio/sfx.ts";
 import { Battle, isAlive } from "../battle/battle.ts";
@@ -465,14 +465,7 @@ export async function showMessage(text: string, duration = CONFIG.timing.message
   hideBanner();
 }
 
-// — Chiffres et halos d'un combattant : les halos sur son ancre, les chiffres là où la scène le dit (Stage.popupAnchor) —
-
-// Halo d'une capacité qui n'a pas encore son effet en pixels (abilityEffect, battle-fx.ts, MAE-31) : celui de son
-// élément (aujourd'hui l'impact de la Nuée de cendre, .fx-fire, jusqu'à MAE-98), sinon aucun. Les coups d'arme ont
-// tous l'entaille en pixels, et les capacités des héros et les objets leur effet
-export function effectVisual(ability: Ability): ElementName | null {
-  return ability.element ?? null;
-}
+// — Chiffres d'un combattant, là où la scène le dit (Stage.popupAnchor). Ses effets sont en pixels (fx-layer.ts) —
 
 export function effectSound(effect: Effect, ability: Ability): SoundName {
   if (effect.type === "miss") return "miss";
@@ -507,11 +500,4 @@ export function spawnPopup(anchor: HTMLElement, text: string, className: string)
   if (popup.classList.contains("weak")) popup.insertAdjacentHTML("afterbegin", `<span class="popup-word">Faiblesse</span>`);
   anchor.appendChild(popup);
   setTimeout(() => popup.remove(), CONFIG.timing.popup);
-}
-
-export function spawnFx(anchor: HTMLElement, visual: string) {
-  const fx = document.createElement("div");
-  fx.className = "fx fx-" + visual;
-  anchor.appendChild(fx);
-  setTimeout(() => fx.remove(), CONFIG.timing.spellFx);
 }

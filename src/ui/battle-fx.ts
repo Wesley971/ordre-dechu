@@ -80,7 +80,7 @@ export function along(from: FxPoint, to: FxPoint, p: number, arc = 0): FxPoint {
 // puis s'éteignent un à un avant la fin. En vol, un grain laisse derrière lui une traînée de deux pixels d'ombre sur
 // son trajet : à douze images par seconde, il franchit l'écran par grands sauts, et la traînée dit d'où il vient.
 // Les grains se posent pour l'essentiel vers la fin du sort (CONFIG.timing.cast), quand l'impact frappe les héros.
-// L'impact garde le halo de feu (décision de Wesley du 09/11/2026) jusqu'à son effet en pixels, dans MAE-98.
+// L'impact sur les héros touchés est l'effet de la capacité (cinder, MAE-98), lancé avec les chiffres.
 const ASH_GRAINS: readonly (readonly [FxColor, number])[] = [[FX_COLORS.ash, 6], [FX_COLORS.shadow, 2], [FX_COLORS.ember, 2]];
 export const ASH_GRAINS_PER_TARGET = 36;
 export const ASH_VEIL_PER_TARGET = 48; // voile du mouvement réduit : un peu plus dense, puisqu'il ne bouge pas
@@ -315,8 +315,8 @@ export interface AbilityFxInput {
   seed: number;
 }
 
-// L'effet en pixels d'une capacité : le sien, sinon l'entaille pour un coup d'arme. null : pas encore d'effet en
-// pixels, la scène garde le halo de son élément (l'impact de la Nuée de cendre jusqu'à MAE-98)
+// L'effet en pixels d'une capacité : le sien, sinon l'entaille pour un coup d'arme. Toutes les capacités du jeu
+// déclarent le leur (game-data.ts) ; null : aucun effet (le Repli, qui ne touche personne)
 export function abilityEffect(ability: Ability): AbilityEffect | null {
   return ability.effect ?? (ability.kind === "physical" ? "slash" : null);
 }
@@ -1228,8 +1228,60 @@ function pillar({ targets, count, seed }: AbilityFxInput): FxPlan {
   };
 }
 
+// Impact de la Nuée de cendre (le Dragon, MAE-98) : la cendre venue de sa gueule (ashCloud, pendant le sort) prend sur
+// les héros touchés. Des braises naissent sur le haut de leur silhouette, sur ses pixels opaques, dès la première
+// image et jusqu'au deuxième pas, et rougeoient (environ une sur deux en croix cernée de brun d'ombre, les autres en un
+// pixel posé sur son ombre) ; puis chacune s'éteint en cendre qui tombe en dérivant, et passe au brun d'ombre avant de
+// disparaître, avant le dernier pas. Sobre, sans couleur claire
+// (décision de Wesley du 11/11/2026) : braise sombre, cendre et brun d'ombre seulement, comme le feu du Dragon
+// (docs/character-palette.md, section 7)
+const CINDER_PER_TARGET = 20;
+const CINDER_FIRST = 4;    // braises qui prennent dès la première image, sur chaque héros
+const CINDER_REACH = 0.55; // part haute de la silhouette où les braises prennent
+
+function cinder({ targets, count, seed }: AbilityFxInput): FxPlan {
+  const random = seeded(seed);
+  const grains = targets.flatMap((target) => {
+    const shape = shapeOf(target);
+    return Array.from({ length: CINDER_PER_TARGET }, (_, i) => ({
+      at: shape.point(random, 0, CINDER_REACH),
+      start: i < CINDER_FIRST ? 0 : random() * 2, // naît dans les deux premiers pas, quelques-unes dès le premier
+      glow: 3 + random() * 2,     // rougeoie jusqu'à ce pas
+      end: 6 + random() * 1.9,    // éteinte avant le dernier pas
+      cross: random() < 0.5,
+      drift: between(random, -1, 1),
+    }));
+  });
+  return {
+    count,
+    frame(index) {
+      const step = clock(index, count);
+      const pixels: FxPixel[] = [];
+      for (const grain of grains) {
+        if (step < grain.start || step >= grain.end) continue;
+        const { x, y } = grain.at;
+        if (step < grain.glow) {
+          if (grain.cross) {
+            // Une croix de cinq pixels de braise, cernée de brun d'ombre aux coins : la braise, un peu plus claire que
+            // l'armure rouge vin de Maelor et tirant vers le brun orangé, et le brun d'ombre plus sombre qu'elle, la
+            // détachent de l'armure comme de la nuit
+            for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) pixels.push({ x: x + dx, y: y + dy, color: FX_COLORS.shadow });
+            for (const [dx, dy] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) pixels.push({ x: x + dx, y: y + dy, color: FX_COLORS.ember });
+          } else {
+            pixels.push({ x, y: y + 1, color: FX_COLORS.shadow }, { x, y, color: FX_COLORS.ember });
+          }
+          continue;
+        }
+        const age = step - grain.glow;
+        pixels.push({ x: x + grain.drift * Math.floor(age / 2), y: y + Math.floor(age * 1.5), color: age < 1.5 ? FX_COLORS.ash : FX_COLORS.shadow });
+      }
+      return pixels;
+    },
+  };
+}
+
 // L'effet de chaque capacité. Ajouter une capacité : son nom dans AbilityEffect (game-data.ts), son dessin ici
-const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash, twin, sweep, wick, frost, bell, sulfur, mend, dew, wake, sap, incense, tear, chains, pillar, echo };
+const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash, twin, sweep, wick, frost, bell, sulfur, mend, dew, wake, sap, incense, tear, chains, pillar, echo, cinder };
 
 // Les images de l'effet d'une capacité sur ses cibles ; avec le mouvement réduit, son image la plus fournie, fixe
 export function abilityFx(effect: AbilityEffect, input: AbilityFxInput, reduced: boolean): FxPlan {
