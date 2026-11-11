@@ -119,6 +119,16 @@ describe("teintes des combattants", () => {
     expect(total / PALETTE.length).toBeLessThan(limit);
   });
 
+  it("coup reçu franc en scène DOM : aucune image de combattant n'a de transition de filtre, sauf l'ennemi vaincu qui se grise", () => {
+    // Décision de Wesley du 11/11/2026 (MAE-98) : une transition sur l'image d'un ennemi (0,6 s) étalait son éclair, plus
+    // long qu'un coup reçu (0,4 s) ; elle ne reste qu'à l'ennemi vaincu (et le mouvement réduit l'y retire)
+    const transitions = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter(([, selector, body]) => /\.sprite\b/.test(selector) && /transition:(?!\s*none)/.test(body))
+      .map(([, selector]) => selector.trim().split("\n").pop()?.trim());
+    expect(transitions).toEqual([".sprite.enemy.defeated .sprite-img"]);
+    expect(css).toContain(".sprite.enemy.defeated .sprite-img { transition: none; }");
+  });
+
   it("coup reçu : la braise (rouille) pour un héros, l'éclair parchemin pour un ennemi, dans les deux scènes", () => {
     expect(TINTS.foeHit.color).toBe(FX_COLORS.parchment);
     expect(TINTS.foeHit.filter).not.toBe(TINTS.hit.filter);

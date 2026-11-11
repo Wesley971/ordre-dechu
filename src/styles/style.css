@@ -425,9 +425,10 @@ body.scene-painted #battle-scene { pointer-events: none; }
   50%      { filter: var(--tint-gold); }
 }
 
-/* Vaincu mais pas mort (Vahn) : il reste à terre, grisé, en attendant le choix du joueur */
-.sprite.enemy .sprite-img          { transition: filter 0.6s ease; }
-.sprite.enemy.defeated .sprite-img { filter: grayscale(0.5) brightness(0.55); }
+/* Vaincu mais pas mort (Vahn) : il reste à terre, grisé, en attendant le choix du joueur. Il se grise lentement ; la
+   transition ne vaut que pour cela (décision de Wesley du 11/11/2026, MAE-98) : la teinte du coup reçu est franche,
+   et l'ennemi épargné retrouve ses couleurs d'un coup en se relevant */
+.sprite.enemy.defeated .sprite-img { filter: grayscale(0.5) brightness(0.55); transition: filter 0.6s ease; }
 
 @keyframes enemy-appear {
   from { opacity: 0; filter: brightness(3); }
@@ -454,7 +455,7 @@ body.scene-painted #battle-scene { pointer-events: none; }
   .sprite.dying .sprite-body  { animation: none; filter: var(--tint-death) brightness(0.9); opacity: 0.6; }
   .sprite.unraveling .sprite-body { animation: none; filter: var(--tint-gold); }
   .sprite.gilded .sprite-body { animation: none; filter: var(--tint-gold); }
-  .sprite.enemy .sprite-img   { transition: none; }
+  .sprite.enemy.defeated .sprite-img { transition: none; }
 }
 
 /* Coups reçus et Souffle : la teinte (le recul et le tremblement sont dans l'image animée) */
