@@ -125,6 +125,7 @@ Le jeu ne s'ouvre pas en `file://` : toujours passer par `npm run dev` ou `npm r
 ## Histoire
 - Tout texte d'histoire du jeu (prologue, chapitres, fragments de mémoire, répliques, choix et fins) respecte la bible de l'univers : `docs/lore.md` (décisions du 02/11/2026, MAE-66).
 - Les mots inventés du monde (lieux, peuples, capacités) suivent le lexique : `docs/lexique.md` (MAE-75). Un nouveau mot s'y ajoute d'abord, avec son sens.
+- La construction du récit (ce que le joueur apprend, où, par quel moyen ; les haltes, les marchands, les rencontres) suit le plan du récit : `docs/story-plan.md` (MAE-103). La bible l'emporte en cas de désaccord, et un point « À valider » du plan ne s'écrit pas dans le jeu avant la décision de Wesley.
 
 ## Interface et design
 - Tout écran ou élément d'interface se code d'après une maquette validée dans le ticket de design correspondant (epic MAE-15).
