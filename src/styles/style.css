@@ -459,6 +459,7 @@ body.scene-painted #battle-scene { pointer-events: none; }
 
 /* Coups reçus et Souffle : la teinte (le recul et le tremblement sont dans l'image animée) */
 .sprite.damaged .sprite-img  { filter: var(--tint-hit); }
+.sprite.enemy.damaged .sprite-img { filter: var(--tint-foe-hit); } /* un ennemi touché : l'éclair parchemin (MAE-98) */
 .sprite.casting .sprite-body { animation: cast-glow 0.35s ease-in-out; }
 
 @keyframes cast-glow {

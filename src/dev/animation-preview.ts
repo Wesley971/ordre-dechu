@@ -58,6 +58,7 @@ const PAUSE = 1200;
 // Couleurs des scènes : coup reçu, mort et or viennent de tints.ts, comme dans les scènes ; l'éclair de l'ennemi qui
 // agit et la lueur du Souffle imitent style.css
 const HIT_TINT = TINTS.hit.filter;
+const FOE_HIT_TINT = TINTS.foeHit.filter; // un ennemi touché : l'éclair parchemin (MAE-98)
 const FLASH = "brightness(2.6)";
 const DEATH_TINT = `${TINTS.death.filter} brightness(0.9)`; // l'éclat du mouvement réduit de style.css (.sprite.dying)
 const GLOW = "drop-shadow(0 0 4px #f0c95a)";
@@ -126,7 +127,7 @@ const ENEMY_SCENARIOS: [string, Scenario][] = [
   }],
   ["Dégâts", async ({ sprite, color }) => {
     sprite.play("hit");
-    color(HIT_TINT, CONFIG.timing.hit);
+    color(FOE_HIT_TINT, CONFIG.timing.hit);
     await wait(CONFIG.timing.hit + PAUSE);
   }],
   ["Mort", async ({ sprite, color }) => {

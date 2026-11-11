@@ -29,6 +29,7 @@ describe("teintes des combattants", () => {
     applyTints({ setProperty: (name, value) => { posed.set(name, value); } });
     expect(posed.get("--tint-gold")).toBe(TINTS.gold.filter);
     expect(posed.get("--tint-gold-rest")).toBe(TINTS.gold.rest);
+    expect(posed.get("--tint-foe-hit")).toBe(TINTS.foeHit.filter); // foeHit : en minuscules à tirets
     expect(posed.get("--tint-death")).toBe(TINTS.death.filter);
     expect(posed.get("--tint-hit")).toBe(TINTS.hit.filter);
     expect(posed.size).toBe(tintVariables().length);
@@ -71,9 +72,9 @@ describe("teintes des combattants", () => {
     }
   });
 
-  // Le filtre CSS de la braise sombre, calculé comme le fait Edge : en sRGB, chaque fonction bornée de 0 à 1 (formules
-  // de Filter Effects ; mesuré dans Edge le 11/11/2026 sur les 81 couleurs des héros, écart d'au plus 2 sur 255)
-  const SEPIA = [[0.393, 0.769, 0.189], [0.349, 0.686, 0.168], [0.272, 0.534, 0.131]];
+  // Un filtre CSS de teinte, calculé comme le fait Edge : en sRGB, chaque fonction bornée de 0 à 1 (formules de Filter
+  // Effects ; mesuré dans Edge le 11/11/2026 sur les 81 couleurs des héros, écart d'au plus 2 sur 255 pour la braise)
+  const sepia = (a: number) => [[0.393 + 0.607 * (1 - a), 0.769 - 0.769 * (1 - a), 0.189 - 0.189 * (1 - a)], [0.349 - 0.349 * (1 - a), 0.686 + 0.314 * (1 - a), 0.168 - 0.168 * (1 - a)], [0.272 - 0.272 * (1 - a), 0.534 - 0.534 * (1 - a), 0.131 + 0.869 * (1 - a)]];
   const saturate = (s: number) => [[0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s], [0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s], [0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s]];
   const hueRotate = (degrees: number) => {
     const a = (degrees * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);
@@ -83,29 +84,52 @@ describe("teintes des combattants", () => {
   };
   const bounded = (c: number[]) => c.map((v) => Math.max(0, Math.min(1, v)));
   const apply = (m: number[][], c: number[]) => bounded(m.map((row) => row[0] * c[0] + row[1] * c[1] + row[2] * c[2]));
-  const emberFilter = (c: number[]) => apply(hueRotate(-25), apply(saturate(3), apply(SEPIA, bounded(c.map((v) => v * 1.15)))));
+  // brightness, sepia, saturate et hue-rotate, dans l'ordre du filtre ; toute autre fonction fait échouer le test
+  function cssFilter(filter: string, rgb: number[]): number[] {
+    let c = rgb;
+    for (const [, name, value] of filter.matchAll(/([a-z-]+)\(([-\d.]+)(?:deg)?\)/g)) {
+      const v = Number(value);
+      if (name === "brightness") c = bounded(c.map((x) => x * v));
+      else if (name === "sepia") c = apply(sepia(v), c);
+      else if (name === "saturate") c = apply(saturate(v), c);
+      else if (name === "hue-rotate") c = apply(hueRotate(v), c);
+      else throw new Error(`fonction de filtre non calculée : ${name}`);
+    }
+    return c;
+  }
+  const PALETTE = [...new Set([...palette.matchAll(/#[0-9a-f]{6}/gi)].map((match) => match[0].toLowerCase()))];
+  const luma = (c: number[]) => c.reduce((sum, v, k) => sum + v * LUMA[k], 0);
 
-  it("coup reçu, braise sombre (choix de Wesley, MAE-98) : sa forme peinte suit son filtre CSS sur les couleurs de la palette, sans assombrir le clair", () => {
-    const ember: Tint = TINTS.hit;
-    expect(ember.filter).toBe("brightness(1.15) sepia(1) saturate(3) hue-rotate(-25deg)"); // le filtre calculé par emberFilter
-    const colors = [...new Set([...palette.matchAll(/#[0-9a-f]{6}/gi)].map((match) => match[0].toLowerCase()))];
-    expect(colors.length).toBeGreaterThan(30);
+  // Le coup reçu (MAE-98, décisions de Wesley du 11/11/2026) : la braise pour un héros, l'éclair parchemin pour un ennemi.
+  // Seuils : au-dessus de l'écart moyen calculé ici sur toute la palette (braise 6 à 7 sur 255 ; parchemin 23,7, ses
+  // réglages ayant été choisis sur les 130 couleurs des ennemis, où l'écart mesuré dans Edge est de 13)
+  it.each([
+    { name: "hit", label: "braise sombre, sur un héros", tint: TINTS.hit as Tint, limit: 12 },
+    { name: "foeHit", label: "éclair parchemin, sur un ennemi", tint: TINTS.foeHit as Tint, limit: 25 },
+  ])("coup reçu, $label : sa forme peinte suit son filtre CSS sur les couleurs de la palette, sans assombrir le clair", ({ tint, limit }) => { // as Tint : lues comme des teintes quelconques
+    expect(PALETTE.length).toBeGreaterThan(30);
     let total = 0;
-    for (const hex of colors) {
+    for (const hex of PALETTE) {
       const rgb = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16) / 255);
-      const dom = emberFilter(rgb), painted = paintedTint(rgb, ember);
+      const dom = cssFilter(tint.filter, rgb), painted = paintedTint(rgb, tint);
       total += Math.hypot(...dom.map((v, k) => (v - painted[k]) * 255));
       // Un pixel clair reste clair : sa luminosité ne baisse pas de plus d'un dixième sous celle du rendu DOM
-      const luma = (c: number[]) => c.reduce((sum, v, k) => sum + v * LUMA[k], 0);
       expect(luma(painted), hex).toBeGreaterThan(luma(dom) - 0.1);
     }
-    expect(total / colors.length).toBeLessThan(12);
+    expect(total / PALETTE.length).toBeLessThan(limit);
+  });
+
+  it("coup reçu : la braise (rouille) pour un héros, l'éclair parchemin pour un ennemi, dans les deux scènes", () => {
+    expect(TINTS.foeHit.color).toBe(FX_COLORS.parchment);
+    expect(TINTS.foeHit.filter).not.toBe(TINTS.hit.filter);
+    expect(css).toContain(".sprite.enemy.damaged .sprite-img { filter: var(--tint-foe-hit); }");
+    expect(source("../scene/battle-stage.ts")).toContain('target.side === "hero" ? HERO_HIT : FOE_HIT');
   });
 
   it("le shader des sprites de la scène peinte a la formule de paintedTint", () => {
     const actors = source("../scene/actors.ts");
     expect(actors).toContain("uniform float uTintGain;");
     expect(actors).toContain(`vec3( ${LUMA.join(", ")} ) ) * uTintGain * hue`);
-    expect(source("../scene/battle-stage.ts")).toContain("s.tintGain = HIT.gain ?? 0;");
+    expect(source("../scene/battle-stage.ts")).toContain("s.tintGain = tint.gain ?? 0;");
   });
 });

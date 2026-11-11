@@ -53,7 +53,7 @@ export const TINTS = {
   },
   // La mort d'un ennemi, qui se dissout
   death: { filter: "sepia(1) saturate(6) hue-rotate(250deg)", color: "#7a4fd6", mix: 0.7 },
-  // Le coup reçu : un rougeoiement de braise (MAE-98, choisi par Wesley le 11/11/2026 entre l'ancien orange #ff8c3c et
+  // Le coup reçu par un héros : un rougeoiement de braise (MAE-98, choisi par Wesley le 11/11/2026 entre l'ancien orange #ff8c3c et
   // deux teintes de la palette, tel qu'il rend en scène DOM, à côté des éclats du sang doré). En DOM, le sprite passe au
   // rouge brun saturé, un peu éclairci, chaque pixel gardant sa clarté. Dans la scène peinte, la même chose par la
   // luminosité colorée (gain, validé par Wesley le même jour) : mêler une couleur telle quelle assombrissait les pixels
@@ -61,14 +61,24 @@ export const TINTS = {
   // rouge) : mesuré dans Edge sur les 81 couleurs des héros, l'écart moyen au rendu DOM est de 6 sur 255 ; le test le
   // garde sous 12 sur 255 sur les couleurs de la palette, face à un calcul du filtre CSS (tints.test.ts)
   hit: { filter: "brightness(1.15) sepia(1) saturate(3) hue-rotate(-25deg)", color: FX_COLORS.rust, mix: 0.9, brightness: 1, gain: 2.3 },
+  // Le coup reçu par un ennemi : un éclair pâle, le parchemin, cœur clair des effets (MAE-98, décision de Wesley du
+  // 11/11/2026 : la braise reste aux héros). En DOM, le sprite très éclairci, à peine doré (sepia 0,3) ; dans la scène
+  // peinte, la luminosité colorée de parchemin (gain), qui garde la clarté de chaque pixel, comme pour la braise. Mesuré
+  // dans Edge sur les 130 couleurs des ennemis : écart moyen au rendu DOM de 13 sur 255 (le filtre garde un peu des
+  // couleurs du sprite, que la luminosité colorée ne garde pas) ; mêler le parchemin tel quel en était à 131
+  foeHit: { filter: "brightness(1.9) sepia(0.3) saturate(0.8)", color: FX_COLORS.parchment, mix: 0.85, brightness: 1, gain: 2.3 },
 } satisfies Record<string, Tint>;
 
-// Variables CSS des teintes : --tint-<nom>, et --tint-<nom>-rest pour une teinte qui a son filtre sans effet
+// Variables CSS des teintes : --tint-<nom>, et --tint-<nom>-rest pour une teinte qui a son filtre sans effet. Le nom est
+// écrit en minuscules à tirets (foeHit : --tint-foe-hit), comme toute variable de style.css
 export function tintVariables(): [string, string][] {
-  return Object.entries<Tint>(TINTS).flatMap(([name, tint]) => [
-    [`--tint-${name}`, tint.filter] as [string, string], // as : une paire nom, valeur, pas un tableau de chaînes
-    ...(tint.rest ? [[`--tint-${name}-rest`, tint.rest] as [string, string]] : []), // as : idem
-  ]);
+  return Object.entries<Tint>(TINTS).flatMap(([key, tint]) => {
+    const name = key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+    return [
+      [`--tint-${name}`, tint.filter] as [string, string], // as : une paire nom, valeur, pas un tableau de chaînes
+      ...(tint.rest ? [[`--tint-${name}-rest`, tint.rest] as [string, string]] : []), // as : idem
+    ];
+  });
 }
 
 // Pose les teintes sur un élément (la scène DOM) : style.css les lit dans ses filtres et ses animations

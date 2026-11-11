@@ -44,8 +44,11 @@ export interface BattleStage extends Stage {
 const BODY_CLASS = "scene-painted";
 // Teintes du coup reçu, de la mort et de l'or (l'écho qui se défait, l'éclat de Maelor) : définies avec leur filtre
 // CSS de la scène DOM dans src/ui/tints.ts, une seule fois (MAE-31)
-const DAMAGE_TINT = new Color(TINTS.hit.color);
-const HIT: Tint = TINTS.hit; // la teinte du coup reçu, lue comme une teinte quelconque : gain est facultatif (MAE-98)
+// Le coup reçu (MAE-98, décisions de Wesley du 11/11/2026) : la braise pour un héros, l'éclair parchemin pour un ennemi.
+// tint : la teinte lue comme une teinte quelconque (gain et brightness sont facultatifs) ; color : sa couleur pour Three.js
+interface HitTint { tint: Tint; color: Color }
+const HERO_HIT: HitTint = { tint: TINTS.hit, color: new Color(TINTS.hit.color) };
+const FOE_HIT: HitTint = { tint: TINTS.foeHit, color: new Color(TINTS.foeHit.color) };
 const DEATH_TINT = new Color(TINTS.death.color);
 const GOLD_TINT = new Color(TINTS.gold.color);
 const DEFEATED_BRIGHTNESS = 0.55;          // vaincu mais pas mort : grayscale(0.5) brightness(0.55) des sprites DOM
@@ -443,11 +446,12 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       if (blood && element && sprite && s.visible) playGoldBlood(fx, { id: target.id, element, rows: sprite.shownRows() }, blood, blowFacing([target]));
       pulse(anchors.get(target.id) ?? null, "damaged", CONFIG.timing.hit);
       spriteOf(target)?.play("hit"); // recul, penché, tremblement : dans l'image animée
+      const { tint, color } = target.side === "hero" ? HERO_HIT : FOE_HIT;
       animate(`${target.id}:hit`, CONFIG.timing.hit, (p) => {
-        s.tint.copy(DAMAGE_TINT);
-        s.tintGain = HIT.gain ?? 0;
-        s.tintMix = p < 1 ? TINTS.hit.mix : 0;
-        s.brightness = p < 1 ? TINTS.hit.brightness : 1;
+        s.tint.copy(color);
+        s.tintGain = tint.gain ?? 0;
+        s.tintMix = p < 1 ? tint.mix : 0;
+        s.brightness = p < 1 ? tint.brightness ?? 1 : 1;
       }, () => { s.tintMix = 0; s.tintGain = 0; s.brightness = 1; });
     },
 
