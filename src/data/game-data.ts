@@ -57,6 +57,16 @@ export interface HeroDef {
   embers?: [number, number][]; // points de départ des braises animées, en pixels de sprite (x, y)
   rig: SpriteRig;              // squelette des animations en code (MAE-30)
   feminine?: boolean;          // accord de « prêt » et « tombé » dans le groupe
+  goldBlood?: GoldBlood;       // sang doré (MAE-98) : Maelor et Elwen seulement
+}
+
+// Sang doré (MAE-98) : les petits éclats d'or qui jaillissent à chaque dégât reçu, dessinés par l'affichage
+// (goldBlood, src/ui/battle-fx.ts), réglés à l'œil par Wesley dans ?animations=1
+export interface GoldBlood {
+  count: number;  // éclats par dégât reçu
+  size: number;   // côté d'un éclat, en pixels de sprite
+  frames: number; // durée, en images de la grille de douze images par seconde
+  bright: number; // part d'or vif face à l'or ancien, de 0 à 1 : la luminosité, sans transparence
 }
 
 export type ElementName = "fire" | "ice" | "thunder";
@@ -123,6 +133,8 @@ export const HEROES: HeroDef[] = [
   {
     id: "maelor", name: "Maelor", job: "Chevalier déchu", image: "images/maelor.png",
     rig: { waist: 36, breath: 2.8, phase: 0, poses: drawnPoses("maelor", { stagger: 38, kneel: 43 }) },
+    // Un héritage lointain : surtout de l'or ancien. Réglage gardé par Wesley au dosage du 11/11/2026
+    goldBlood: { count: 4, size: 1, frames: 5, bright: 0.25 },
     command: "Gestes",
     stats:  { maxHp: 160, maxMp: 18, atk: 18, def: 10, mag: 6,  res: 6,  spd: 9  },
     growth: { maxHp: 22,  maxMp: 2,  atk: 3,  def: 2,  mag: 1,  res: 1,  spd: 1  },
@@ -139,6 +151,8 @@ export const HEROES: HeroDef[] = [
   {
     id: "elwen", name: "Elwen", job: "Source", image: "images/elwen.png",
     rig: { waist: 36, breath: 3.4, phase: 0.55, poses: drawnPoses("elwen", { stagger: 38, kneel: 47 }) },
+    // Le sang pur d'une immortelle : un peu plus lumineux, surtout de l'or vif. Réglage gardé par Wesley au dosage du 11/11/2026
+    goldBlood: { count: 4, size: 1, frames: 5, bright: 0.8 },
     command: "Source",
     feminine: true,
     // bords enflammés du drapé

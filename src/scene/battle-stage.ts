@@ -18,9 +18,9 @@ import { createAnimatedSprite, type AnimatedSprite } from "../ui/animated-sprite
 import { isReducedMotion } from "../ui/reduced-motion.ts";
 import type { BaseName } from "../ui/sprite-motion.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
-import { blowFacing, enemyPhase, facingOf, playAbilityFx, playAshCloud, playGoldStream, playLightRise, showPose, type Stage } from "../ui/stage.ts";
+import { blowFacing, enemyPhase, facingOf, goldBloodOf, playAbilityFx, playAshCloud, playGoldBlood, playGoldStream, playLightRise, showPose, type Stage } from "../ui/stage.ts";
 import { followHero } from "../ui/hero-pose.ts";
-import { TINTS } from "../ui/tints.ts";
+import { TINTS, type Tint } from "../ui/tints.ts";
 import { preloadImages, type ActorDef, type ActorsView } from "./actors.ts";
 import { actorDefs, castExtent, enemyMember, heroMember, type CastMember } from "./cast.ts";
 import { createPaintedStage, type PaintedStage, type SceneQuality, type StageMeasure } from "./painted-stage.ts";
@@ -44,7 +44,11 @@ export interface BattleStage extends Stage {
 const BODY_CLASS = "scene-painted";
 // Teintes du coup reçu, de la mort et de l'or (l'écho qui se défait, l'éclat de Maelor) : définies avec leur filtre
 // CSS de la scène DOM dans src/ui/tints.ts, une seule fois (MAE-31)
-const DAMAGE_TINT = new Color(TINTS.hit.color);
+// Le coup reçu (MAE-98, décisions de Wesley du 11/11/2026) : la braise pour un héros, l'éclair parchemin pour un ennemi.
+// tint : la teinte lue comme une teinte quelconque (gain et brightness sont facultatifs) ; color : sa couleur pour Three.js
+interface HitTint { tint: Tint; color: Color }
+const HERO_HIT: HitTint = { tint: TINTS.hit, color: new Color(TINTS.hit.color) };
+const FOE_HIT: HitTint = { tint: TINTS.foeHit, color: new Color(TINTS.foeHit.color) };
 const DEATH_TINT = new Color(TINTS.death.color);
 const GOLD_TINT = new Color(TINTS.gold.color);
 const DEFEATED_BRIGHTNESS = 0.55;          // vaincu mais pas mort : grayscale(0.5) brightness(0.55) des sprites DOM
@@ -59,7 +63,7 @@ const easeInOut = (p: number) => (p < 0.5 ? 2 * p * p : 1 - 2 * (1 - p) * (1 - p
 interface ActorState {
   combatant: Combatant;
   x: number;                         // place, en pixels de sprite (pas en avant, repli) ; arrondie à l'affichage
-  brightness: number; gray: number; tintMix: number; tint: Color; opacity: number; glow: number;
+  brightness: number; gray: number; tintMix: number; tintGain: number; tint: Color; opacity: number; glow: number;
   visible: boolean;
   acting: boolean;                   // en plein pas en avant : refresh() ne le rappelle pas à sa place
   away: boolean;                     // sorti de scène (repli) : refresh() ne le ramène pas
@@ -168,7 +172,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
 
   function freshState(c: Combatant): ActorState {
     return {
-      combatant: c, x: 0, brightness: 1, gray: 0, tintMix: 0, tint: new Color("#ffffff"), opacity: 1, glow: 0,
+      combatant: c, x: 0, brightness: 1, gray: 0, tintMix: 0, tintGain: 0, tint: new Color("#ffffff"), opacity: 1, glow: 0,
       visible: true, acting: false, away: false, celebrating: false,
     };
   }
@@ -221,6 +225,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       pose.gray = s.gray;
       pose.tint.copy(s.tint);
       pose.tintMix = s.tintMix;
+      pose.tintGain = s.tintGain;
       pose.opacity = s.opacity;
       pose.glow = s.glow;
       pose.visible = s.visible;
@@ -437,13 +442,17 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
     hit(target, effect) {
       if (effect.type !== "damage") return;
       const s = stateOf(target);
+      const blood = goldBloodOf(target), element = anchors.get(target.id), sprite = spriteOf(target);
+      if (blood && element && sprite && s.visible) playGoldBlood(fx, { id: target.id, element, rows: sprite.shownRows() }, blood, blowFacing([target]));
       pulse(anchors.get(target.id) ?? null, "damaged", CONFIG.timing.hit);
       spriteOf(target)?.play("hit"); // recul, penché, tremblement : dans l'image animée
+      const { tint, color } = target.side === "hero" ? HERO_HIT : FOE_HIT;
       animate(`${target.id}:hit`, CONFIG.timing.hit, (p) => {
-        s.tint.copy(DAMAGE_TINT);
-        s.tintMix = p < 1 ? TINTS.hit.mix : 0;
-        s.brightness = p < 1 ? TINTS.hit.brightness : 1;
-      }, () => { s.tintMix = 0; s.brightness = 1; });
+        s.tint.copy(color);
+        s.tintGain = tint.gain ?? 0;
+        s.tintMix = p < 1 ? tint.mix : 0;
+        s.brightness = p < 1 ? tint.brightness ?? 1 : 1;
+      }, () => { s.tintMix = 0; s.tintGain = 0; s.brightness = 1; });
     },
 
     quake() {
@@ -476,6 +485,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
           animate(enemy.id, CONFIG.timing.unravel, (p) => {
             const toward = Math.min(1, Math.floor((p / 0.25) * 3) / 3); // trois paliers, comme CSS echo-unravel steps(3)
             s.tint.copy(GOLD_TINT);
+            s.tintGain = 0;
             s.tintMix = TINTS.gold.mix * toward;
             s.brightness = 1 + (TINTS.gold.brightness - 1) * toward;
           });
@@ -493,6 +503,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
         animate(enemy.id, CONFIG.timing.death, (p) => {
           const toward = Math.min(1, p / 0.3);
           s.tint.copy(DEATH_TINT);
+          s.tintGain = 0;
           s.tintMix = TINTS.death.mix * toward;
           const fade = p <= 0.3 ? 0 : (p - 0.3) / 0.7;
           s.brightness = 1.3 - 0.7 * fade;
@@ -564,6 +575,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       const s = stateOf(hero);
       if (isReducedMotion()) {
         s.tint.copy(GOLD_TINT);
+        s.tintGain = 0;
         s.tintMix = TINTS.gold.mix;
         s.brightness = TINTS.gold.brightness;
         stage.requestRedraw();
@@ -575,6 +587,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
         const half = (q: number) => Math.min(1, Math.floor(q * 4) / 3);
         const level = p < 0.5 ? half(p * 2) : 1 - half((p - 0.5) * 2);
         s.tint.copy(GOLD_TINT);
+        s.tintGain = 0;
         s.tintMix = TINTS.gold.mix * level;
         s.brightness = 1 + (TINTS.gold.brightness - 1) * level;
       }, () => { s.tintMix = 0; s.brightness = 1; });

@@ -41,7 +41,7 @@ Règle d'univers : dans ce monde sombre, les couleurs vives sont rares et sont l
 | Or ancien | `#c9a84c` |
 | Or vif | `#f0c95a` |
 
-Usage : sang et yeux de Maelor, lumière d'Elwen, Larme dorée. Aucun ennemi ne porte d'or, sauf les Tyrdrak et l'écho de Maelor (section 8).
+Usage : sang et yeux de Maelor, sang et lumière d'Elwen, Larme dorée. Aucun ennemi ne porte d'or, sauf les Tyrdrak et l'écho de Maelor (section 8).
 
 ## 6. Couleurs vives (immortels seulement, aujourd'hui Elwen seule ; exception des Tyrdrak en section 8)
 

@@ -99,7 +99,7 @@ export const CONFIG = {
     fall:          400,  // un héros flanche puis tombe à genoux, ou passe à genoux quand il est ranimé (sprite-motion.ts)
     slide:         200,  // pas en avant et retour à sa place
     victoryHop:    450,  // un saut de victoire, joué quatre fois
-    defeatedPose:  600,  // le Dragon s'affaisse, puis se relève (sprite-motion.ts ; sa teinte : CSS .sprite.enemy .sprite-img)
+    defeatedPose:  600,  // le Dragon s'affaisse, puis se relève (sprite-motion.ts) ; sa teinte en DOM : les transitions de 0.6s de style.css (.sprite.enemy.defeated et .sprite.enemy.sparing .sprite-img), à garder égales à cette durée, la scène DOM retirant sparing au bout de defeatedPose
     fleeSlide:     600,  // sortie de scène elle-même, dans flee
     // Effets spéciaux (MAE-95, battle-fx.ts) : joués sans être attendus, sauf la disparition de l'écho, en fin de combat
     ashCloud:      1000, // Nuée de cendre : de la gueule du Dragon aux héros, au plus le sort et la lecture des chiffres (cast + effect)

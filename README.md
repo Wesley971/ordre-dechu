@@ -17,7 +17,7 @@ Il met en scène *Maelor*, qui porte le blason d'un ordre de chevaliers effacé 
 * Coups critiques, attaques ratées, héros **éteints** et ranimés
 * **Boss** avec phase de fureur sous 50 % de PV
 * **Écran de victoire** : XP, Couronnes, objets trouvés, montées de niveau, nouveaux souffles appris
-* Chiffres de dégâts rebondissants, un effet en pixels pour chaque capacité des héros et chaque objet (l'entaille de Frapper, la double entaille et le balayage de Maelor, la flamme bleue, le givre, la foudre et l'explosion de Corvin, la lumière d'or d'Elwen, les gouttes, la fumée et la larme d'or des objets), et pour chaque capacité des ennemis (les chaînes qui cinglent, le pilier qui écrase, la double entaille dorée de l'écho, les braises de la Nuée de cendre), héros qui s'avancent pour agir
+* Chiffres de dégâts rebondissants, un effet en pixels pour chaque capacité des héros et chaque objet (l'entaille de Frapper, la double entaille et le balayage de Maelor, la flamme bleue, le givre, la foudre et l'explosion de Corvin, la lumière d'or d'Elwen, les gouttes, la fumée et la larme d'or des objets), et pour chaque capacité des ennemis (les chaînes qui cinglent, le pilier qui écrase, la double entaille dorée de l'écho, les braises de la Nuée de cendre), un héros touché qui rougeoie comme une braise et un ennemi touché qui pâlit d'un éclair, héros qui s'avancent pour agir
 * Dialogues avec **texte qui s'écrit lettre par lettre**
 * **Fragments de mémoire** : le blason de Maelor révèle, chapitre après chapitre, le passé de l'Ordre et son lien avec les dragons
 * **Choix** : prendre ou refuser le pouvoir du Cœur d'Aure-Hin, puis épargner ou achever le Dragon vaincu ; quatre fins différentes
