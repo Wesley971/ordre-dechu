@@ -239,7 +239,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
     showDefend(hero) {
       Sfx.play("defend");
       const anchor = stage.popupAnchor(hero);
-      if (anchor) spawnPopup(anchor, "Garde", "info");
+      if (anchor) spawnPopup(anchor, "Garde", "info", hero);
     },
 
     async actionStart(actor, ability) {
@@ -256,7 +256,7 @@ export function createDomView(options: DomViewOptions = {}): GameView {
         const anchor = stage.anchor(target);
         if (!anchor) continue;
         Sfx.play(effectSound(effect, ability));
-        spawnPopup(stage.popupAnchor(target) ?? anchor, popupText(effect), popupClasses(effect));
+        spawnPopup(stage.popupAnchor(target) ?? anchor, popupText(effect), popupClasses(effect), target);
         stage.hit(target, effect);
         if (effect.crit) stage.quake();
       }

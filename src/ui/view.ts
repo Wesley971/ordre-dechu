@@ -13,6 +13,8 @@ import type { Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
 import type { CommandLevel, ListLevel, MenuController } from "./battle-menu.ts";
 import { screenOrder } from "./target-order.ts";
+import { blowDirection } from "./popup-motion.ts";
+import { isReducedMotion } from "./reduced-motion.ts";
 
 // Élément de la page, qui doit exister : son absence est une erreur de structure de index.html
 export function $(selector: string, root: ParentNode = document) {
@@ -492,12 +494,17 @@ export function popupClasses(effect: Effect) {
   return [effect.type, effect.crit && "crit", effect.weak && "weak"].filter(Boolean).join(" ");
 }
 
-export function spawnPopup(anchor: HTMLElement, text: string, className: string) {
+// Le chiffre monte au-dessus de sa cible puis s'efface (style.css, popup-rise, MAE-99). target : celui qui le reçoit,
+// pour le sens du glissement d'un « Raté ». Le mouvement réduit et le sens du coup passent par un attribut et une
+// variable, jamais par une classe : la classe du chiffre est relevée par le bot du labo, qui compare deux versions
+export function spawnPopup(anchor: HTMLElement, text: string, className: string, target: Combatant) {
   const popup = document.createElement("span");
   popup.className = "popup " + className;
   popup.textContent = text;
   // Planche G3 : une faiblesse se dit toujours aussi par le mot, au-dessus du chiffre
   if (popup.classList.contains("weak")) popup.insertAdjacentHTML("afterbegin", `<span class="popup-word">Faiblesse</span>`);
+  popup.style.setProperty("--blow", String(blowDirection(target.side)));
+  if (isReducedMotion()) popup.dataset.still = ""; // apparaît et s'efface sans bouger
   anchor.appendChild(popup);
   setTimeout(() => popup.remove(), CONFIG.timing.popup);
 }
