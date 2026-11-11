@@ -10,6 +10,9 @@ export const MISS_DRIFT = 12;  // glissement d'un « Raté », en pixels CSS
 export const POPUP_STACK = 3;  // chiffres vivants au plus sur une même cible : au-delà, le plus ancien part
 export const POPUP_GAP = 2;    // écart entre deux chiffres empilés, en pixels CSS
 export const SCREEN_EDGE = 4;  // marge gardée entre un chiffre et le bord de l'écran, en pixels CSS
+// Le temps que les chiffres d'une pile glissent à leur nouvelle place, en millisecondes à vitesse normale : celui de la
+// transition de .popup, et l'attente d'un chiffre qui naît sur une pile (.popup[data-waits]), dans style.css (testé)
+export const POPUP_SETTLE = 120;
 
 // Le « Raté » glisse dans le sens du coup, qui vient du camp d'en face : les héros sont à gauche, les ennemis à droite.
 // Un héros évite un coup venu de la droite : son chiffre glisse vers la gauche (-1) ; celui d'un ennemi, vers la droite
@@ -24,8 +27,9 @@ export function popupDrift(side: Combatant["side"], miss: boolean): number {
 
 // La pile d'une cible (décision de Wesley du 11/11/2026 : ses chiffres ne se recouvrent plus). heights : la hauteur
 // affichée de chaque chiffre vivant, du plus récent au plus ancien. Rend de combien chacun est remonté : le plus récent
-// reste à sa place, chaque plus ancien passe au-dessus de ceux qui sont nés après lui. Tous montent au même rythme et
-// sont placés par leur bas : un plus ancien, parti plus tôt, est toujours au moins aussi haut dans sa montée
+// reste à sa place, chaque plus ancien passe au-dessus de ceux qui sont nés après lui. Tous sont placés par leur bas.
+// Le plus récent attend, invisible, que les plus anciens aient glissé (POPUP_SETTLE), puis fait sa montée dans le reste
+// de ses 1,2 s, un peu plus vite qu'eux : il reste pourtant toujours moins avancé dans sa montée qu'un plus ancien (testé)
 export function stackOffsets(heights: readonly number[], gap = POPUP_GAP): number[] {
   let lift = 0;
   return heights.map((height) => {

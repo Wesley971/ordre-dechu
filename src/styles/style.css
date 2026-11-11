@@ -510,10 +510,16 @@ body.scene-painted #battle-scene { pointer-events: none; }
   text-shadow:
     2px 0 0 var(--ink-shadow), -2px 0 0 var(--ink-shadow), 0 2px 0 var(--ink-shadow), 0 -2px 0 var(--ink-shadow),
     2px 2px 0 var(--ink-shadow), -2px -2px 0 var(--ink-shadow), 2px -2px 0 var(--ink-shadow), -2px 2px 0 var(--ink-shadow);
-  animation: popup-rise 1.2s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  animation: popup-rise 1.2s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
 .popup.crit { --pop-from: 1.35; }
+
+/* Un chiffre qui naît sur une pile attend que les plus anciens aient glissé au-dessus de lui (la transition de 0,12 s
+   ci-dessus, POPUP_SETTLE de popup-motion.ts), invisible (« both » : la première image de popup-rise), puis vit le
+   reste de ses 1,2 s ; sinon il apparaîtrait par-dessus eux, un critique zoomé surtout (testé, et contrôle du labo).
+   Posé par spawnPopup (data-waits) */
+.popup[data-waits] { animation-delay: 0.12s; animation-duration: 1.08s; }
 
 /* Mouvement réduit (MAE-58, décision de Wesley du 11/11/2026) : le chiffre apparaît puis s'efface sans bouger ; dans
    une pile, il change de place d'un coup. Choisi par spawnPopup (isReducedMotion, view.ts), comme toute animation du

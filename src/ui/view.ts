@@ -514,6 +514,9 @@ export function spawnPopup(anchor: HTMLElement, text: string, className: string,
   // ancien part. Les hauteurs sont celles affichées, le zoom d'un critique compris
   const live = [...anchor.children].filter((el): el is HTMLElement => el instanceof HTMLElement && el.classList.contains("popup")).reverse();
   for (const old of live.splice(POPUP_STACK)) old.remove();
+  // Sur une pile, il attend invisible que les plus anciens aient glissé au-dessus de lui (style.css, data-waits) ; en
+  // mouvement réduit, ils changent de place d'un coup : pas d'attente
+  if (live.length > 1 && !isReducedMotion()) popup.dataset.waits = "";
   const offsets = stackOffsets(live.map((el) => el.getBoundingClientRect().height));
   live.forEach((el, i) => el.style.setProperty("--stack", `${offsets[i]}px`));
 

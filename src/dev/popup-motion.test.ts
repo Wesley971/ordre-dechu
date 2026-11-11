@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import css from "../styles/style.css?raw";
 import { CONFIG } from "../config.ts";
-import { blowDirection, MISS_DRIFT, nudgeInto, POPUP_STACK, popupDrift, SCREEN_EDGE, stackOffsets } from "../ui/popup-motion.ts";
+import { blowDirection, MISS_DRIFT, nudgeInto, POPUP_SETTLE, POPUP_STACK, popupDrift, SCREEN_EDGE, stackOffsets } from "../ui/popup-motion.ts";
 
 // Le bloc d'une règle @keyframes, lu dans la feuille de style
 const keyframes = (name: string) => css.match(new RegExp(`@keyframes ${name} \\{([\\s\\S]*?)\\n\\}`))?.[1] ?? "";
@@ -54,19 +54,33 @@ describe("chiffres du combat", () => {
     expect(POPUP_STACK).toBe(3);
   });
 
-  it("pile d'une cible, une fois en place : deux chiffres empilés ne se recouvrent pas pendant leur montée", () => {
-    // Placés par leur bas, ils montent au même rythme (rise × e(t), e croissante) ; le plus ancien, né `age` plus tôt,
-    // est plus avancé dans sa montée. Son bas reste au-dessus du haut du plus récent. Le modèle ne couvre pas les
-    // 0,12 s où le plus ancien glisse à sa place : en vrai combat, c'est tools/popup-check.mjs du labo qui le mesure
-    const ease = (t: number) => 1 - (1 - Math.min(1, t)) ** 3;
+  it("pile d'une cible : deux chiffres empilés ne se recouvrent pas pendant leur montée", () => {
+    // Placés par leur bas, ils montent de rise × e(p), e croissante, p la part faite de leur montée. Le plus ancien, né
+    // `age` secondes plus tôt, fait la sienne en 1,2 s ; le plus récent attend invisible POPUP_SETTLE (le temps que
+    // le plus ancien glisse à sa place), puis fait la sienne dans le reste des 1,2 s, un peu plus vite. Tant que le plus
+    // récent est visible, le bas du plus ancien reste au-dessus de son haut. Le glissement lui-même : contrôle du labo
+    // (tools/popup-check.mjs, tools/popup-preview-check.mjs)
+    const ease = (p: number) => 1 - (1 - Math.min(1, p)) ** 3;
+    const life = CONFIG.timing.popup / 1000, settle = POPUP_SETTLE / 1000;
     const rise = 40, [newer, older] = [32, 22], [, lift] = stackOffsets([newer, older]);
-    for (const age of [0.05, 0.3, 0.8]) {
-      for (let t = 0; t <= 1 - age; t += 0.05) {
-        const newerTop = -newer - rise * ease(t);
-        const olderBottom = -lift - rise * ease(t + age);
+    for (const age of [0, 0.05, 0.3, 0.8]) {
+      for (let t = settle; t <= life - age; t += 0.01) { // t : depuis la naissance du plus récent
+        const newerTop = -newer - rise * ease((t - settle) / (life - settle));
+        const olderBottom = -lift - rise * ease((t + age) / life);
         expect(olderBottom).toBeLessThan(newerTop);
       }
     }
+  });
+
+  it("pile d'une cible : un chiffre qui y naît attend que les plus anciens aient glissé, et vit toujours CONFIG.timing.popup en tout", () => {
+    const seconds = (text: string, name: string) => Number(text.match(new RegExp(`${name}\\s+([\\d.]+)s`))?.[1] ?? NaN) * 1000;
+    expect(seconds(rule(".popup"), "transition:\\s*transform")).toBe(POPUP_SETTLE);
+    const waits = rule(".popup[data-waits]");
+    expect(seconds(waits, "animation-delay:")).toBe(POPUP_SETTLE);
+    expect(Math.round(seconds(waits, "animation-delay:") + seconds(waits, "animation-duration:"))).toBe(CONFIG.timing.popup);
+    // Invisible pendant l'attente : la première image de popup-rise s'applique dès la naissance
+    expect(rule(".popup")).toMatch(/animation:\s*popup-rise[^;]*\bboth;/);
+    expect(keyframes("popup-rise")).toMatch(/0%\s*\{[^}]*opacity:\s*0;/);
   });
 
   it("recadrage : un chiffre qui déborde revient dans l'écran, un chiffre trop large se cale à gauche", () => {
