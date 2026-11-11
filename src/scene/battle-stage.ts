@@ -216,7 +216,7 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
       const motion = sprite.pose();
       const { pose } = actor;
       pose.offsetX = Math.round(s.x) + motion.dx * facingOf(s.combatant);
-      pose.anchorX = Math.round(s.x); // l'ancre suit le glissement, pas le recul ni le saut (comme .sprite en DOM)
+      pose.anchorX = Math.round(s.x); // l'ancre suit le glissement, pas le recul ni le saut (comme .sprite-body en DOM)
       pose.offsetY = motion.dy;
       const shadow = sprite.shadow(); // l'ombre suit le héros au sol (MAE-94)
       pose.shadowShift = shadow.shift; // vers la droite de l'écran, comme le canvas (jamais retourné)

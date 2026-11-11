@@ -234,12 +234,39 @@ export function createDomStage(): Stage {
   });
   const pngOf = (a: DomActor) => $(".sprite-img", a.element);
   // Les chiffres se posent devant la couche des effets (MAE-31) : dans une couche à part, au-dessus d'elle, sur une
-  // boîte qui recouvre le sprite du combattant au moment où le chiffre naît. Posés dans le sprite, ils passeraient
-  // derrière elle : chaque sprite a son propre empilement (style.css, .popup-layer)
+  // boîte qui recouvre le sprite du combattant. Posés dans le sprite, ils passeraient derrière elle : chaque sprite a
+  // son propre empilement (style.css, .popup-layer). La boîte recouvre .sprite-body, qui porte le glissement du
+  // combattant (pas en avant, retour, repli ; pas le recul ni le saut) : elle le suit tant qu'elle porte un chiffre,
+  // comme l'ancre de la scène peinte (décision de Wesley du 11/11/2026, MAE-99), par une boucle arrêtée sans chiffre
   const popupLayer = document.createElement("div");
   popupLayer.className = "popup-layer";
   scene.appendChild(popupLayer);
   const popupBoxes = new Map<string, HTMLElement>();
+  let following = 0; // la boucle qui garde les boîtes sur leur combattant (0 : arrêtée)
+  const bodyOf = (a: DomActor) => $(".sprite-body", a.element);
+
+  // Le rectangle du combattant dans la scène, lu d'abord ; puis chaque boîte écrite, seulement si elle a bougé (lire
+  // après avoir écrit forcerait un calcul de la page par boîte)
+  function placeBoxes(list: [HTMLElement, DomActor][]) {
+    const within = scene.getBoundingClientRect();
+    const rects = list.map(([, actor]) => bodyOf(actor).getBoundingClientRect());
+    list.forEach(([box], i) => {
+      const rect = rects[i];
+      const place = { left: `${rect.left - within.left}px`, top: `${rect.top - within.top}px`, width: `${rect.width}px`, height: `${rect.height}px` };
+      for (const [name, value] of Object.entries(place)) if (box.style.getPropertyValue(name) !== value) box.style.setProperty(name, value);
+    });
+  }
+
+  function follow() {
+    following = 0;
+    const carrying: [HTMLElement, DomActor][] = [];
+    for (const [id, box] of popupBoxes) {
+      const actor = actors.get(id);
+      if (box.firstElementChild && actor) carrying.push([box, actor]);
+    }
+    placeBoxes(carrying);
+    if (carrying.length) following = requestAnimationFrame(follow);
+  }
 
   function actorOf(c: Combatant) {
     const actor = actors.get(c.id);
@@ -358,8 +385,8 @@ export function createDomStage(): Stage {
     anchor: spriteEl,
 
     popupAnchor(c) {
-      const sprite = spriteEl(c);
-      if (!sprite) return null;
+      const actor = actors.get(c.id);
+      if (!actor) return null;
       let box = popupBoxes.get(c.id);
       if (!box) {
         box = document.createElement("div");
@@ -368,11 +395,9 @@ export function createDomStage(): Stage {
         popupLayer.appendChild(box);
         popupBoxes.set(c.id, box);
       }
-      // Le rectangle du sprite dans la scène, à cet instant : le chiffre s'y place comme il se plaçait dans le sprite
-      const within = scene.getBoundingClientRect(), rect = sprite.getBoundingClientRect();
-      Object.assign(box.style, {
-        left: `${rect.left - within.left}px`, top: `${rect.top - within.top}px`, width: `${rect.width}px`, height: `${rect.height}px`,
-      });
+      // Sur son combattant dès maintenant (le chiffre s'y place et s'y mesure, view.ts), puis à chaque image tant qu'il vit
+      placeBoxes([[box, actor]]);
+      if (!following) following = requestAnimationFrame(follow);
       return box;
     },
 
@@ -508,6 +533,8 @@ export function createDomStage(): Stage {
 
     dispose() {
       fx.dispose();
+      cancelAnimationFrame(following);
+      following = 0;
       popupLayer.replaceChildren();
       popupBoxes.clear();
       for (const a of actors.values()) { a.sprite.dispose(); cancelAnimationFrame(a.slide); }

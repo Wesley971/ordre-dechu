@@ -13,7 +13,9 @@
 // Le sang doré (MAE-98) a sa section : le coup reçu de Maelor et d'Elwen avec leurs éclats, réglés par des curseurs
 // (nombre, taille, durée, luminosité). La teinte du coup reçu y est montrée sous ses deux formes : le filtre CSS de la
 // scène DOM, et la couleur de la scène peinte, imitée sur une copie de la toile (painted).
-// Une case « Mouvement réduit » simule le réglage du système (MAE-58), effets spéciaux et effets des capacités compris. ?vitesse=X accélère les animations, comme en jeu
+// Les chiffres du combat (MAE-99) ont leur section : chaque sorte de chiffre naît en boucle sur un combattant, par
+// spawnPopup comme en combat, et une case montre une pile de trois chiffres sur la même cible.
+// Une case « Mouvement réduit » simule le réglage du système (MAE-58), effets spéciaux, effets des capacités et chiffres compris. ?vitesse=X accélère les animations, comme en jeu
 // (pas les pauses entre deux tours de boucle). Le pas en avant d'un héros qui agit est fait par la scène : pas ici.
 
 import { CONFIG } from "../config.ts";
@@ -25,6 +27,8 @@ import { BLOOD_LIMITS, BOLT_HEIGHT } from "../ui/battle-fx.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
 import { embersHtml, HERO_CANVAS, playAbilityFx, playAshCloud, playGoldBlood, playGoldStream, playLightRise } from "../ui/stage.ts";
 import { paintedTint, TINTS, type Tint } from "../ui/tints.ts";
+import { popupClasses, popupText, spawnPopup } from "../ui/view.ts";
+import type { Effect } from "../battle/battle.ts";
 
 // blood : le héros dont la case joue le sang doré, et son réglage, modifié en direct par les curseurs ; embers :
 // l'identifiant du héros dont la case montre les braises (Elwen)
@@ -406,6 +410,74 @@ function buildAbilityCell(label: string, effect: AbilityEffect, dummies: Dummy[]
   return { figure, ready };
 }
 
+// Chiffres du combat (MAE-99) : ce qu'une case fait naître, un chiffre par pas, `after` après le précédent, en part
+// de la vie d'un chiffre (CONFIG.timing.popup). Un chiffre est un effet du combat (popupText, popupClasses), ou la Garde
+type PopupStep = { effect: Effect | "defend"; after: number };
+const POPUP_HEADROOM = 150; // place au-dessus de la cible, en pixels CSS : la montée et une pile de trois chiffres
+const POPUP_CELL_WIDTH = 170; // largeur d'une case, en pixels CSS : « Sans effet » et « Faiblesse » y tiennent
+
+// Une fonction, pas une constante : les cibles lisent HEROES et ENEMIES, qu'aucun code exécuté au chargement d'un
+// module ne doit lire (CLAUDE.md, « Modules »)
+const popupCells = (): [string, Dummy, PopupStep[]][] => [
+  ["Dégât", enemyDummy(ENEMIES.sankri, "sankri-0"), [{ effect: { type: "damage", amount: 42 }, after: 0 }]],
+  ["Critique", enemyDummy(ENEMIES.sankri, "sankri-0"), [{ effect: { type: "damage", amount: 118, crit: true }, after: 0 }]],
+  ["Faiblesse", enemyDummy(ENEMIES.sankri, "sankri-0"), [{ effect: { type: "damage", amount: 64, weak: true }, after: 0 }]],
+  ["Raté, sur un ennemi", enemyDummy(ENEMIES.sankri, "sankri-0"), [{ effect: { type: "miss" }, after: 0 }]],
+  ["Sans effet", enemyDummy(ENEMIES.sankri, "sankri-0"), [{ effect: { type: "none" }, after: 0 }]],
+  ["Dégât reçu", heroDummy(0), [{ effect: { type: "damage", amount: 37 }, after: 0 }]],
+  ["Raté, sur un héros", heroDummy(0), [{ effect: { type: "miss" }, after: 0 }]],
+  ["Soin", heroDummy(2), [{ effect: { type: "heal", amount: 80 }, after: 0 }]],
+  ["Réanimation", heroDummy(2), [{ effect: { type: "revive", amount: 70 }, after: 0 }]],
+  ["PS", heroDummy(1), [{ effect: { type: "mp", amount: 20 }, after: 0 }]],
+  ["Garde", heroDummy(1), [{ effect: "defend", after: 0 }]],
+  // La pile (décision de Wesley du 11/11/2026 : les chiffres d'une même cible ne se recouvrent plus)
+  ["Pile : Garde, coup critique, soin", heroDummy(0), [
+    { effect: "defend", after: 0 }, { effect: { type: "damage", amount: 96, crit: true }, after: 0.375 }, { effect: { type: "heal", amount: 60 }, after: 0.375 },
+  ]],
+];
+
+// Une case qui fait naître ses chiffres en boucle sur sa cible, par spawnPopup comme en combat : la boîte des chiffres
+// recouvre l'image de la cible, comme celle de la scène DOM recouvre son combattant
+function buildPopupCell(label: string, dummy: Dummy, steps: PopupStep[], px: number) {
+  const figure = document.createElement("figure");
+  figure.className = "anim-cell";
+  const box = document.createElement("div");
+  box.className = "anim-box";
+  const caption = document.createElement("figcaption");
+  caption.textContent = label;
+  figure.append(box, caption);
+  const image = document.createElement("img");
+  image.src = dummy.url;
+  image.className = "anim-target anim-dummy";
+  const anchor = document.createElement("div");
+  anchor.className = "anim-popup-box";
+  box.append(image, anchor);
+  const ready = image.decode().then(() => {
+    const width = (dummy.width ?? image.naturalWidth) * px, height = (dummy.height ?? image.naturalHeight) * px;
+    const boxWidth = Math.max(width + 2 * MARGIN * px, POPUP_CELL_WIDTH);
+    Object.assign(box.style, { width: `${boxWidth}px`, height: `${POPUP_HEADROOM + height + MARGIN * px}px` });
+    const place = { width: `${width}px`, height: `${height}px`, left: `${(boxWidth - width) / 2}px`, top: `${POPUP_HEADROOM}px` };
+    Object.assign(image.style, place);
+    Object.assign(anchor.style, place);
+  });
+  // `after` est une part de la vie d'un chiffre : ?vitesse=X, qui divise CONFIG.timing, réduit d'autant les écarts
+  // entre deux chiffres ; la pause entre deux tours de boucle, non (comme les autres cases)
+  const life = CONFIG.timing.popup;
+  void ready.then(async () => {
+    for (;;) {
+      let spent = 0;
+      for (const { effect, after } of steps) {
+        await wait(after * life);
+        spent += after * life;
+        if (effect === "defend") spawnPopup(anchor, "Garde", "info", dummy);
+        else spawnPopup(anchor, popupText(effect), popupClasses(effect), dummy);
+      }
+      await wait(CONFIG.timing.popup + PAUSE - spent);
+    }
+  }).catch((error: unknown) => { caption.textContent = `${label} : ${String(error)}`; });
+  return { figure, ready };
+}
+
 // Les curseurs du sang doré d'un héros (MAE-98) : ils changent son réglage en direct, et affichent ses valeurs en clair
 // et telles qu'elles s'écrivent dans sa fiche
 function bloodControls(name: string, setting: GoldBlood) {
@@ -452,6 +524,7 @@ const STYLE = `
   #animation-preview .anim-target { opacity: 0.6; }
   #animation-preview .anim-dummy { opacity: 1; }
   #animation-preview .anim-png { position: absolute; pointer-events: none; }
+  #animation-preview .anim-popup-box { position: absolute; pointer-events: none; }
   #animation-preview .anim-warning { color: #f1e4c3; border-left: 3px solid #c9a84c; padding-left: 8px; }
   #animation-preview.reduced .ember { display: none; }
   #animation-preview fieldset { display: inline-grid; grid-template-columns: auto 160px auto; gap: 2px 8px; align-items: center;
@@ -554,6 +627,23 @@ export function openAnimationPreview() {
     bloodCells.append(subtitle, row);
   }
   page.append(bloodTitle, bloodText, controls, bloodCells);
+
+  // Chiffres du combat (MAE-99) : chaque sorte en boucle, puis une pile de trois sur la même cible
+  const popupTitle = document.createElement("h2");
+  popupTitle.textContent = "Chiffres du combat (MAE-99)";
+  const popupIntro = document.createElement("p");
+  popupIntro.textContent = `Chaque case fait naître son chiffre en boucle, comme en combat : il naît sur la tête de la cible,
+    monte puis s'efface en ${(CONFIG.timing.popup / 1000).toLocaleString("fr-FR")} s ; zoom bref pour un critique, glissement dans le sens du coup pour
+    « Raté ». La dernière case empile trois chiffres sur la même cible. Avec « Mouvement réduit », ils apparaissent puis
+    s'effacent sans bouger. Sur téléphone, les tailles du téléphone s'appliquent.`;
+  const popupRow = document.createElement("div");
+  popupRow.className = "anim-row";
+  for (const [label, dummy, steps] of popupCells()) {
+    const cell = buildPopupCell(label, dummy, steps, px);
+    popupRow.appendChild(cell.figure);
+    cells.push(cell.ready);
+  }
+  page.append(popupTitle, popupIntro, popupRow);
 
   // Chaque case commence sur un pixel réel : sinon le pixel art afficherait des rangées irrégulières (comme stage.ts)
   const snap = () => {
