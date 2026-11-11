@@ -522,7 +522,8 @@ body.scene-painted #battle-scene { pointer-events: none; }
 
 /* En scène DOM, les chiffres ne sont pas dans le sprite mais dans une couche à part, posée devant la couche des effets
    (MAE-31, stage.ts, popupAnchor) : chaque sprite a son propre empilement, et un chiffre posé dedans passerait derrière
-   les effets en pixels. Chaque boîte prend le rectangle de son sprite au moment où le chiffre naît : il garde sa place.
+   les effets en pixels. Chaque boîte prend le rectangle de .sprite-body, qui porte le glissement du combattant, et
+   le suit tant qu'elle porte un chiffre (MAE-99).
    Son z-index ne joue que dans la scène, qui a son propre empilement (#battle-scene, isolation) : les chiffres restent
    sous les plaques de l'interface, la barre du boss et le bandeau, comme avant. Dans la scène peinte, les chiffres
    restent sur l'ancre, déjà devant la couche. */
