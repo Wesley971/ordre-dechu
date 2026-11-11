@@ -119,14 +119,17 @@ describe("teintes des combattants", () => {
     expect(total / PALETTE.length).toBeLessThan(limit);
   });
 
-  it("coup reçu franc en scène DOM : aucune image de combattant n'a de transition de filtre, sauf l'ennemi vaincu qui se grise", () => {
-    // Décision de Wesley du 11/11/2026 (MAE-98) : une transition sur l'image d'un ennemi (0,6 s) étalait son éclair, plus
-    // long qu'un coup reçu (0,4 s) ; elle ne reste qu'à l'ennemi vaincu (et le mouvement réduit l'y retire)
+  it("coup reçu franc en scène DOM : aucune image de combattant n'a de transition de filtre, sauf l'ennemi vaincu qui se grise, puis épargné", () => {
+    // Décisions de Wesley du 11/11/2026 (MAE-98) : une transition sur l'image d'un ennemi (0,6 s) étalait son éclair, plus
+    // long qu'un coup reçu (0,4 s) ; elle ne reste qu'à l'ennemi vaincu qui se grise, et à l'épargné qui retrouve ses
+    // couleurs en se relevant (sparing, posée par la scène DOM le temps du geste) ; le mouvement réduit la leur retire
     const transitions = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
       .filter(([, selector, body]) => /\.sprite\b/.test(selector) && /transition:(?!\s*none)/.test(body))
       .map(([, selector]) => selector.trim().split("\n").pop()?.trim());
-    expect(transitions).toEqual([".sprite.enemy.defeated .sprite-img"]);
-    expect(css).toContain(".sprite.enemy.defeated .sprite-img { transition: none; }");
+    expect(transitions).toEqual([".sprite.enemy.defeated .sprite-img", ".sprite.enemy.sparing .sprite-img"]);
+    expect(css).toMatch(/\.sprite\.enemy\.defeated \.sprite-img,\s*\.sprite\.enemy\.sparing \.sprite-img\s*\{ transition: none; \}/);
+    // La scène DOM pose sparing avant de retirer defeated : la transition vaut pour le retour des couleurs
+    expect(source("../ui/stage.ts")).toMatch(/void pulse\(a\.element, "sparing", CONFIG\.timing\.defeatedPose\);\s*a\.element\.classList\.remove\("defeated"\);/);
   });
 
   it("coup reçu : la braise (rouille) pour un héros, l'éclair parchemin pour un ennemi, dans les deux scènes", () => {

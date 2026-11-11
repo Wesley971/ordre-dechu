@@ -489,6 +489,9 @@ export function createDomStage(): Stage {
 
     async spare(enemy) {
       const a = actorOf(enemy);
+      // Il retrouve ses couleurs lentement en se relevant (décision de Wesley du 11/11/2026, MAE-98) : sparing porte la
+      // transition de son image le temps du geste (style.css), posée avant de retirer defeated ; jamais attendue
+      void pulse(a.element, "sparing", CONFIG.timing.defeatedPose);
       a.element.classList.remove("defeated");
       a.sprite.play("rise");
       a.sprite.setBase("idle");
