@@ -14,6 +14,8 @@ RPG au tour par tour (combat ATB) en TypeScript strict, modules ES, build Vite, 
 Règle de Wesley du 03/11/2026, pour tous les tickets :
 - Avant la fusion, ce sont les tests automatiques de Claude (bot, comparaisons mot pour mot, débordements) qui vérifient les règles du combat. Wesley valide sur le rapport de Claude et l'avis de claude.ai ; il ne joue plus lui-même pour tester ces règles.
 - Le jugement visuel reste à Wesley : un changement qui se voit (interface, images, scène) est regardé à l'œil par Wesley une fois avant la fusion, sur son PC et son iPhone 11 si le ticket le demande (précision du 07/11/2026, MAE-87).
+- Ce contrôle à l'œil passe d'abord par l'aperçu `?animations=1` : tout changement visuel y ajoute ou y met à jour sa case. Le vrai combat ne sert qu'à vérifier ce que l'aperçu ne montre pas (rythme, enchaînement des actions, placement en situation), et le bilan dit lequel des deux regarder (règle de Wesley du 11/11/2026, MAE-99).
+- Le contrôle sur l'iPhone 11 n'est demandé que pour les gros changements : nouveau décor, changement du rendu de la scène, mise en page sur téléphone, effet très lourd. Pour les petits changements visuels, le bot et le contrôle automatique en 390 × 844 suffisent. Les critères « 30 images/s sur mobile » des tickets suivent cette règle (règle de Wesley du 11/11/2026, MAE-99).
 - Après la mise en ligne, des testeurs humains jouent sur le site, à vitesse normale. Un problème qu'ils trouvent devient un nouveau ticket.
 - Un ticket passe en Done après la fusion, le déploiement et le contrôle en ligne de Claude, comme avant.
 
