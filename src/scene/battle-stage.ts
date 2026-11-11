@@ -18,7 +18,7 @@ import { createAnimatedSprite, type AnimatedSprite } from "../ui/animated-sprite
 import { isReducedMotion } from "../ui/reduced-motion.ts";
 import type { BaseName } from "../ui/sprite-motion.ts";
 import { createFxLayer } from "../ui/fx-layer.ts";
-import { blowFacing, enemyPhase, facingOf, playAbilityFx, playAshCloud, playGoldStream, playLightRise, showPose, type Stage } from "../ui/stage.ts";
+import { blowFacing, enemyPhase, facingOf, goldBloodOf, playAbilityFx, playAshCloud, playGoldBlood, playGoldStream, playLightRise, showPose, type Stage } from "../ui/stage.ts";
 import { followHero } from "../ui/hero-pose.ts";
 import { TINTS } from "../ui/tints.ts";
 import { preloadImages, type ActorDef, type ActorsView } from "./actors.ts";
@@ -437,6 +437,8 @@ export async function createBattleStage(decor: Decor, options: BattleStageOption
     hit(target, effect) {
       if (effect.type !== "damage") return;
       const s = stateOf(target);
+      const blood = goldBloodOf(target), element = anchors.get(target.id), sprite = spriteOf(target);
+      if (blood && element && sprite && s.visible) playGoldBlood(fx, { id: target.id, element, rows: sprite.shownRows() }, blood, blowFacing([target]));
       pulse(anchors.get(target.id) ?? null, "damaged", CONFIG.timing.hit);
       spriteOf(target)?.play("hit"); // recul, penché, tremblement : dans l'image animée
       animate(`${target.id}:hit`, CONFIG.timing.hit, (p) => {

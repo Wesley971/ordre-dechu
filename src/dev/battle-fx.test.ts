@@ -2,9 +2,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { CONFIG } from "../config.ts";
 import palette from "../../docs/character-palette.md?raw";
-import { ATTACK, ENEMY_SKILLS, ITEMS, RUN, SPELLS, type Ability, type AbilityEffect } from "../data/game-data.ts";
+import { ATTACK, ENEMY_SKILLS, HEROES, ITEMS, RUN, SPELLS, type Ability, type AbilityEffect, type GoldBlood } from "../data/game-data.ts";
 import {
-  abilityEffect, abilityFx, along, ashCloud, ashVeil, between, FX_COLORS, goldStream, lightRise, pick, PILLAR_DROP, seeded, SLASH_SPARKS, still, streamsGold, touched,
+  abilityEffect, abilityFx, along, ashCloud, ashVeil, between, BLOOD_LIMITS, FX_COLORS, goldBlood, goldStream, lightRise, pick, PILLAR_DROP, seeded, SLASH_SPARKS, still, streamsGold, touched,
   type FxBox, type FxPixel, type FxPlan, type FxTarget,
 } from "../ui/battle-fx.ts";
 import { composeFrame, frameLayout, opaqueRuns, REST_BODY, type BodyPose, type OpaqueRuns } from "../ui/sprite-frames.ts";
@@ -1062,5 +1062,98 @@ describe("l'impact de la Nuée de cendre", () => {
   it("sur un héros à genoux, rien ne passe sous la dernière rangée de sa silhouette", () => {
     const kneeling: FxTarget = { box: { left: 100, top: 120, right: 147, bottom: 186 }, rows: Array.from({ length: 66 }, (_, row) => (row >= 20 && row <= 50 ? [[10, 38]] : [])) };
     for (const seed of SEEDS) for (const { y } of play([kneeling], seed).flat()) expect(y).toBeLessThanOrEqual(120 + 50);
+  });
+});
+
+// — Sang doré (MAE-98) —
+
+// Le code des deux scènes, lu comme du texte : leur hit lance le sang (comme tints.test.ts lit les sources)
+const SCENES = import.meta.glob<string>(["../ui/stage.ts", "../scene/battle-stage.ts"], { query: "?raw", import: "default", eager: true });
+
+describe("le sang doré de Maelor et d'Elwen", () => {
+  const hero = target(100, 120);
+  const SEEDS = [1, 2, 3, 13, 57, 404];
+  const setting: GoldBlood = { count: 6, size: 1, frames: 8, bright: 0.5 };
+  const play = (s: GoldBlood = setting, seed = 13, count = s.frames) => framesOf(goldBlood(hero, -1, s, count, seed));
+  const GOLDS: string[] = [FX_COLORS.oldGold, FX_COLORS.brightGold];
+
+  it("Maelor et Elwen seulement ont le sang doré, Elwen plus lumineuse ; réglages dans leurs bornes, au plus huit images", () => {
+    expect(HEROES.filter((def) => def.goldBlood).map(({ id }) => id)).toEqual(["maelor", "elwen"]);
+    const [maelor, elwen] = ["maelor", "elwen"].map((id) => HEROES.find((def) => def.id === id)?.goldBlood);
+    if (!maelor || !elwen) throw new Error("sang doré manquant");
+    expect(elwen.bright).toBeGreaterThan(maelor.bright);
+    for (const s of [maelor, elwen]) {
+      for (const key of ["count", "size", "frames"] as const) { // as const : les clés à bornes entières
+        expect(s[key]).toBeGreaterThanOrEqual(BLOOD_LIMITS[key][0]);
+        expect(s[key]).toBeLessThanOrEqual(BLOOD_LIMITS[key][1]);
+      }
+      expect(s.bright).toBeGreaterThanOrEqual(0);
+      expect(s.bright).toBeLessThanOrEqual(1);
+    }
+    // Retiré avant la fin de la pause de lecture des chiffres, comme l'effet d'une capacité
+    expect(BLOOD_LIMITS.frames[1]).toBeLessThanOrEqual(FX_COUNT);
+  });
+
+  it("ne tire jamais Math.random, rend les mêmes images pour la même graine, et d'autres pour une autre", () => {
+    const spy = vi.spyOn(Math, "random");
+    try {
+      expect(play(setting, 4)).toEqual(play(setting, 4));
+      expect(play(setting, 4)).not.toEqual(play(setting, 5));
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("les deux ors seulement, en pixels entiers : tout en or ancien à 0, tout en or vif à 1", () => {
+    for (const seed of SEEDS) {
+      for (const { x, y, color } of play(setting, seed).flat()) {
+        expect(Number.isInteger(x) && Number.isInteger(y)).toBe(true);
+        expect(GOLDS).toContain(color);
+      }
+      expect(new Set(play({ ...setting, bright: 0 }, seed).flat().map(({ color }) => color))).toEqual(new Set([FX_COLORS.oldGold]));
+      expect(new Set(play({ ...setting, bright: 1 }, seed).flat().map(({ color }) => color))).toEqual(new Set([FX_COLORS.brightGold]));
+    }
+  });
+
+  it("jaillit du torse affiché dès la première image, part dans le sens du coup, puis retombe", () => {
+    const top = hero.box.top + 4, span = 61; // silhouette : rangées 4 à 65
+    for (const seed of SEEDS) {
+      const frames = play(setting, seed);
+      expect(frames[0].length).toBeGreaterThan(0);
+      for (const { x, y } of frames[0]) {
+        expect(opaqueAt(hero, x, y)).toBe(true);
+        expect(y).toBeGreaterThanOrEqual(top + Math.round(span * 0.25));
+        expect(y).toBeLessThanOrEqual(top + Math.round(span * 0.5));
+      }
+      // Un seul éclat, suivi image par image : vers la gauche (le coup vient de la droite), il monte puis retombe
+      const path = play({ ...setting, count: 1 }, seed).map((pixels) => pixels[0]);
+      for (let i = 1; i < path.length; i++) expect(path[i].x).toBeLessThanOrEqual(path[i - 1].x);
+      expect(path[path.length - 1].x).toBeLessThan(path[0].x);
+      expect(path[path.length - 1].y).toBeGreaterThan(Math.min(...path.map(({ y }) => y)));
+    }
+  });
+
+  it("dure ses images, plus court sans casser, et ramène un réglage hors bornes dans ses bornes", () => {
+    for (const count of [1, 2, 3, 5]) {
+      const short = play(setting, 1, count);
+      expect(short).toHaveLength(count);
+      expect(short[0].length).toBeGreaterThan(0);
+    }
+    // 50 éclats de 9 pixels : 12 éclats de 3 × 3 ; aucun éclat : un seul, d'un pixel
+    expect(play({ count: 50, size: 9, frames: 8, bright: 2 }, 1)[1]).toHaveLength(12 * 9);
+    expect(play({ count: 0, size: 0, frames: 8, bright: -1 }, 1)[0]).toHaveLength(1);
+  });
+
+  it("les deux scènes le lancent dans hit, sur un dégât seulement (jamais sur un « Raté »), sans lire le dégât : intensité fixe", () => {
+    expect(Object.keys(SCENES)).toHaveLength(2);
+    for (const [path, text] of Object.entries(SCENES)) {
+      const start = text.indexOf("hit(target, effect) {");
+      const body = text.slice(start, text.indexOf("\n    },", start));
+      expect(start, path).toBeGreaterThan(0);
+      expect(body, path).toMatch(/^hit\(target, effect\) \{\s*if \(effect\.type !== "damage"\) return;/);
+      expect(body, path).toContain("playGoldBlood(");
+      expect(body, path).not.toMatch(/effect\.(amount|crit|weak)/);
+    }
   });
 });

@@ -7,7 +7,7 @@
 // Le hasard vient d'un générateur à graine propre, jamais de Math.random : un seul tirage de plus décalerait ceux du
 // combat, et le bot ne rejouerait plus la même partie (testé pour chaque effet, src/dev/battle-fx.test.ts).
 
-import type { Ability, AbilityEffect } from "../data/game-data.ts";
+import type { Ability, AbilityEffect, GoldBlood } from "../data/game-data.ts";
 import type { OpaqueRuns } from "./sprite-frames.ts";
 
 // Couleurs des effets, toutes dans les fiches
@@ -1287,4 +1287,46 @@ const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { s
 export function abilityFx(effect: AbilityEffect, input: AbilityFxInput, reduced: boolean): FxPlan {
   const plan = ABILITY_FX[effect](input);
   return reduced ? still(plan) : plan;
+}
+
+// — Sang doré (MAE-98) —
+// Maelor et Elwen ont le sang doré (docs/lore.md) : à chaque dégât reçu, quelques petits éclats d'or jaillissent de
+// leur torse tel qu'il est affiché, dans le sens du coup, puis retombent. Un indice discret, que rien ne signale
+// (décisions de Wesley du 10/11/2026 et du 11/11/2026) : les deux ors de la palette seulement, sans transparence, et
+// la luminosité se règle par la part d'or vif face à l'or ancien. Intensité fixe : les mêmes éclats pour tout dégât.
+// Le réglage est dans la fiche du héros (goldBlood, game-data.ts) ; un réglage qui sort des bornes ci-dessous y est ramené.
+export const BLOOD_LIMITS = { count: [1, 12], size: [1, 3], frames: [2, 8] } as const; // as const : des bornes fixes
+const BLOOD_BAND = [0.25, 0.5] as const; // le torse : la bande de la silhouette d'où jaillissent les éclats (0 en haut) ; as const : idem
+const BLOOD_GRAVITY = 0.5;               // pixels par image, gagnés chaque image en retombant
+
+const within = (value: number, [min, max]: readonly [number, number]) => Math.max(min, Math.min(max, Math.round(value)));
+
+// target : le héros touché ; facing : le sens du coup (-1 vers la gauche, sur un héros) ; count : nombre d'images,
+// au plus setting.frames (plus court en mode test accéléré)
+export function goldBlood(target: FxTarget, facing: 1 | -1, setting: GoldBlood, count: number, seed: number): FxPlan {
+  const random = seeded(seed);
+  const shape = shapeOf(target);
+  const size = within(setting.size, BLOOD_LIMITS.size);
+  const bright = Math.max(0, Math.min(1, setting.bright));
+  const sparks = Array.from({ length: within(setting.count, BLOOD_LIMITS.count) }, (_, i) => ({
+    at: shape.point(random, BLOOD_BAND[0], BLOOD_BAND[1]),
+    born: i === 0 ? 0 : between(random, 0, 1), // le premier jaillit dès la première image, les autres dans les deux premières
+    dx: facing * (0.8 + random() * 1.4),
+    dy: -(0.6 + random() * 1.4),
+    color: random() < bright ? FX_COLORS.brightGold : FX_COLORS.oldGold,
+  }));
+  return {
+    count,
+    frame(index) {
+      const pixels: FxPixel[] = [];
+      for (const spark of sparks) {
+        const age = index - spark.born;
+        if (age < 0) continue;
+        const x = spark.at.x + Math.round(spark.dx * age);
+        const y = spark.at.y + Math.round(spark.dy * age + (BLOOD_GRAVITY * age * age) / 2);
+        for (let dy = 0; dy < size; dy++) for (let dx = 0; dx < size; dx++) pixels.push({ x: x + dx, y: y + dy, color: spark.color });
+      }
+      return pixels;
+    },
+  };
 }

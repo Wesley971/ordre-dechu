@@ -14,14 +14,14 @@
 
 import { CONFIG } from "../config.ts";
 import { HEROES, type SpriteRig } from "../data/game-data.ts";
-import type { Ability, AbilityEffect, Chapter } from "../data/game-data.ts";
+import type { Ability, AbilityEffect, Chapter, GoldBlood } from "../data/game-data.ts";
 import type { Hero } from "../party/heroes.ts";
 import { isAlive } from "../battle/battle.ts";
 import type { BattleState, Combatant, Effect, Enemy } from "../battle/battle.ts";
 import { Menu } from "./battle-menu.ts";
 import { createAnimatedSprite, type AnimatedSprite } from "./animated-sprite.ts";
 import { isReducedMotion } from "./reduced-motion.ts";
-import { abilityFx, ashCloud, ashVeil, goldStream, lightRise, streamsGold } from "./battle-fx.ts";
+import { abilityFx, ashCloud, ashVeil, goldBlood, goldStream, lightRise, still, streamsGold } from "./battle-fx.ts";
 import { createFxLayer, type FxLayer } from "./fx-layer.ts";
 import type { OpaqueRuns } from "./sprite-frames.ts";
 import { followHero } from "./hero-pose.ts";
@@ -151,6 +151,23 @@ export function playAbilityFx(fx: FxLayer, effect: AbilityEffect, targets: Shown
   const reduced = isReducedMotion();
   const name = `${effect}:${targets.map(({ id }) => id).join(",")}`;
   fx.play((seed) => abilityFx(effect, { targets: boxes, facing, count, seed }, reduced), name);
+}
+
+// Sang doré (MAE-98), commun aux deux scènes : à chaque dégât reçu par Maelor ou Elwen, leurs éclats d'or (goldBlood,
+// battle-fx.ts), dans le sens du coup ; rien pour un combattant sans goldBlood dans sa fiche (Corvin, tout ennemi,
+// l'écho de Maelor compris). Les scènes le lancent depuis hit, donc jamais sur un « Raté ». Il dure au plus la pause
+// de lecture des chiffres, comme l'effet d'une capacité (CONFIG.timing.abilityFx), et n'est jamais attendu. Avec le
+// mouvement réduit, une image fixe. Son nom sur la couche : blood:<id> (fx-layer.ts)
+export const goldBloodOf = (c: Combatant): GoldBlood | null => (c.side === "hero" ? HEROES.find((def) => def.id === c.id)?.goldBlood ?? null : null);
+
+export function playGoldBlood(fx: FxLayer, target: ShownTarget, setting: GoldBlood, facing: 1 | -1) {
+  const box = fx.measure(target.element)(target.element);
+  const count = Math.min(setting.frames, frameCount(CONFIG.timing.abilityFx));
+  const reduced = isReducedMotion();
+  fx.play((seed) => {
+    const plan = goldBlood({ box, rows: target.rows }, facing, setting, count, seed);
+    return reduced ? still(plan) : plan;
+  }, `blood:${target.id}`);
 }
 
 // Braises qui montent des bords enflammés d'un héros (Elwen), décalées dans le temps. Commun aux deux scènes.
@@ -403,6 +420,8 @@ export function createDomStage(): Stage {
     hit(target, effect) {
       if (effect.type !== "damage") return;
       const a = actors.get(target.id);
+      const blood = goldBloodOf(target);
+      if (a && blood && !a.away) playGoldBlood(fx, { id: target.id, element: pngOf(a), rows: a.sprite.shownRows() }, blood, blowFacing([target]));
       a?.sprite.play("hit");
       pulse(spriteEl(target), "damaged", CONFIG.timing.hit);
     },
