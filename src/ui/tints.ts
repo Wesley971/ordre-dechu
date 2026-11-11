@@ -32,6 +32,21 @@ export const TINTS = {
   hit: { filter: "brightness(1.8) sepia(0.6) hue-rotate(-30deg)", color: "#ff8c3c", mix: 0.45, brightness: 1.4 },
 } satisfies Record<string, Tint>;
 
+// Teintes candidates du coup reçu (MAE-98), montrées côte à côte avec les éclats du sang doré dans l'aperçu
+// (?animations=1), pour que Wesley choisisse au moment du dosage : l'orange actuel et deux teintes de la palette des
+// personnages. Hors de TINTS : chaque teinte de TINTS devient une variable CSS, que style.css doit lire. La teinte
+// choisie remplacera TINTS.hit, et cette liste sera retirée
+export const HIT_CANDIDATES: readonly { label: string; tint: Tint }[] = [
+  { label: "Orange actuel", tint: TINTS.hit },
+  // Un éclair pâle, le parchemin, cœur clair des effets : en DOM, le sprite très éclairci, à peine doré (sepia 0,3) ;
+  // dans la scène peinte, éclairci puis mêlé à moitié de parchemin
+  { label: "Éclair parchemin", tint: { filter: "brightness(1.9) sepia(0.3) saturate(0.8)", color: FX_COLORS.parchment, mix: 0.5, brightness: 1.5 } },
+  // Un rougeoiement, la braise sombre des ennemis et du feu du Dragon : en DOM, le sprite passe au rouge brun saturé, un
+  // peu éclairci ; dans la scène peinte, mêlé à 45 % de braise sombre, qui assombrit ses pixels clairs (l'éclat de 1,15
+  // n'éclaircit que les sombres). Les deux formes diffèrent plus que pour les autres teintes : l'aperçu montre les deux
+  { label: "Braise sombre", tint: { filter: "brightness(1.15) sepia(1) saturate(3) hue-rotate(-25deg)", color: FX_COLORS.ember, mix: 0.45, brightness: 1.15 } },
+];
+
 // Variables CSS des teintes : --tint-<nom>, et --tint-<nom>-rest pour une teinte qui a son filtre sans effet
 export function tintVariables(): [string, string][] {
   return Object.entries<Tint>(TINTS).flatMap(([name, tint]) => [

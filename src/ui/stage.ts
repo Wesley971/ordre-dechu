@@ -170,8 +170,9 @@ export function playGoldBlood(fx: FxLayer, target: ShownTarget, setting: GoldBlo
   }, `blood:${target.id}`);
 }
 
-// Braises qui montent des bords enflammés d'un héros (Elwen), décalées dans le temps. Commun aux deux scènes.
-export function embersHtml(c: Combatant) {
+// Braises qui montent des bords enflammés d'un héros (Elwen), décalées dans le temps. Commun aux deux scènes et à
+// l'aperçu des animations (?animations=1), qui ne connaît que l'identifiant du héros
+export function embersHtml(c: Pick<Combatant, "id">) {
   const embers = HEROES.find(def => def.id === c.id)?.embers || [];
   return embers.map(([x, y], i) => {
     const left = (x / HERO_CANVAS.w) * 100, top = (y / HERO_CANVAS.h) * 100;

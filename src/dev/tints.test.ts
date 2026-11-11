@@ -1,7 +1,8 @@
 // tints.test.ts - Teintes des combattants, définies une seule fois (MAE-31), sans DOM
 import { describe, expect, it } from "vitest";
 import palette from "../../docs/character-palette.md?raw";
-import { applyTints, tintVariables, TINTS, type Tint } from "../ui/tints.ts";
+import { FX_COLORS } from "../ui/battle-fx.ts";
+import { applyTints, HIT_CANDIDATES, tintVariables, TINTS, type Tint } from "../ui/tints.ts";
 
 // Tout le code et les styles du jeu, lus comme du texte (vite.config.ts : test.css, sans quoi le CSS serait vide)
 const SOURCES = import.meta.glob<string>("../**/*.{ts,css}", { query: "?raw", import: "default", eager: true });
@@ -61,11 +62,21 @@ describe("teintes des combattants", () => {
     expect(palette).toContain(`\`${TINTS.gold.color}\``);
   });
 
-  it("dans la scène peinte, une teinte mêle sa couleur sans la recouvrir, et n'assombrit pas le sprite", () => {
-    for (const tint of Object.values<Tint>(TINTS)) {
+  it("dans la scène peinte, une teinte mêle sa couleur sans la recouvrir, avec un éclat d'au moins 1 (candidates du coup reçu comprises)", () => {
+    for (const tint of [...Object.values<Tint>(TINTS), ...HIT_CANDIDATES.map((candidate) => candidate.tint)]) {
       expect(tint.mix).toBeGreaterThan(0);
       expect(tint.mix).toBeLessThan(1);
       if (tint.brightness !== undefined) expect(tint.brightness).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("teintes candidates du coup reçu (MAE-98) : l'orange actuel d'abord, puis des couleurs de la palette des personnages", () => {
+    expect(HIT_CANDIDATES[0].tint).toBe(TINTS.hit);
+    expect(HIT_CANDIDATES.length).toBeGreaterThan(1);
+    const colors: string[] = Object.values(FX_COLORS);
+    for (const { tint } of HIT_CANDIDATES.slice(1)) {
+      expect(colors).toContain(tint.color);
+      expect(palette).toContain(`\`${tint.color}\``);
     }
   });
 });
