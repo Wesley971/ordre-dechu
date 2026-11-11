@@ -311,7 +311,7 @@ function target(left: number, top: number): FxTarget {
 const opaqueAt = ({ box, rows }: FxTarget, x: number, y: number) => (rows[y - box.top] ?? []).some(([from, to]) => x - box.left >= from && x - box.left < to);
 const framesOf = (plan: FxPlan) => Array.from({ length: plan.count }, (_, i) => plan.frame(i));
 // Chaque nom de AbilityEffect : un nom oublié ici ne compile pas (Record), un nom en trop non plus
-const EFFECTS = Object.keys({ slash: true, twin: true, sweep: true, wick: true, frost: true, bell: true, sulfur: true, mend: true, dew: true, wake: true, sap: true, incense: true, tear: true, chains: true, pillar: true } satisfies Record<AbilityEffect, true>) as AbilityEffect[]; // as : Object.keys perd le type des clés
+const EFFECTS = Object.keys({ slash: true, twin: true, sweep: true, wick: true, frost: true, bell: true, sulfur: true, mend: true, dew: true, wake: true, sap: true, incense: true, tear: true, chains: true, pillar: true, echo: true } satisfies Record<AbilityEffect, true>) as AbilityEffect[]; // as : Object.keys perd le type des clés
 const FX_COUNT = frameCount(CONFIG.timing.abilityFx);
 
 describe("effets des capacités : le socle", () => {
@@ -332,9 +332,9 @@ describe("effets des capacités : le socle", () => {
     expect(abilityEffect(ATTACK)).toBe("slash");
     expect(abilityEffect(ENEMY_SKILLS.chains)).toBe("chains");
     expect(abilityEffect(ENEMY_SKILLS.pillar)).toBe("pillar");
-    for (const ability of [ENEMY_SKILLS.echoBlade]) {
-      expect(abilityEffect(ability)).toBe("slash");
-    }
+    expect(abilityEffect(ENEMY_SKILLS.echoBlade)).toBe("echo");
+    // Un coup d'arme qui ne déclare pas d'effet : l'entaille (aucune capacité du jeu ne l'est plus, celle-ci est fictive)
+    expect(abilityEffect({ name: "Coup", kind: "physical", power: 1, target: "foe" })).toBe("slash");
     for (const ability of [ENEMY_SKILLS.ashCloud]) {
       expect(abilityEffect(ability)).toBeNull();
     }
@@ -949,6 +949,67 @@ describe("les capacités des ennemis : Chaînes, Pilier", () => {
     // Collé au haut, il ne tient pas sous le bord : coupé, sans rien au-dessus
     for (const ally of [target(100, 0), target(100, 10)]) {
       for (const { y } of play("pillar", [ally]).flat()) expect(y).toBeGreaterThanOrEqual(0);
+    }
+  });
+});
+
+describe("Kardrov, l'écho de Maelor : le miroir de Vordrak dans l'or de l'écho", () => {
+  const hero = target(100, 120);
+  const SEEDS = [1, 2, 3, 13, 57, 404];
+  const play = (effect: AbilityEffect, seed = 13, facing: 1 | -1 = -1) => framesOf(abilityFx(effect, { targets: [hero], facing, count: FX_COUNT, seed }, false));
+  // La rampe d'or de l'écho (docs/character-palette.md, section 8) : brun d'ombre, or ancien, parchemin. Sans l'or vif,
+  // réservé à l'indice du sang doré des héros touchés (MAE-98, PR 2)
+  const ECHO_RAMP: string[] = [FX_COLORS.shadow, FX_COLORS.oldGold, FX_COLORS.parchment];
+
+  it("a son effet, déclaré dans les données, différent de Vordrak et de l'entaille", () => {
+    expect(abilityEffect(ENEMY_SKILLS.echoBlade)).toBe("echo");
+    const echo = JSON.stringify(play("echo"));
+    expect(echo).not.toBe(JSON.stringify(play("twin")));
+    expect(echo).not.toBe(JSON.stringify(play("slash")));
+  });
+
+  it("n'a que la rampe d'or de l'écho : ni rouge vin (il est à Maelor), ni or vif (le sang doré), ni cendré clair, ni bleu", () => {
+    for (const seed of SEEDS) {
+      const all = play("echo", seed).flat();
+      for (const { color } of all) expect(ECHO_RAMP).toContain(color);
+      expect(all.some(({ color }) => color === FX_COLORS.oldGold)).toBe(true);
+    }
+  });
+
+  it("c'est Vordrak retourné de haut en bas : deux entailles parallèles qui montent, tracées ensemble, du côté de celui qui frappe", () => {
+    for (const seed of SEEDS) {
+      for (const facing of [-1, 1] as const) { // as const : le sens du coup
+        const echo = play("echo", seed, facing), vordrak = play("twin", seed, facing);
+        // Les mêmes traits, au même nombre de pixels à chaque image : seul le sens vertical et les couleurs changent
+        for (let i = 0; i < FX_COUNT; i++) expect(echo[i].length).toBe(vordrak[i].length);
+        // Les traits frais (parchemin) : en avançant dans le sens du coup, ils montent ; ceux de Vordrak descendent
+        const slope = (pixels: FxPixel[]) => {
+          const fresh = pixels.filter(({ color }) => color === FX_COLORS.parchment);
+          const first = fresh.reduce((a, b) => (facing * b.x < facing * a.x ? b : a));
+          const last = fresh.reduce((a, b) => (facing * b.x > facing * a.x ? b : a));
+          return Math.sign(last.y - first.y);
+        };
+        expect(slope(echo[2])).toBe(-1);
+        expect(slope(vordrak[2])).toBe(1);
+        // Deux traits côte à côte : à l'image 2, plusieurs rangées portent deux pixels parchemin écartés
+        const byRow = new Map<number, number[]>();
+        for (const { x, y, color } of echo[2]) if (color === FX_COLORS.parchment) byRow.set(y, [...(byRow.get(y) ?? []), x]);
+        expect([...byRow.values()].filter((xs) => xs.length >= 2 && Math.max(...xs) - Math.min(...xs) >= 4).length).toBeGreaterThan(8);
+      }
+    }
+  });
+
+  it("parchemin bordé d'or ancien, puis s'efface en or ancien bordé de brun d'ombre ; éteint à la dernière image", () => {
+    for (const seed of SEEDS) {
+      const echo = play("echo", seed);
+      const at = (pixels: FxPixel[]) => new Map(pixels.map(({ x, y, color }) => [`${x},${y}`, color]));
+      const fresh = echo[2].filter(({ color }) => color === FX_COLORS.parchment), freshAt = at(echo[2]);
+      expect(fresh.filter(({ x, y }) => freshAt.get(`${x},${y + 1}`) === FX_COLORS.oldGold).length).toBeGreaterThan(fresh.length / 2);
+      // En s'effaçant, plus de trait parchemin : il ne reste au plus que les éclats (trois au bout de chaque entaille)
+      expect(echo[6].filter(({ color }) => color === FX_COLORS.parchment).length).toBeLessThanOrEqual(6);
+      expect(echo[6].filter(({ color }) => color === FX_COLORS.shadow).length).toBeGreaterThan(0);
+      expect(echo[6].filter(({ color }) => color === FX_COLORS.oldGold).length).toBeGreaterThan(0);
+      expect(echo[FX_COUNT - 1]).toEqual([]);
     }
   });
 });

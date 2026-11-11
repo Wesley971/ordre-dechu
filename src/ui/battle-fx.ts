@@ -436,11 +436,25 @@ function slash({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
 // Vordrak (Maelor) : « côte à côte », la frappe double. Deux entailles parallèles en diagonale, tracées ensemble en
 // deux images depuis le côté de celui qui frappe, parchemin bordées dessous de rouge vin ; elles tiennent, puis
 // s'effacent pixel par pixel en cendré clair, toujours bordées de rouge vin, pendant que des éclats filent au bout de
-// chacune. Le rouge vin seul se perdrait dans la nuit : il reste le liseré d'un trait clair
+// chacune. Le rouge vin seul se perdrait dans la nuit : il reste le liseré d'un trait clair.
+// Kardrov (l'écho de Maelor, MAE-98) : la même frappe, en miroir de haut en bas (les entailles montent), dans la rampe
+// d'or de l'écho (docs/character-palette.md, section 8 ; décision de Wesley du 11/11/2026) : parchemin bordées d'or
+// ancien, puis or ancien bordé de brun d'ombre en s'effaçant, et des éclats parchemin. Pas de rouge vin : il est à
+// Maelor. Pas d'or vif non plus : les petits éclats d'or vif sur un héros touché sont l'indice de son sang (MAE-98,
+// PR 2), que Kardrov ne doit pas brouiller. Le liseré reste sous le trait, comme une ombre portée. Un ennemi frappe
+// depuis la droite : retournée de gauche à droite par le sens du coup, puis de haut en bas, l'entaille de Kardrov a à
+// l'écran la même diagonale que Vordrak sur un ennemi, tracée dans l'autre sens (du bas vers le haut)
 const TWIN_SPARKS = 3; // éclats au bout de chaque entaille
 
-function twin({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
+// Le tracé et les couleurs d'une frappe double : rise, les entailles montent au lieu de descendre ; fresh et edge, le
+// trait et son liseré tant qu'il est frais ; faded et fadedEdge, en s'effaçant ; spark, les éclats
+interface TwinStyle { rise: boolean; fresh: FxColor; edge: FxColor; faded: FxColor; fadedEdge: FxColor; spark: FxColor }
+const VORDRAK: TwinStyle = { rise: false, fresh: FX_COLORS.parchment, edge: FX_COLORS.wine, faded: FX_COLORS.paleAsh, fadedEdge: FX_COLORS.wine, spark: FX_COLORS.parchment };
+const KARDROV: TwinStyle = { rise: true, fresh: FX_COLORS.parchment, edge: FX_COLORS.oldGold, faded: FX_COLORS.oldGold, fadedEdge: FX_COLORS.shadow, spark: FX_COLORS.parchment };
+
+function doubleCut({ targets, facing, count, seed }: AbilityFxInput, style: TwinStyle): FxPlan {
   const random = seeded(seed);
+  const down = style.rise ? -1 : 1; // sens vertical du tracé
   const pairs = targets.map((target) => {
     const shape = shapeOf(target);
     const length = Math.max(10, Math.min(40, Math.round(Math.min(shape.width, shape.height) * 0.8)));
@@ -448,7 +462,7 @@ function twin({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
     const gap = Math.max(4, Math.round(length / 6)); // écart entre les deux entailles, le long de l'horizontale
     return {
       // Les deux départs, de part et d'autre du centre de la silhouette
-      starts: [-1, 1].map((side): FxPoint => ({ x: shape.cx - facing * half + side * Math.ceil(gap / 2), y: shape.cy - half })),
+      starts: [-1, 1].map((side): FxPoint => ({ x: shape.cx - facing * half + side * Math.ceil(gap / 2), y: shape.cy - down * half })),
       length,
       fades: Array.from({ length: 2 * length }, random), // l'instant où chaque pixel s'efface, de 0 à 1
       sparks: Array.from({ length: 2 * TWIN_SPARKS }, () => ({ dx: facing * (1.5 + random() * 2), dy: 0.5 + random() * 2, start: 2 + random() * 2 })),
@@ -466,14 +480,14 @@ function twin({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
         pair.starts.forEach((from, cut) => {
           for (let i = 0; i < drawn; i++) {
             if (pair.fades[cut * pair.length + i] < fade) continue;
-            const x = from.x + facing * i, y = from.y + i;
-            pixels.push({ x, y, color: fresh ? FX_COLORS.parchment : FX_COLORS.paleAsh }, { x, y: y + 1, color: FX_COLORS.wine });
+            const x = from.x + facing * i, y = from.y + down * i;
+            pixels.push({ x, y, color: fresh ? style.fresh : style.faded }, { x, y: y + 1, color: fresh ? style.edge : style.fadedEdge });
           }
-          const end = { x: from.x + facing * (pair.length - 1), y: from.y + pair.length - 1 };
+          const end = { x: from.x + facing * (pair.length - 1), y: from.y + down * (pair.length - 1) };
           for (const spark of pair.sparks.slice(cut * TWIN_SPARKS, (cut + 1) * TWIN_SPARKS)) {
             const age = step - spark.start;
             if (age < 0 || age >= 3) continue;
-            pixels.push({ x: end.x + Math.round(spark.dx * age), y: end.y - Math.round(spark.dy * age) + Math.round(age * age * 0.5), color: FX_COLORS.parchment });
+            pixels.push({ x: end.x + Math.round(spark.dx * age), y: end.y - Math.round(spark.dy * age) + Math.round(age * age * 0.5), color: style.spark });
           }
         });
       }
@@ -481,6 +495,9 @@ function twin({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
     },
   };
 }
+
+const twin = (input: AbilityFxInput) => doubleCut(input, VORDRAK);
+const echo = (input: AbilityFxInput) => doubleCut(input, KARDROV);
 
 // Édrag (Maelor) : « la garde », qui balaie tous les ennemis. Un seul grand arc de lame passe d'un ennemi à l'autre,
 // dans le sens du coup, à hauteur de hanche, et bombe vers le haut sur toute sa longueur : sa tête, plus épaisse,
@@ -1212,7 +1229,7 @@ function pillar({ targets, count, seed }: AbilityFxInput): FxPlan {
 }
 
 // L'effet de chaque capacité. Ajouter une capacité : son nom dans AbilityEffect (game-data.ts), son dessin ici
-const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash, twin, sweep, wick, frost, bell, sulfur, mend, dew, wake, sap, incense, tear, chains, pillar };
+const ABILITY_FX: Record<AbilityEffect, (input: AbilityFxInput) => FxPlan> = { slash, twin, sweep, wick, frost, bell, sulfur, mend, dew, wake, sap, incense, tear, chains, pillar, echo };
 
 // Les images de l'effet d'une capacité sur ses cibles ; avec le mouvement réduit, son image la plus fournie, fixe
 export function abilityFx(effect: AbilityEffect, input: AbilityFxInput, reduced: boolean): FxPlan {
