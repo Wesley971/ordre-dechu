@@ -361,7 +361,9 @@ export interface BattleChapter extends ChapterBase {
   rest?: never;
   enemies: EnemyId[];
   boss?: boolean;
-  canRun?: boolean;
+  // Repli permis seulement si le chapitre le déclare : ailleurs, un repli réussi sauterait la scène qui suit le
+  // combat (trêve, reddition, choix du pouvoir...) et mènerait quand même au chapitre suivant (MAE-119)
+  canRun?: true;
   introMessage?: string; // message d'entrée propre au combat, à la place du message par défaut
   battleMusic?: MusicId; // musique du combat, « battle » par défaut
   // Trêve : le combat s'arrête après afterActions actions (héros et ennemis), ou dès qu'un ennemi tombe ;
@@ -389,12 +391,12 @@ export const CHAPTERS: Chapter[] = [
       say("Elwen", "Ils ne le savent pas."),
     ],
     enemies: ["sankri", "sankri"],
+    canRun: true, // rien ne barre la suite, et les Sankri vivent
   },
   {
     title: "II · Le Champ des Échos",
     tint: "rgba(20, 40, 50, 0.45)",
     music: "echoes",
-    canRun: false, // se replier sauterait la trêve et l'alliance
     story: [
       "Au-delà des bois s'étend un champ de terre retournée, semé de pierres levées. Pas une croix, pas un nom : sur chaque tombe, des os taillés avec soin.<br><br>" +
       say("Corvin", "Au village, on dit que les squelettes déterrent les morts pour les manger.") + "<br>" +
@@ -460,7 +462,6 @@ export const CHAPTERS: Chapter[] = [
     tint: "rgba(70, 55, 10, 0.30)",
     music: "heart",
     battleMusic: "heart", // un duel solennel contre soi-même, pas un combat ordinaire (Wesley, 03/11/2026)
-    canRun: false, // se replier sauterait le choix du pouvoir
     story: [
       "De l'autre côté du pont, le chemin descend entre deux parois de pierre noire, lisses comme le pont. Puis la roche s'ouvre sur une vallée ronde. L'air y vibre. Au milieu, une lumière dorée bat lentement, comme un cœur.<br><br>" +
       say("Corvin", "Je n'ai jamais senti autant de Souffle au même endroit. Comme si le monde entier respirait ici."),
@@ -543,7 +544,6 @@ export const CHAPTERS: Chapter[] = [
     music: "dragon",
     battleMusic: "dragon", // Lost Time dès les pages de l'antre, jusqu'au combat
     boss: true,
-    canRun: false,
     story: [
       "La grotte est tiède. Sous la cendre, des braises mourantes rougeoient encore, comme un feu qu'on n'a plus la force d'entretenir. Sur un lit d'ossements et de blasons brisés repose la bête qui, dit-on, a dévoré l'Ordre. Au village, on la dit folle.<br><br>" +
       "À l'écart des débris, un seul blason est intact. Usé, poli, comme si on l'avait tenu chaque jour pendant trente ans. Le blason de Maelor s'embrase.",
