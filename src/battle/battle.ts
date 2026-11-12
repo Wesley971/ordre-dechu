@@ -452,7 +452,7 @@ async function checkRage(targets: Combatant[]) {
 }
 
 async function attemptRun() {
-  if (Battle.chapter?.canRun === false) {
+  if (Battle.chapter?.canRun !== true) {
     await view.message("Repli impossible !");
     return;
   }
