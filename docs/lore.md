@@ -1,5 +1,7 @@
 # L'Ordre Déchu · Bible de l'univers
 
+Cette bible dit ce qui est vrai dans ce monde. L'ordre et les moyens par lesquels le joueur le découvre, chapitre par chapitre, sont dans le plan du récit : `docs/story-plan.md` (MAE-103). En cas de désaccord, la bible l'emporte.
+
 ## Thème
 Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le maître de Corvin brûlé par un village pris de terreur, Elwen chassée, les Hésiums appelés « squelettes », Vahn qu'on dit fou, les immortels qu'on croit morts. Pas de grand méchant : chaque peuple a ses raisons.
 
@@ -21,36 +23,42 @@ Un monde qui juge sans savoir et qui oublie. L'Ordre accusé sans procès, le ma
 - Nés du Souffle. Gardiens de l'équilibre : ils connaissent toute l'histoire, y compris le cycle, mais ne sont pas censés intervenir (inspiration : les Istari de Tolkien, sans dieux).
 - Le monde les croit morts, mais il en reste beaucoup : certains vivent à l'écart, discrets, et la plupart sont moins investis dans l'équilibre qu'Elwen.
 - Les couleurs vives sont leur marque. Les Larmes dorées sont des larmes d'immortels : du Souffle cristallisé, rare et précieux.
+- L'un d'eux vit à l'écart, près du Puits des Anciens. Il a des couleurs vives, comme tout immortel : Elwen n'est donc plus la seule touche de couleur vive à l'écran, et la fiche des personnages change (décisions de Wesley du 11/11/2026, MAE-103).
 
 ## Le peuple à longue vie
 - Descend des immortels : sang doré, vie d'environ 150 ans (record connu vers 200 ans).
 - Le plus proche du Souffle, donc le premier effacé par l'oubli : le monde a oublié qu'il existe, et ses membres ne savent plus ce qu'ils sont.
 
 ## L'Ordre (Rédror Drakunis)
-- Ordre de chevaliers, en partie composé du peuple à longue vie : ses liens les plus forts avec les Tyrdrak venaient de ce peuple. Mission : « que les hommes et les Tyrdrak ne s'oublient jamais ». Les mues des Tyrdrak servaient à forger armes et armures.
+- Ordre de chevaliers, en partie composé du peuple à longue vie : ses liens les plus forts avec les Tyrdrak venaient de ce peuple. Mission : « que les hommes et les Tyrdrak ne s'oublient jamais ». Les mues des Tyrdrak servaient à forger armes et armures ; ce sont les Painkush qui les forgeaient pour l'Ordre (décision de Wesley du 11/11/2026, MAE-103).
 - Emblème : un dragon d'argent sur fond noir avant la chute ; la rose noire après, en deuil (blason de Maelor).
 - Tombé il y a trente ans : accusé de sorcellerie (fausse accusation), exécuté sans procès, nom effacé. Le déclencheur de la rupture avec les Tyrdrak reste volontairement flou.
 - Les chevaliers disaient « Tyrdrak » ; « dragon » est le mot des humains.
 
 ## Les Tyrdrak et Vahn
 - Les Tyrdrak ont un lien avec les immortels : pas immortels, mais très longue vie. L'or et les yeux rose violet de Vahn en sont la trace.
-- Vahn oublie peu à peu ; il grave ses souvenirs sur ses écailles pour tenir, et attend quelqu'un qui l'aide à se souvenir. Sa mue se passe mal (écailles qui tombent). Son antre garde des braises mourantes. Il garde depuis trente ans le blason d'un ami de l'Ordre.
+- Vahn oublie peu à peu ; il grave ses souvenirs sur ses écailles pour tenir, et attend quelqu'un qui l'aide à se souvenir. Sa mue se passe mal (écailles qui tombent). Il n'est pas sorti de son antre depuis trente ans : la rumeur d'une bête qui ravage le Val ne repose sur rien (décision de Wesley du 11/11/2026, MAE-103). Son antre garde des braises mourantes. Il garde depuis trente ans le blason d'un ami de l'Ordre.
 - Le lien entre Elwen et Vahn reste un mystère.
 
 ## Les peuples (détails dans `docs/enemy-sheets.md`)
-- Sankri : bêtes de la forêt, qui la défendent. Ils ne prennent que le Souffle des arbres morts ou mourants, et redeviennent arbres à leur mort.
-- Hésiums : peuple pacifique et familial, os qui captent le Souffle (et un peu de la mémoire des morts). Leurs lieux d'enterrement : des échos de lumière dorée sortent du sol.
+- Sankri : bêtes de la forêt, qui la défendent. Ils ne prennent que le Souffle des arbres morts ou mourants, et redeviennent arbres à leur mort. Vaincus, ils laissent de la Sève, pas de Couronnes (décision de Wesley du 11/11/2026, MAE-103).
+- Hésiums : peuple pacifique et familial, os qui captent le Souffle (et un peu de la mémoire des morts). Leurs lieux d'enterrement : des échos de lumière dorée sortent du sol. Après l'alliance, l'un d'eux, colporteur, suit le groupe et lui vend ses objets (décision de Wesley du 11/11/2026, MAE-103).
 - Gau-Tik : sans Souffle, gardiens d'Aure-Hin. Ils reconnaissent le signe des cheveux de Maelor.
-- Painkush : forgerons de la Pierre Nue, métal chargé de Souffle.
+- Painkush : forgerons de la Pierre Nue, métal chargé de Souffle. Ils forgeaient pour l'Ordre. Celui qui barre la route du groupe reconnaît l'armure de Maelor, et ne meurt pas (décision de Wesley du 11/11/2026, MAE-103).
 
 ## Les héros
 - Maelor : du peuple à longue vie, sang doré. Ses cheveux cendré clair sont le signe de son don unique ; seuls les Gau-Tik et les immortels le savent. Son affinité avec les Tyrdrak vient de cet héritage, mais il croit que c'est un hasard. Son grand-père était chevalier de l'Ordre, a survécu à la chute et a transmis le blason au père de Maelor (qui n'était pas de l'Ordre). L'oubli a pris le grand-père comme les autres : le blason ne lui disait plus rien, et le père n'a jamais su qu'en faire. Ses trente ans et les trente ans de la chute : simple coïncidence.
-- Corvin : Veilleur, « au regard de nuit ». Il sent le Souffle faiblir et cherche pourquoi ; Maelor est sa piste la plus forte. Sa marque en forme de feuille et son appartenance possible au peuple à longue vie restent ouvertes.
+- Corvin : Veilleur, « au regard de nuit ». Il sent le Souffle faiblir et cherche pourquoi ; Maelor est sa piste la plus forte. Sa marque en forme de feuille et son appartenance possible au peuple à longue vie restent ouvertes. Au Cœur d'Aure-Hin, sa marque s'éclaire : un indice discret, sans réponse (décision de Wesley du 11/11/2026, MAE-103).
 - Le maître de Corvin : il mêlait le soufre au Souffle ; une impulsion a provoqué une explosion ; le Souffle libéré a troublé les regards du village voisin (des hallucinations, comme chez les Hésiums) ; le maître, sorti des décombres couvert de soufre, leur est apparu comme un monstre, et ils l'ont brûlé ; puis l'oubli. Aucune magie noire.
 - Elwen : immortelle, la Source. Elle vivait cachée parmi les humains, dans un temple qui l'a chassée pour avoir soigné des condamnés. Elle cherchait un survivant du peuple à longue vie, et a trouvé Maelor. Elle connaît le cycle et l'accepte, mais plie parfois la règle de non-intervention, par compassion : c'est sa faille. Elle sait tout, mais ne peut pas tout dire.
 
 ## Le voyage
 - Une rumeur au village dit qu'une bête folle ravage le Val. Maelor y va pour comprendre ; le blason confirme le chemin.
+- Décisions de Wesley du 11/11/2026 (MAE-103, détail dans `docs/story-plan.md`) :
+  - le village est un lieu montré, avant la Lisière ; les trois héros s'y rencontrent, et son marchand est un humain, qui n'a qu'une seule Larme dorée ;
+  - entre les combats, le groupe fait halte ;
+  - les Couronnes viennent d'une bourse de départ et de dons, après la trêve et la reddition : le groupe ne prend plus de butin sur des alliés ;
+  - à la Pierre Nue, la trace des Tyrdrak est l'armure de Maelor elle-même, faite de mues ; il n'y a aucune écaille du Dragon en chemin.
 - Chapitres : I La Lisière ; II le lieu d'enterrement des Hésiums (un Tyrdrak de l'Ordre y est enterré ; seulement des Hésiums dans le combat) ; III le pont des Gau-Tik ; IV le Cœur d'Aure-Hin ; V La Pierre Nue ; VI Le Puits des Anciens (un vieux puits au milieu de la roche, îlot de vie dans l'aride) ; VII l'antre de Vahn.
 - Pierre-Noire : ce n'est pas de la pierre, mais un matériau très ancien qu'on prend pour de la pierre noire. En jeu, seulement suggéré, jamais expliqué (pas de mot « technologie »). Son origine n'est pas décidée.
 - Au Cœur d'Aure-Hin, dans l'ordre : une révélation (la nature d'Elwen, le sang de Maelor, une partie du cycle) ; une épreuve (un écho de Maelor né du Souffle) ; un choix (prendre ou non le pouvoir du Souffle). Prendre rend le groupe plus fort au combat, mais ferme la vraie fin.
@@ -93,8 +101,9 @@ Fait (MAE-65, MAE-66, MAE-71, 02 et 03/11/2026) :
 - Antre de Vahn : braises mourantes ; « Il n'est pas fou » gardé.
 - Fin Épargner : la mémoire revient aux deux.
 
-À faire : rien à ce jour.
+À faire : les changements du plan du récit (`docs/story-plan.md`, MAE-103), ticket par ticket. Les décisions du 11/11/2026 notées dans cette bible ne sont pas encore dans les textes du jeu.
 
 ## Questions ouvertes
+- Les points « À valider » du plan du récit (`docs/story-plan.md`, section 11) : Wesley les tranche au moment de réécrire chaque chapitre.
 - Le lien entre Elwen et Vahn (mystère voulu).
 - La géographie (Aure-Hin au centre du monde, place du Val) : à décider avec une carte.
