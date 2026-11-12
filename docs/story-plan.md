@@ -89,7 +89,7 @@ Entre deux chapitres, il n'y a rien : la dernière page d'un chapitre mène au t
 
 - **Les morts sans poids.** Le thème du jeu est qu'il n'y a pas de grand méchant et que chaque peuple a ses raisons. Elwen le dit devant le Painkush : « Ce n'est pas une bête. Il garde sa terre, comme nous garderions la nôtre. » Puis le Painkush meurt, comme les Sankri, sans une ligne après le combat. Le choix final (épargner ou achever) n'est préparé par rien de ce que le groupe a fait avant.
 - **Le butin.** Après la trêve du chapitre II et la reddition du chapitre III, l'écran des récompenses dit « Le groupe ramasse » des Couronnes (`formatRewards`, `src/story/game-flow.ts`) : sur des alliés, puis sur des gardiens à genoux. Les Sankri, des bêtes, portent 25 Couronnes chacun, alors que la réécriture du chapitre I leur a retiré leur bourse (`docs/lore.md`, « Textes du jeu : état »).
-- **Le repli.** Aux chapitres III et V, le repli reste permis (`canRun`). S'il réussit, le groupe passe quand même au chapitre suivant : il traverse le pont que deux Gau-Tik barraient, sans la scène de la reddition et sans le regard sur les cheveux de Maelor.
+- **Le repli.** Aux chapitres III et V, le repli restait permis (`canRun`). S'il réussissait, le groupe passait quand même au chapitre suivant : il traversait le pont que deux Gau-Tik barraient, sans la scène de la reddition et sans le regard sur les cheveux de Maelor. Corrigé par MAE-119 : le repli n'est plus permis qu'au chapitre I.
 - **Trente ans.** La vraie fin dit : « Vahn quitte son antre pour la première fois depuis trente ans. » La fausse fin dit : « Pour la première fois depuis trente ans, le ciel du Val Ténébreux est vide. » La première phrase suppose un Dragon qui n'est jamais sorti, la seconde un Dragon qu'on voyait dans le ciel. La bible parle d'une bête qui « ravage le Val » : selon la rumeur seulement, ou en vrai ? Tranché par Wesley le 11/11/2026 : le Dragon n'est jamais sorti (voir 5.10).
 
 ## 3. Les principes
@@ -616,7 +616,7 @@ Ce que le plan touche dans le code, pour découper le travail. Rien n'est décid
 - **Le village** ajoute une étape avant le chapitre I. L'ordre des étapes change : `SAVE_VERSION` augmente, et le paramètre `chapitre=N` du mode test est à revoir.
 - **Le marchand** est un nouvel écran. Il lui faut une maquette validée (epic MAE-15) et une méthode du contrat `GameView`, dans la vue DOM et dans la vue muette.
 - **Les dons** changent le texte des récompenses (`formatRewards`) et les données des ennemis (`gil`).
-- **Le repli** est à interdire aux chapitres III et V (`canRun`).
+- **Le repli** est interdit aux chapitres III et V depuis MAE-119 : il n'est permis que si le chapitre déclare `canRun: true`.
 - **Les textes selon le pouvoir**, pour la halte d'après le Cœur, suivent le modèle de `DRAGON_FATE`.
 
 ## 13. Tickets
