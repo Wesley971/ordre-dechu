@@ -77,7 +77,7 @@ Les images générées par IA peuvent ne pas être protégées par le droit d'au
 | `public/images/painkush.png` | Painkush | Référence `painkush-base-ia-v1.jpg` |
 | `public/images/vahn.png` | Vahn | Référence `vahn-base-ia-v1.jpg` |
 
-**Images des ennemis générées avec Gemini (Google) puis réduites.** Les ennemis ont été générés avec Gemini à partir de leurs fiches (`docs/enemy-sheets.md`), puis réduits en pixel art par un script, comme les héros.
+**Images des ennemis générées avec Gemini (Google) puis réduites.** Les ennemis ont été générés avec Gemini à partir de leurs fiches de description, puis réduits en pixel art par un script, comme les héros.
 
 - Les références sont gardées hors du dépôt, dans le labo du projet ; elles ont été validées le 28/10/2026.
 - Le script les a réduites en pixel art : fond transparent, palette limitée, contour d'un pixel, tournées vers la gauche. Seules la peau et les cheveux des Hésiums ont été ramenés vers la palette des personnages.

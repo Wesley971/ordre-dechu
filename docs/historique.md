@@ -4,8 +4,6 @@ Comment mon jeu est né, et ce qu'il est devenu. Première ligne de code le 12 a
 
 Les captures viennent de l'historique Git : je suis revenu à chaque étape, j'ai lancé le jeu, j'ai pris la photo. Elles sont dans `docs/historique/`. Le jeu est jouable ici : https://wesley971.github.io/ordre-dechu/
 
-Cette page ne dévoile ni les fins ni les secrets de l'univers. Les passages repliés (« Page scellée ») les donnent pour qui veut savoir.
-
 ---
 
 ## Les grands jalons
@@ -141,35 +139,6 @@ C'est l'ancien jeu à son meilleur : un héros seul, mais propre, rapide, soign�
 
 **Avant :** des combattants figés, et un combat pensé pour la manette. **Après :** le combat se joue naturellement à la souris et au clavier : un clic sur un ennemi pour frapper, les touches 1 à 5, l'aide de chaque commande à droite du menu. Le temps s'arrête quand un héros choisit (mode Attente). Les combattants respirent, frappent, encaissent et tombent, grâce à un moteur d'animation partagé. Le groupe se cache pendant les dialogues.
 **Pourquoi :** que ça se joue sans y penser, sur ordinateur comme sur téléphone, et que les personnages aient l'air vivants.
-
-<details>
-<summary>Page scellée : la méthode des mots</summary>
-
-Les mots du monde sont des mots français à l'envers, mélangés à des mots qui existent. Quelques exemples :
-
-- Rédror : « ordre » à l'envers.
-- Tyr : « rite » à l'envers. Tyrdrak : les dragons du rite.
-- Maelor : les lettres de « morale ».
-- Sankri : « sans cri ».
-- Hésium : de « magnésium », le minéral des os.
-- Aure-Hin : d'« ordinaire ». Le lieu le plus puissant du monde porte un nom qui veut dire banal.
-- Nios : « soin » à l'envers. Liéver : « réveil » à l'envers. Édrag : « garde » à l'envers.
-
-Le lexique complet est dans `docs/lexique.md`.
-</details>
-
-<details>
-<summary>Page scellée : les quatre fins</summary>
-
-Tout se joue au Cœur d'Aure-Hin : prendre ou refuser le pouvoir. Puis, face à Vahn : épargner ou achever.
-
-- La vraie fin : refuser le pouvoir, puis épargner.
-- La fin rédemption : prendre le pouvoir, le rendre, puis épargner.
-- La troisième fin : prendre le pouvoir et le garder.
-- La fausse fin : achever Vahn.
-
-Le détail est dans `docs/lore.md`.
-</details>
 
 ---
 
