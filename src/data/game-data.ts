@@ -133,7 +133,7 @@ export const HEROES: HeroDef[] = [
   {
     id: "maelor", name: "Maelor", job: "Chevalier déchu", image: "images/maelor.png",
     rig: { waist: 36, breath: 2.8, phase: 0, poses: drawnPoses("maelor", { stagger: 38, kneel: 43 }) },
-    // Un héritage lointain : surtout de l'or ancien. Réglage gardé par Wesley au dosage du 11/11/2026
+    // Surtout de l'or ancien. Réglage gardé par Wesley au dosage du 11/11/2026
     goldBlood: { count: 4, size: 1, frames: 5, bright: 0.25 },
     command: "Gestes",
     stats:  { maxHp: 160, maxMp: 18, atk: 18, def: 10, mag: 6,  res: 6,  spd: 9  },
@@ -151,7 +151,7 @@ export const HEROES: HeroDef[] = [
   {
     id: "elwen", name: "Elwen", job: "Source", image: "images/elwen.png",
     rig: { waist: 36, breath: 3.4, phase: 0.55, poses: drawnPoses("elwen", { stagger: 38, kneel: 47 }) },
-    // Le sang pur d'une immortelle : un peu plus lumineux, surtout de l'or vif. Réglage gardé par Wesley au dosage du 11/11/2026
+    // Un peu plus lumineux, surtout de l'or vif. Réglage gardé par Wesley au dosage du 11/11/2026
     goldBlood: { count: 4, size: 1, frames: 5, bright: 0.8 },
     command: "Source",
     feminine: true,
@@ -172,9 +172,9 @@ export const RUN: RunAbility         = { name: "Repli",   kind: "run", target: "
 
 // Aide des commandes du menu de combat, dans la bande sur ordinateur (MAE-89), par nom de commande. Textes validés par
 // Wesley le 08/11/2026. Règles : Garde (CONFIG.damage.defendMultiplier, coups physiques seulement), Repli
-// (CONFIG.run.successChance, canRun), objet retiré au choix (battle.ts). Histoire : docs/lore.md (grand-père de Maelor,
-// maître de Corvin) et les fiches de personnages (projet claude.ai « RPG », MAE-55 : la lanterne du maître, la lumière
-// qu'Elwen fait naître dans ses mains)
+// (CONFIG.run.successChance, canRun), objet retiré au choix (battle.ts). Histoire : le prologue (le grand-père de
+// Maelor, la lanterne du maître de Corvin) et les fiches de personnages (MAE-55 : la lumière qu'Elwen fait naître dans
+// ses mains)
 export const COMMAND_HELP: Record<string, string> = {
   Frapper:  "Une attaque simple sur un ennemi, sans coût en PS.",
   Gestes:   "Les gestes de combat que son grand-père lui a appris. Ils coûtent des PS.",
@@ -186,8 +186,7 @@ export const COMMAND_HELP: Record<string, string> = {
 };
 
 export const SPELLS = {
-  // Noms de la langue de l'Ordre (Maelor), des mots de métier des Veilleurs (Corvin), de la langue des immortels
-  // (Elwen) : docs/lexique.md
+  // Noms tirés du lexique du monde (MAE-75), un style de mots par héros
   fallenBlade: { name: "Vordrak",      mp: 6,  kind: "physical", power: 2, pierce: true, target: "foe", effect: "twin",
                  desc: "« Côte à côte » : frappe double qui ignore la défense." },
   whirlwind:   { name: "Édrag",        mp: 10, kind: "physical", power: 1.2, target: "all-foes", effect: "sweep",
