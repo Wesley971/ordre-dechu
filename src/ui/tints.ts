@@ -45,7 +45,7 @@ export function paintedTint(rgb: readonly number[], tint: Tint): number[] {
 }
 
 export const TINTS = {
-  // L'or de l'héritage immortel : l'écho de Maelor qui se défait en lumière, l'éclat de Maelor quand l'or le quitte (MAE-95)
+  // L'or : l'écho de Maelor qui se défait en lumière, l'éclat de Maelor quand l'or le quitte (MAE-95)
   gold: {
     filter: "brightness(1.45) sepia(1) saturate(2.2) hue-rotate(-8deg)",
     rest: "brightness(1) sepia(0) saturate(1) hue-rotate(0deg)",

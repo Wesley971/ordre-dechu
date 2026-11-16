@@ -12,17 +12,17 @@ import type { OpaqueRuns } from "./sprite-frames.ts";
 
 // Couleurs des effets, toutes dans les fiches
 export const FX_COLORS = {
-  ash: "#45403a",       // cendre (palette commune ; nuage du Dragon, docs/enemy-sheets.md)
+  ash: "#45403a",       // cendre (palette commune ; nuage du Dragon)
   ember: "#7a2a14",     // braise sombre (touche des ennemis ; braises du nuage)
   shadow: "#2a2018",    // brun d'ombre (palette commune ; bas de la rampe d'or de l'écho)
-  oldGold: "#c9a84c",   // or ancien (héritage immortel)
+  oldGold: "#c9a84c",   // or ancien (sang doré, rampe d'or de l'écho)
   brightGold: "#f0c95a", // or vif (yeux de Maelor et de l'écho)
   parchment: "#f1e4c3", // parchemin (haut de la rampe d'or de l'écho ; cœur clair des effets des capacités)
   paleAsh: "#c2b69f",   // cendré clair (cheveux de Maelor ; l'acier d'une lame qui passe)
   paleBlue: "#8fb8e0",  // flamme et sorts de Corvin : le feu de sa lanterne est bleu pâle
   nightBlue: "#141c2e", // bleu nuit de Corvin : ce que son feu laisse en s'éteignant
   wine: "#6e1626",      // rouge vin de Maelor : le liseré de ses gestes
-  iron: "#3d3f42",      // fer (palette des ennemis ; chaînes des Gau-Tik, docs/enemy-sheets.md)
+  iron: "#3d3f42",      // fer (palette des ennemis ; chaînes des Gau-Tik)
   rust: "#6b3a22",      // rouille (palette des ennemis ; chaînes des Gau-Tik)
   bone: "#8f8a7c",      // os gris (palette des ennemis) : l'arête claire des coups des ennemis (décision de Wesley du 11/11/2026)
 } as const; // as const : les couleurs gardent leur valeur exacte, qui forme le type FxColor
@@ -440,7 +440,7 @@ function slash({ targets, facing, count, seed }: AbilityFxInput): FxPlan {
 // Kardrov (l'écho de Maelor, MAE-98) : la même frappe, en miroir de haut en bas (les entailles montent), dans la rampe
 // d'or de l'écho (docs/character-palette.md, section 8 ; décision de Wesley du 11/11/2026) : parchemin bordées d'or
 // ancien, puis or ancien bordé de brun d'ombre en s'effaçant, et des éclats parchemin. Pas de rouge vin : il est à
-// Maelor. Pas d'or vif non plus : les petits éclats d'or vif sur un héros touché sont l'indice de son sang (MAE-98,
+// Maelor. Pas d'or vif non plus : les petits éclats d'or vif sur un héros touché sont son sang doré (MAE-98,
 // PR 2), que Kardrov ne doit pas brouiller. Le liseré reste sous le trait, comme une ombre portée. Un ennemi frappe
 // depuis la droite : retournée de gauche à droite par le sens du coup, puis de haut en bas, l'entaille de Kardrov a à
 // l'écran la même diagonale que Vordrak sur un ennemi, tracée dans l'autre sens (du bas vers le haut)
@@ -1290,10 +1290,10 @@ export function abilityFx(effect: AbilityEffect, input: AbilityFxInput, reduced:
 }
 
 // — Sang doré (MAE-98) —
-// Maelor et Elwen ont le sang doré (docs/lore.md) : à chaque dégât reçu, quelques petits éclats d'or jaillissent de
-// leur torse tel qu'il est affiché, dans le sens du coup, puis retombent. Un indice discret, que rien ne signale
-// (décisions de Wesley du 10/11/2026 et du 11/11/2026) : les deux ors de la palette seulement, sans transparence, et
-// la luminosité se règle par la part d'or vif face à l'or ancien. Intensité fixe : les mêmes éclats pour tout dégât.
+// Maelor et Elwen ont le sang doré : à chaque dégât reçu, quelques petits éclats d'or jaillissent de leur torse tel
+// qu'il est affiché, dans le sens du coup, puis retombent (décisions de Wesley du 10/11/2026 et du 11/11/2026) : les
+// deux ors de la palette seulement, sans transparence, et la luminosité se règle par la part d'or vif face à l'or ancien.
+// Intensité fixe : les mêmes éclats pour tout dégât.
 // Le réglage est dans la fiche du héros (goldBlood, game-data.ts) ; un réglage qui sort des bornes ci-dessous y est ramené.
 export const BLOOD_LIMITS = { count: [1, 12], size: [1, 3], frames: [2, 8] } as const; // as const : des bornes fixes
 const BLOOD_BAND = [0.25, 0.5] as const; // le torse : la bande de la silhouette d'où jaillissent les éclats (0 en haut) ; as const : idem

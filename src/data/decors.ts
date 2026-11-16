@@ -47,7 +47,7 @@ export interface Decor {
     // below : nombre de lignes sous `row` où elle s'éteint sur le sol.
     mist: { opacity: number; row: number; spread: number; from: number; below: number };
     shafts: { opacity: number; breath: number }; // rayons de lune : opacité et amplitude de leur respiration
-    fireflies: number;                    // nombre de lucioles (le Souffle rendu visible, docs/lore.md)
+    fireflies: number;                    // nombre de lucioles
   };
 }
 

@@ -49,7 +49,7 @@ export function buildAtmosphere(decor: Decor, parent: Group, camera: Perspective
     return material;
   });
 
-  // ─── Lucioles : le Souffle rendu visible ───
+  // ─── Lucioles ───
   // Un point net de 4 × 4 pixels de sprite et un halo doux, qui dérivent lentement et palpitent
   const coreCanvas = document.createElement("canvas");
   coreCanvas.width = coreCanvas.height = 4;
@@ -62,7 +62,7 @@ export function buildAtmosphere(decor: Decor, parent: Group, camera: Perspective
   core2d.fillRect(1, 0, 2, 1);
   core2d.fillRect(1, 3, 2, 1);
   // Sans test de profondeur : une luciole qui dérive derrière une bosse du relief (tronc, feuillage) serait coupée
-  // par une arête droite du maillage. Le Souffle passe devant la peinture, comme les rayons.
+  // par une arête droite du maillage. Les lucioles passent devant la peinture, comme les rayons.
   const coreMaterial = bin.add(new MeshBasicMaterial({
     map: bin.add(pixelTexture(coreCanvas)), transparent: true, blending: AdditiveBlending, depthWrite: false, depthTest: false, fog: false,
   }));

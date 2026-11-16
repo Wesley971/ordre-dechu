@@ -1,6 +1,6 @@
 # Palette des personnages
 
-Règle d'univers : dans ce monde sombre, les couleurs vives sont rares et sont la source de la vie ; seuls les immortels les portent. L'interface suit le Design System v3 ; les personnages ont cette palette.
+Les personnages ont cette palette ; l'interface suit le Design System v3. Les couleurs vives et l'or sont rares : seuls les personnages nommés ci-dessous les portent.
 
 ## 1. Base sombre (tous)
 
@@ -10,7 +10,7 @@ Règle d'univers : dans ce monde sombre, les couleurs vives sont rares et sont l
 | Brun d'ombre | `#2a2018` |
 | Cendre | `#45403a` |
 
-## 2. Couleurs des héros mortels (jamais reprises par un ennemi, sauf le bleu nuit des Hésiums en section 8)
+## 2. Couleurs de Maelor et de Corvin (jamais reprises par un ennemi, sauf le bleu nuit des Hésiums en section 8)
 
 | Héros | Couleur | Code |
 |---|---|---|
@@ -34,16 +34,16 @@ Règle d'univers : dans ce monde sombre, les couleurs vives sont rares et sont l
 | Cendré clair | `#c2b69f` | Cheveux de Maelor (sprite) |
 | Parchemin | `#f1e4c3` | Marque au front de Corvin |
 
-## 5. Or (héritage immortel seulement)
+## 5. Or
 
 | Couleur | Code |
 |---|---|
 | Or ancien | `#c9a84c` |
 | Or vif | `#f0c95a` |
 
-Usage : sang et yeux de Maelor, sang et lumière d'Elwen, Larme dorée. Aucun ennemi ne porte d'or, sauf les Tyrdrak et l'écho de Maelor (section 8).
+Usage : yeux de Maelor, lumière d'Elwen, Larme dorée, éclats du sang doré de Maelor et d'Elwen (MAE-98). Aucun ennemi ne porte d'or, sauf les Tyrdrak et l'écho de Maelor (section 8).
 
-## 6. Couleurs vives (immortels seulement, aujourd'hui Elwen seule ; exception des Tyrdrak en section 8)
+## 6. Couleurs vives (Elwen seule ; exception des Tyrdrak en section 8)
 
 | Couleur | Code | Usage |
 |---|---|---|
@@ -67,12 +67,11 @@ Usage : sang et yeux de Maelor, sang et lumière d'Elwen, Larme dorée. Aucun en
 
 ## 8. Exceptions : les Tyrdrak (Vahn), les Hésiums et l'écho de Maelor
 
-- Les Tyrdrak portent l'or (reflets des écailles, peau sous les écailles) et des couleurs vives (yeux rose violet), signe de leur lien avec les immortels.
-- Les Hésiums portent le bleu nuit de Corvin `#141c2e` dans leurs longs cheveux : exception assumée, ils deviennent ses alliés (MAE-65). Décision du 28/10/2026, d'après les bases Gemini (MAE-26).
+- Les Tyrdrak portent l'or (reflets des écailles, peau sous les écailles) et des couleurs vives (yeux rose violet).
+- Les Hésiums portent le bleu nuit de Corvin `#141c2e` dans leurs longs cheveux : exception assumée (MAE-65). Décision du 28/10/2026, d'après les bases Gemini (MAE-26).
 - La peau des Hésiums est bronzée (elle remplace le gris `#45403a`) et reste à l'écart des peaux des héros. Valeurs du sprite validé le 02/11/2026 (MAE-26), de l'ombre à la lumière : `#503922`, `#5d4429`, `#6b5030`, `#785d39`, `#836641`. Le ton le plus clair est le plus proche d'un héros (Maelor, ΔE 10,4).
 - L'écho de Maelor est le sprite de Maelor teinté d'or pâle, en miroir (MAE-70) : il garde le contour et les cheveux cendrés de Maelor, ses yeux sont en or vif `#f0c95a`, et l'or vient de la rampe brun d'ombre `#2a2018`, or ancien `#c9a84c`, parchemin `#f1e4c3`. Intensité « or 1, léger » choisie par Wesley le 02/11/2026. Valeurs du sprite (28 couleurs, de la plus fréquente à la plus rare) : `#140f12`, `#3c2f1b`, `#42321c`, `#3e341e`, `#533d25`, `#635232`, `#59472c`, `#4a3720`, `#5e3a2a`, `#463a22`, `#4d4028`, `#3e2d1a`, `#734833`, `#c2b69f`, `#6d5530`, `#a58a75`, `#796559`, `#b8945c`, `#574b46`, `#806c46`, `#392c18`, `#9e8455`, `#cfbe96`, `#977440`, `#7c5e33`, `#f0c95a`, `#ba9f72`, `#352815`.
 - Aucun autre ennemi.
-- Fiches : `docs/enemy-sheets.md`.
 
 ## Usage
 

@@ -958,7 +958,7 @@ describe("Kardrov, l'écho de Maelor : le miroir de Vordrak dans l'or de l'écho
   const SEEDS = [1, 2, 3, 13, 57, 404];
   const play = (effect: AbilityEffect, seed = 13, facing: 1 | -1 = -1) => framesOf(abilityFx(effect, { targets: [hero], facing, count: FX_COUNT, seed }, false));
   // La rampe d'or de l'écho (docs/character-palette.md, section 8) : brun d'ombre, or ancien, parchemin. Sans l'or vif,
-  // réservé à l'indice du sang doré des héros touchés (MAE-98, PR 2)
+  // réservé au sang doré des héros touchés (MAE-98, PR 2)
   const ECHO_RAMP: string[] = [FX_COLORS.shadow, FX_COLORS.oldGold, FX_COLORS.parchment];
 
   it("a son effet, déclaré dans les données, différent de Vordrak et de l'entaille", () => {
